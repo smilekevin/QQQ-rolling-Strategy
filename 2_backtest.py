@@ -65,6 +65,16 @@ lever_ok=sma_rising&(rvol<LEVER_VOLCEIL)
 ind=pd.DataFrame({'macd_line':macd_line,'macd_hist':macd_hist,'rsi':rsi,'st_bull':st_bull,'st':st,
                   'macro_bull':macro_bull,'lever_ok':lever_ok,'rvol':rvol})
 
+# ---------------- 决策档(基础仓位,着色/占比用)----------------
+DECNAME={'B':'趋势向上','C':'中性偏多','D':'温和回调','E':'强空头/现金'}
+def decide_tier(r):
+    if not r['macro_bull']:
+        return 'E' if (r['macd_line']<0 and not r['st_bull']) else 'D'
+    s=int(r['st_bull'])+int(r['macd_hist']>0)+int(r['macd_line']>0)+int(r['rsi']>50)
+    return 'B' if (s>=3 and r['lever_ok']) else 'C'
+DEC=ind.apply(decide_tier,axis=1)
+DEC_exec=DEC.shift(1).bfill()          # T+1,与执行时间线对齐
+
 # ---------------- 目标权重(w_qqq, w_qld, w_cash)----------------
 def targets(r):
     if not r['macro_bull']:
@@ -161,7 +171,7 @@ def band(v):
     for lo,hi,nm in BANDS:
         if lo<v<=hi: return nm
     return 'QLD全仓'
-dist=exp.apply(band).value_counts(normalize=True)
+dist=DEC_exec.map(DECNAME).value_counts(normalize=True)     # 各决策档时间占比
 tgt_exp=(Wc['q']+2*Wc['l']).round(2)          # 目标敞口(换档信号),用于统计切换次数
 nsw=(tgt_exp!=tgt_exp.shift()).sum()
 
@@ -183,6 +193,7 @@ export={
            'qld':samp(bh_qld).round(3).tolist(),'blend':samp(st_blend).round(3).tolist(),'half':samp(st_half).round(3).tolist()},
  'exposure':{'vals':samp(exp).round(2).tolist()},   # 日期复用 dates(见报告),不再单列
  'state_exp':exp.reindex(samp(eq).index,method='ffill').round(2).tolist(),
+ 'decision':DEC_exec.reindex(samp(eq).index,method='ffill').tolist(),   # 每日决策档(B/C/D/E),着色用
  'drawdown':{'strategy':(samp(eq)/samp(eq).cummax()-1).round(3).tolist(),
              'qld':(samp(bh_qld)/samp(bh_qld).cummax()-1).round(3).tolist(),
              'qqq':(samp(bh_qqq)/samp(bh_qqq).cummax()-1).round(3).tolist()},
@@ -190,11 +201,11 @@ export={
  'metrics_sub':{k:{kk:(None if isinstance(vv,float) and np.isnan(vv) else round(float(vv),4)) for kk,vv in m.items()} for k,m in M2.items()},
  'metrics_2010':{k:{kk:(None if isinstance(vv,float) and np.isnan(vv) else round(float(vv),4)) for kk,vv in m.items()} for k,m in M2010.items()},
  'metrics_2020':{k:{kk:(None if isinstance(vv,float) and np.isnan(vv) else round(float(vv),4)) for kk,vv in m.items()} for k,m in M2020.items()},
- 'dist':{nm:round(float(dist.get(nm,0)),4) for _,_,nm in BANDS},
+ 'dist':{DECNAME[k]:round(float(dist.get(DECNAME[k],0)),4) for k in ['B','C','D','E']},
  'switches':int(nsw),'ann_switch':round(nsw/(len(exp)/252),1),'ann_turnover':round(float(turn.sum()/(len(exp)/252)),2),
  'avg_exp':round(float(exp.mean()),2),
  'range':[df.index[0].strftime('%Y-%m-%d'),df.index[-1].strftime('%Y-%m-%d')],
- 'latest':{'date':df.index[-1].strftime('%Y-%m-%d'),'state':band(cur_e),'exp':round(cur_e,2),
+ 'latest':{'date':df.index[-1].strftime('%Y-%m-%d'),'state':DECNAME[DEC.iloc[-1]],'dec':DEC.iloc[-1],'exp':round(cur_e,2),
            'last_reb':last_reb.strftime('%Y-%m-%d'),'days_since':days_since,
            'prev_exp':round(prev_e,2),'prev_state':band(prev_e),
            'macd_hist':round(float(macd_hist.iloc[-1]),3),'macd_line':round(float(macd_line.iloc[-1]),3),

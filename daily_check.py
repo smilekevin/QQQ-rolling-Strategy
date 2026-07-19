@@ -78,11 +78,17 @@ def tier(e):
 def comp(e):   # 目标敞口 -> 下单比例
     if e<=1.0: return e,0.0,1-e      # QQQ, QLD, cash
     return 2-e, e-1, 0.0
+DECNM={'B':'趋势向上','C':'中性偏多','D':'温和回调','E':'强空头/现金'}
+def decide_last():                   # 最新决策档(与报告一致)
+    i=n-1
+    if not macro[i]: return 'E' if (mlv[i]<0 and not stb[i]) else 'D'
+    s=int(stb[i])+(mhv[i]>0)+(mlv[i]>0)+(rsiv[i]>50)
+    return 'B' if (s>=3 and rising[i] and rvol[i]<LEV_CEIL) else 'C'
 
-ti,tn=tier(target); q,l,cash=comp(target)
+q,l,cash=comp(target)
 last=px.index[-1].date()
 print(f"\n===== V4.3 每日检查 · 基于 {last} 收盘 =====")
-print(f"目标净敞口: {target:.2f}x   档位: {tn}")
+print(f"决策档: {DECNM[decide_last()]}   目标净敞口: {target:.2f}x")
 print(f"目标持仓构成: QQQ {q*100:.0f}%   QLD {l*100:.0f}%   现金 {cash*100:.0f}%")
 print(f"指标: 价格 {px.iloc[-1]:.1f} | 250日线 {'上方' if macro[-1] else '下方'} | "
       f"Supertrend {'多' if stb[-1] else '空'} | MACD线 {mlv[-1]:+.1f} | RSI {rsiv[-1]:.0f} | 20日波动 {rvol[-1]*100:.0f}%")

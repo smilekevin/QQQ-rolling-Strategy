@@ -151,8 +151,8 @@ code{{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}}
 <div class="chartbox sm"><canvas id="ddchart"></canvas></div>
 </div>
 <!-- 仓位分布 -->
-<div class="card"><h2><span class="n">4</span>各档敞口时间占比</h2>
-<div class="note">按净敞口分档统计。约 19% 时间完全避险(现金),约 41% 时间加杠杆(≥1.5x)。</div>
+<div class="card"><h2><span class="n">4</span>各决策档时间占比</h2>
+<div class="note">按决策档(基础仓位)统计。趋势向上约 43%、中性偏多约 29%、温和回调约 11%、强空头/现金约 16%。</div>
 <div class="chartbox sm"><canvas id="distchart"></canvas></div>
 </div>
 </div>
@@ -191,7 +191,10 @@ const fmtP = x => (x*100).toFixed(1)+'%';
 const fmtP0 = x => (x*100).toFixed(0)+'%';
 const NAMES = ['策略(V4.3动态滚仓)','QQQ半仓','QQQ全仓(=买入持有QQQ)','QQQ+QLD(50/50)','QLD全仓(=买入持有QLD)'];
 const COL = {{'策略(V4.3动态滚仓)':'#1c2230','QQQ半仓':'#c2453b','QQQ全仓(=买入持有QQQ)':'#c99a2e','QQQ+QLD(50/50)':'#3f7fb8','QLD全仓(=买入持有QLD)':'#9a7b3f'}};
-const STATECOL = {{'约2倍':'#2f8f5b','约1.5倍':'#6a9b3f','约满仓':'#b8912f','约半仓':'#c2453b','防御':'#5a6172'}};
+const STATECOL = {{'趋势向上':'#6a9b3f','中性偏多':'#b8912f','温和回调':'#c2453b','强空头/现金':'#5a6172'}};
+const DEC=R.decision;                 // 每日决策档(B/C/D/E)
+const DECCOL={{'B':'#6a9b3f','C':'#b8912f','D':'#c2453b','E':'#5a6172'}};
+const DECNM ={{'B':'趋势向上','C':'中性偏多','D':'温和回调','E':'强空头/现金'}};
 // continuous net-exposure -> color band
 function expColor(v){{ if(v<0.25)return '#5a6172'; if(v<0.75)return '#c2453b'; if(v<1.25)return '#b8912f'; if(v<1.75)return '#6a9b3f'; return '#2f8f5b'; }}
 function expName(v){{ const z = v<0.25?'防御':(v<0.75?'约半仓':(v<1.25?'约满仓':(v<1.75?'约1.5倍':'约2倍'))); return '净敞口 '+v.toFixed(2)+'x · '+z; }}
@@ -200,11 +203,11 @@ function expName(v){{ const z = v<0.25?'防御':(v<0.75?'约半仓':(v<1.25?'约
 const L=R.latest;
 document.getElementById('ldate').textContent=L.date;
 document.getElementById('lstate').textContent=L.state;
-document.getElementById('lstate').style.color=expColor(L.exp);
-document.getElementById('lstatebar').innerHTML='<span class="pill" style="background:'+expColor(L.exp)+'22;color:'+expColor(L.exp)+'">建议净敞口 '+L.exp.toFixed(2)+'x</span>';
+document.getElementById('lstate').style.color=DECCOL[L.dec];
+document.getElementById('lstatebar').innerHTML='<span class="pill" style="background:'+DECCOL[L.dec]+'22;color:'+DECCOL[L.dec]+'">决策 '+L.state+' · 建议净敞口 '+L.exp.toFixed(2)+'x</span>';
 document.getElementById('lreb').innerHTML=
   '上次调仓:<b>'+L.last_reb+'</b>(距今 '+L.days_since+' 天)<br>'+
-  '之前仓位:'+L.prev_state+' · '+L.prev_exp.toFixed(2)+'x  →  现 '+L.exp.toFixed(2)+'x';
+  '之前净敞口:'+L.prev_exp.toFixed(2)+'x  →  现 '+L.exp.toFixed(2)+'x';
 const ind=[['价格',L.price.toFixed(0),''],['250日趋势',L.macro_bull?'多头':'空头',L.macro_bull?'up':'dn'],
  ['Supertrend',L.st_level.toFixed(0),L.st_bull?'up':'dn'],
  ['MACD 柱',L.macd_hist.toFixed(2),L.macd_hist>0?'up':'dn'],['MACD 线',L.macd_line.toFixed(2),L.macd_line>0?'up':'dn'],
@@ -275,7 +278,7 @@ const EXPNAME={{0.5:'QQQ半仓 0.5x',1.0:'QQQ全仓 1.0x',1.5:'QQQ+QLD 1.5x',2.0
 const stratDS={{
   label:'策略(V4.3动态滚仓)',data:R.equity.strategy,borderWidth:2.6,pointRadius:0,tension:.05,
   borderColor:'#1c2230',
-  segment:{{ borderColor: ctx => expColor(SE[ctx.p1DataIndex]) }}
+  segment:{{ borderColor: ctx => DECCOL[DEC[ctx.p1DataIndex]]||'#1c2230' }}
 }};
 function refline(name,arr){{return {{label:name,data:arr,borderColor:'#c9c0ac',backgroundColor:'#c9c0ac',borderWidth:1,pointRadius:0,tension:.05,borderDash: name.includes('QLD全仓')?[5,3]:(name.includes('QQQ全仓')?[]:[2,3])}};}}
 const eqChart=new Chart(document.getElementById('eqchart'),{{type:'line',
@@ -287,14 +290,14 @@ const eqChart=new Chart(document.getElementById('eqchart'),{{type:'line',
  ]}},
  options:{{responsive:true,maintainAspectRatio:false,animation:false,interaction:{{mode:'index',intersect:false}},
    plugins:{{legend:{{display:false}},tooltip:{{callbacks:{{
-      title:items=>{{const i=items[0].dataIndex;return D[i]+'  ·  '+expName(SE[i]);}},
+      title:items=>{{const i=items[0].dataIndex;return D[i]+'  ·  决策 '+(DECNM[DEC[i]]||'')+' · 净敞口 '+SE[i].toFixed(2)+'x';}},
       label:c=>c.dataset.label+': '+c.parsed.y.toFixed(3)+'x'}}}}}},
    scales:{{x:{{type:'category',min:0,max:D.length-1,ticks:{{maxTicksLimit:10,color:'#8a8570'}},grid:{{display:false}}}},
      y:{{type:'logarithmic',ticks:{{color:'#8a8570',callback:v=>[1,3,10,30,100,300].includes(v)?v+'x':''}},grid:{{color:'#eee4d2'}}}}}}}}
 }});
-// state legend (what the colors mean) — continuous exposure bands
-document.getElementById('statelegend').innerHTML='<b style="color:#5a6172">策略主线配色(按<b>最终净敞口</b>所在区间):</b>'+
-  [['#6a9b3f','约1.5倍 1.25–1.75x'],['#b8912f','约满仓 0.75–1.25x'],['#c2453b','约半仓 0.25–0.75x'],['#5a6172','防御 0–0.25x']]
+// state legend — 按决策档着色(具体净敞口见悬浮提示)
+document.getElementById('statelegend').innerHTML='<b style="color:#5a6172">策略主线配色(按<b>决策档</b>,净敞口见悬浮):</b>'+
+  [['#6a9b3f','趋势向上(基础1.5x)'],['#b8912f','中性偏多(基础1.0x)'],['#c2453b','温和回调(基础0.5x)'],['#5a6172','强空头/现金(0x)']]
   .map(([c,t])=>'<span><i class="dot" style="background:'+c+'"></i>'+t+'</span>').join('');
 document.getElementById('eqlegend').innerHTML='<b style="color:#5a6172">灰色参照:</b>'+
   '<span><i class="dot" style="background:#c9c0ac"></i>QQQ 买入持有</span>'+
