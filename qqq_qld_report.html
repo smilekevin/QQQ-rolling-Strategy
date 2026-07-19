@@ -42,7 +42,27 @@ tr.hl td{background:#fbf4e3;font-weight:750}
 .rule .ex{font-size:22px;font-weight:800;margin:3px 0}
 .rule .ds{font-size:12.5px;color:#5a6172}
 .two{display:grid;grid-template-columns:1.35fr 1fr;gap:22px}
-@media(max-width:760px){.two{grid-template-columns:1fr}.bigstate{font-size:28px}}
+@media(max-width:760px){
+  .two{grid-template-columns:1fr}
+  .bigstate{font-size:28px}
+  .wrap{padding:20px 13px 54px}
+  h1{font-size:23px}
+  .sub{font-size:13.5px}
+  .card{padding:16px 15px;border-radius:12px;margin-top:16px}
+  h2{font-size:16px}
+  .chartbox{height:300px}
+  .chartbox.sm{height:230px}
+  table{font-size:12.5px} th,td{padding:7px 5px}
+  .ind-grid{grid-template-columns:repeat(auto-fit,minmax(96px,1fr))}
+  input[type=date]{font-size:16px !important}   /* 防 iOS 聚焦时自动放大 */
+}
+@media(max-width:430px){
+  .kpi{grid-template-columns:repeat(2,1fr)}
+  .kpi .box .v{font-size:20px}
+  .rules{grid-template-columns:1fr}
+  .toggle button{padding:6px 10px;font-size:12px}
+  .legend{font-size:11.5px;gap:10px}
+}
 ul.rl{margin:6px 0 0 2px;list-style:none;font-size:13.5px}
 ul.rl li{padding:5px 0 5px 22px;position:relative;border-bottom:1px dashed #ece3d0}
 ul.rl li:before{content:"▸";position:absolute;left:2px;color:#9a7b3f}
@@ -290,7 +310,7 @@ document.getElementById('zreset').onclick=()=>{
   document.querySelector('#rangetog button[data-r=all]').classList.add('on');
   setRange(0,D.length-1);
 };
-// drag select on canvas
+// drag select on canvas —— 同时支持鼠标与触摸(手机)
 (function(){
   const cv=document.getElementById('eqchart'); let dragging=false,sx=0,cx=0;
   const box=document.getElementById('eqbox');
@@ -298,13 +318,20 @@ document.getElementById('zreset').onclick=()=>{
   ov.style.cssText='position:absolute;top:0;bottom:0;background:rgba(28,34,48,.10);border-left:1px solid #1c2230;border-right:1px solid #1c2230;pointer-events:none;display:none';
   box.style.position='relative'; box.appendChild(ov);
   function xToIdx(px){ return eqChart.scales.x.getValueForPixel(px); }
+  const rectX=e=>{ const r=cv.getBoundingClientRect(); const p=(e.touches?e.touches[0]:e); return p.clientX-r.left; };
   cv.style.cursor='crosshair';
-  cv.addEventListener('mousedown',e=>{ dragging=true; sx=e.offsetX; cx=sx; ov.style.left=sx+'px'; ov.style.width='0px'; ov.style.display='block'; });
-  cv.addEventListener('mousemove',e=>{ if(!dragging)return; cx=e.offsetX; const l=Math.min(sx,cx),w=Math.abs(cx-sx); ov.style.left=l+'px'; ov.style.width=w+'px'; });
-  window.addEventListener('mouseup',()=>{ if(!dragging)return; dragging=false; ov.style.display='none';
+  function start(x){ dragging=true; sx=x; cx=x; ov.style.left=x+'px'; ov.style.width='0px'; ov.style.display='block'; }
+  function move(x){ if(!dragging)return; cx=x; ov.style.left=Math.min(sx,cx)+'px'; ov.style.width=Math.abs(cx-sx)+'px'; }
+  function end(){ if(!dragging)return; dragging=false; ov.style.display='none';
     let a=xToIdx(Math.min(sx,cx)),b=xToIdx(Math.max(sx,cx));
     if(Math.abs(cx-sx)>8 && Math.abs(b-a)>=3){ document.querySelectorAll('#rangetog button').forEach(x=>x.classList.remove('on')); setRange(a,b); }
-  });
+  }
+  cv.addEventListener('mousedown',e=>start(e.offsetX));
+  cv.addEventListener('mousemove',e=>move(e.offsetX));
+  window.addEventListener('mouseup',end);
+  cv.addEventListener('touchstart',e=>{ start(rectX(e)); },{passive:true});
+  cv.addEventListener('touchmove',e=>{ if(dragging){ e.preventDefault(); move(rectX(e)); } },{passive:false});
+  cv.addEventListener('touchend',end);
 })();
 
 // ---- drawdown ----
@@ -326,7 +353,7 @@ const dl=dEntries.map(e=>e[0]), dv=dEntries.map(e=>e[1]);
 new Chart(document.getElementById('distchart'),{type:'doughnut',
  data:{labels:dl,datasets:[{data:dv.map(x=>+(x*100).toFixed(1)),backgroundColor:dl.map(k=>STATECOL[k]),borderColor:'#fffdf8',borderWidth:2}]},
  options:{responsive:true,maintainAspectRatio:false,cutout:'58%',
-   plugins:{legend:{position:'right',labels:{boxWidth:12,font:{size:12}}},tooltip:{callbacks:{label:c=>c.label+': '+c.parsed+'%'}}}}
+   plugins:{legend:{position:(window.innerWidth<560?'bottom':'right'),labels:{boxWidth:12,font:{size:12}}},tooltip:{callbacks:{label:c=>c.label+': '+c.parsed+'%'}}}}
 });
 
 // ---- exposure over time ----
