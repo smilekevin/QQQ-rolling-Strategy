@@ -92,7 +92,7 @@ code{{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}}
 <body><div class="wrap">
 <div class="eyebrow">QQQ · QLD — 技术指标驱动的杠杆滚仓 · V4.2</div>
 <h1>动态滚仓策略回测(V4.2 增强版)</h1>
-<p class="sub">基于 QQQ 的 <b>MACD / RSI / Supertrend</b> + 250 日趋势闸门决定仓位档位,叠加 <b>20% 波动率目标</b>与<b>强空头清仓</b>两层风控,并让避险现金赚取短端国债收益。经样本内外验证优化(趋势闸门 250 日、波动率目标只降不升、去掉不赚风险溢价的 QLD全仓2x 档):全周期年化 12.3%、最大回撤压缩至 −30%,Calmar 达 0.41、夏普 0.70(全场最优),总收益反超买入持有 QQQ。净敞口在 <b>0(现金)→ 1.5x(QQQ+QLD)</b> 间连续调节。<b>组合在档位持有期内不做再平衡</b>,仅换档时调仓(与实盘一致)。</p>
+<p class="sub">基于 QQQ 的 <b>MACD / RSI / Supertrend</b> + 250 日趋势闸门决定仓位档位,叠加 <b>20% 波动率目标</b>与<b>强空头清仓</b>两层风控,并让避险现金赚取短端国债收益。经样本内外验证优化(趋势闸门 250 日、波动率目标只降不升、去掉不赚风险溢价的 QLD全仓2x 档):全周期年化 12.4%、最大回撤压缩至 −30%,Calmar 达 0.41、夏普 0.71(全场最优),总收益反超买入持有 QQQ。净敞口在 <b>0(现金)→ 1.5x(QQQ+QLD)</b> 间连续调节。<b>档位持有期内不做再平衡</b>,且设 <b>0.10x 死区</b>——目标偏离当前持仓不足 0.10x 时不动手,与实盘操作一致。</p>
 
 <!-- 当前信号 -->
 <div class="card"><h2><span class="n">◆</span>当前建议仓位</h2>
@@ -175,7 +175,7 @@ code{{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}}
  <li><b>动量打分(多头区间):</b> Supertrend 多头 +1、MACD 柱&gt;0 +1、MACD 线&gt;0 +1、RSI&gt;50 +1;0–2 分→QQQ全仓,3–4 分→QQQ+QLD(1.5x 封顶,MAX_EXPOSURE=1.5)。</li>
  <li><b>波动率目标(核心):</b> 最终敞口 = 档位敞口 ×min(1.0, 20%÷近20日年化波动率),0–2x 封顶(只降不升)。2000/2008/2020 波动暴涨时自动大幅降杠杆,躲开杠杆 ETF 最致命的深亏。</li>
  <li><b>强空头清仓:</b> 跌破 250 日线且 MACD&lt;0 且 Supertrend 空头时,直接 100% 现金(买国债),而非半仓硬扛。</li>
- <li><b>抗抖动:</b> 敞口按 0.05 档确认、连续 <code>3</code> 日才切换,信号 T 日生成、T+1 执行(无未来函数),换手约 <span id="turn"></span> 次/年,平均净敞口 <span id="avgexp"></span>x。</li>
+ <li><b>抗抖动:</b> 敞口按 0.05 档、连续 <code>3</code> 日确认;再设 <code>0.10x</code> 死区(目标偏离当前持仓 &lt;0.10x 则不动),信号 T 日生成、T+1 执行(无未来函数)。全周期换手约 <span id="turn"></span> 次/年,平均净敞口 <span id="avgexp"></span>x。</li>
 </ul>
 </div>
 

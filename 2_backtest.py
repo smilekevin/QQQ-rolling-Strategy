@@ -30,6 +30,7 @@ RVOL_WIN    = 20      # 实际波动率回看窗口(交易日)
 LEVER_VOLCEIL = 0.40  # 允许加杠杆的波动率天花板
 RSI_OB      = 78      # RSI 超买保护阈值(满分动量但超买时不上满杠杆)
 CONFIRM     = 3       # 目标敞口需连续几日确认才切换(降低抖动)
+DEADBAND    = 0.10    # 死区:确认目标与"当前持有敞口"偏离≥此值才调仓,否则沿用前一日(0=不设死区)
 COST_BPS    = 5/10000 # 单边交易成本(5bp)
 # ========================================================================
 
@@ -92,10 +93,15 @@ def confirm(vals,k):
         if cnt>=k: cur=run
         res.append(cur)
     return res
-confsig=pd.Series(confirm(sig.tolist(),CONFIRM),index=W.index)
-lastw={}
-for i,s in zip(W.index,sig): lastw[s]=(W.loc[i,'q'],W.loc[i,'l'],W.loc[i,'c'])
-Wc=pd.DataFrame([lastw[s] for s in confsig],index=W.index,columns=['q','l','c']).shift(1).bfill()
+confsig=confirm(sig.tolist(),CONFIRM)              # 0.05 档、经确认的目标净敞口(单位=0.05)
+# 死区:仅当确认目标与"当前持有档"偏离 ≥ DEADBAND 才调仓,否则沿用前一日敞口
+DB=int(round(DEADBAND*20)); held=confsig[0]; ded=[]
+for v in confsig:
+    if abs(v-held)>=DB: held=v
+    ded.append(held)
+e_exec=np.array(ded)/20.0                           # 实际执行的目标净敞口
+q=np.where(e_exec<=1,e_exec,2-e_exec); l=np.where(e_exec<=1,0.0,e_exec-1.0); cash=1.0-q-l
+Wc=pd.DataFrame({'q':q,'l':l,'c':cash},index=W.index).shift(1).bfill()
 
 # ---------------- 回测引擎(档位内不再平衡,仅换档时调仓 + 现金生息)----------------
 # 持有期内任凭 QQQ/QLD 权重随行情漂移(不做日内再平衡),只有当目标档位变化时
