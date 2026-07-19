@@ -28,48 +28,50 @@ def indicators(sma_len=200, st_p=10, st_m=3.0, rvol_win=20):
                          'rising':rising,'rvol':rvol})
 
 def build(ind, volt=0.20, vcap=1.15, rsi_ob=78, lev_volceil=0.40, confirm_k=3):
-    q=[];l=[];c=[]
-    for _,r in ind.iterrows():
-        if not r['macro']:
-            if (r['ml']<0) and (not r['stb']): w=(0.,0.,1.)
-            else: w=(.5,0.,.5)
-        else:
-            s=int(r['stb'])+int(r['mh']>0)+int(r['ml']>0)+int(r['rsi']>50)
-            state={0:'C',1:'C',2:'C',3:'B',4:'A'}[s]
-            if s==4 and r['rsi']>rsi_ob: state='B'
-            lever_ok=r['rising'] and (r['rvol']<lev_volceil)
-            if state in ('A','B') and not lever_ok: state='C'
-            w={'A':(0.,1.,0.),'B':(.5,.5,0.),'C':(1.,0.,0.)}[state]
-            exp=w[0]+2*w[1]
-            if r['rvol']>0 and not np.isnan(r['rvol']):
-                exp=max(0.,min(2., exp*min(vcap, volt/r['rvol'])))
-            w=(exp,0.,1-exp) if exp<=1 else (2-exp,exp-1,0.)
-        q.append(w[0]); l.append(w[1]); c.append(w[2])
-    W=pd.DataFrame({'q':q,'l':l,'c':c},index=ind.index)
-    sig=((W['q']+2*W['l'])*20).round().astype(int)
-    # 3-day confirm
-    vals=sig.tolist(); cur=vals[0];run=vals[0];cnt=0;res=[]
-    for v in vals:
-        if v==run:cnt+=1
-        else:run=v;cnt=1
-        if cnt>=confirm_k:cur=run
-        res.append(cur)
-    lastw={}
-    for i,s in zip(W.index,sig): lastw[s]=(W.loc[i,'q'],W.loc[i,'l'],W.loc[i,'c'])
-    Wc=pd.DataFrame([lastw[s] for s in res],index=W.index,columns=['q','l','c']).shift(1).bfill()
-    return Wc
+    # ---- 全向量化(替代原 iterrows / 逐行 .loc,速度快 ~50x)----
+    ml=ind['ml'].values; mh=ind['mh'].values; rsi=ind['rsi'].values
+    stb=ind['stb'].values.astype(bool); macro=ind['macro'].values.astype(bool)
+    rising=ind['rising'].values.astype(bool); rvol=ind['rvol'].values
+    n=len(ind)
+    # 多头区:动量打分 -> 基础敞口(C=1 / B=1.5 / A=2)
+    s = stb.astype(int)+(mh>0).astype(int)+(ml>0).astype(int)+(rsi>50).astype(int)
+    exp = np.where(s>=4, 2.0, np.where(s>=3, 1.5, 1.0))
+    exp = np.where((s>=4)&(rsi>rsi_ob), 1.5, exp)          # 超买保护
+    lever_ok = rising & (rvol<lev_volceil)
+    exp = np.where((exp>1.0)&(~lever_ok), 1.0, exp)        # 杠杆熔断
+    # 波动率目标缩放(仅在 rvol 有效处)
+    valid = (rvol>0) & (~np.isnan(rvol))
+    with np.errstate(divide='ignore',invalid='ignore'):
+        scale = np.minimum(vcap, np.where(valid, volt/rvol, vcap))
+    exp = np.where(valid, np.clip(exp*scale, 0.0, 2.0), exp)
+    # 空头区覆盖:强空头->现金(0),温和回调->半仓(0.5)
+    bear = ~macro
+    exp = np.where(bear & (ml<0) & (~stb), 0.0, exp)
+    exp = np.where(bear & ~((ml<0)&(~stb)), 0.5, exp)
+    # 0.05 档确认(单次 O(n) 轻量循环)
+    sigb = np.round(exp*20).astype(int)
+    res=np.empty(n,int); cur=sigb[0]; run_v=sigb[0]; cnt=0
+    for i in range(n):
+        v=sigb[i]
+        if v==run_v: cnt+=1
+        else: run_v=v; cnt=1
+        if cnt>=confirm_k: cur=run_v
+        res[i]=cur
+    e = res/20.0
+    e = np.concatenate(([e[0]], e[:-1]))                  # T+1 执行(shift 1, 首值 bfill)
+    q = np.where(e<=1.0, e, 2.0-e)
+    l = np.where(e<=1.0, 0.0, e-1.0)
+    c = 1.0-q-l
+    return q,l,c
 
 COST=5/10000
-def run(Wc):
-    val=1.;pq=pl=0.;eq=[];exps=[]
-    idx=Wc.index
-    Q=Wc['q'].values;Lv=Wc['l'].values;Cv=Wc['c'].values
-    RQ=rq.reindex(idx).values;RL=rl.reindex(idx).values;RF=rf.reindex(idx).values
-    for i in range(len(idx)):
-        tq,tl,tc=Q[i],Lv[i],Cv[i]
-        val*=(1-(abs(tq-pq)+abs(tl-pl))*COST)
-        val*=(1+tq*RQ[i]+tl*RL[i]+tc*RF[i]); eq.append(val); exps.append(tq+2*tl); pq,pl=tq,tl
-    return pd.Series(eq,index=idx),pd.Series(exps,index=idx)
+RQ=rq.values; RL=rl.values; RF=rf.values; IDX=rq.index
+def run(qlc):
+    q,l,c=qlc
+    turn = np.abs(np.diff(q,prepend=0.0)) + np.abs(np.diff(l,prepend=0.0))
+    ret  = q*RQ + l*RL + c*RF
+    eq   = np.cumprod((1-turn*COST)*(1+ret))
+    return pd.Series(eq,index=IDX), pd.Series(q+2*l,index=IDX)
 
 def met(e):
     e=e.dropna(); r=e.pct_change().dropna(); yrs=len(e)/252
