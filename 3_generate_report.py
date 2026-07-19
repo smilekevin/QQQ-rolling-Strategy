@@ -68,9 +68,9 @@ code{{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}}
 .kpi .box .s{{font-size:11.5px;color:#6a7183}}
 </style></head>
 <body><div class="wrap">
-<div class="eyebrow">QQQ · QLD — 技术指标驱动的杠杆滚仓 · V4.1</div>
-<h1>动态滚仓策略回测(V4.1 增强版)</h1>
-<p class="sub">基于 QQQ 的 <b>MACD / RSI / Supertrend</b> + 250 日趋势闸门决定仓位档位,叠加 <b>20% 波动率目标</b>与<b>强空头清仓</b>两层风控,并让避险现金赚取短端国债收益。经样本内外验证优化(趋势闸门 250 日、波动率目标只降不升):全周期年化 11.9%、最大回撤压缩至 −30%,Calmar 达 0.40(全场最优),总收益反超买入持有 QQQ。净敞口在 <b>0(现金)→ 2.0x(QLD全仓)</b> 间连续调节。</p>
+<div class="eyebrow">QQQ · QLD — 技术指标驱动的杠杆滚仓 · V4.2</div>
+<h1>动态滚仓策略回测(V4.2 增强版)</h1>
+<p class="sub">基于 QQQ 的 <b>MACD / RSI / Supertrend</b> + 250 日趋势闸门决定仓位档位,叠加 <b>20% 波动率目标</b>与<b>强空头清仓</b>两层风控,并让避险现金赚取短端国债收益。经样本内外验证优化(趋势闸门 250 日、波动率目标只降不升、去掉不赚风险溢价的 QLD全仓2x 档):全周期年化 12.2%、最大回撤压缩至 −30%,Calmar 达 0.41、夏普 0.71(全场最优),总收益反超买入持有 QQQ。净敞口在 <b>0(现金)→ 1.5x(QQQ+QLD)</b> 间连续调节。</p>
 
 <!-- 当前信号 -->
 <div class="card"><h2><span class="n">◆</span>当前建议仓位</h2>
@@ -133,18 +133,17 @@ code{{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}}
 
 <!-- 策略规则 -->
 <div class="card"><h2><span class="n">6</span>切换规则</h2>
-<div class="note">决策链:①先用 250 日均线定多空 → ②多头区间用 Supertrend/MACD/RSI 打分(0–4)决定基础档位 → ③用 20% 波动率目标缩放最终敞口 → ④强空头直接清仓。避险现金买短端国债生息。</div>
+<div class="note">决策链:①先用 250 日均线定多空 → ②多头区间用 Supertrend/MACD/RSI 打分(0–4)决定基础档位 → ③用 20% 波动率目标缩放最终敞口 → ④强空头直接清仓。避险现金买短端国债生息。<b>V4.2 起去掉 QLD全仓2x 档(经验证不赚风险溢价),最高 1.5x。</b></div>
 <div class="rules">
- <div class="rule"><div class="lv" style="color:#2f8f5b">A · 强趋势</div><div class="ex">→ QLD 全仓 · 2.0x</div><div class="ds">动量满分(4/4)+ SMA200 上行 + 波动率&lt;40%。RSI&gt;78 时降为 B 防吹顶。</div></div>
- <div class="rule"><div class="lv" style="color:#6a9b3f">B · 趋势向上</div><div class="ex">→ QQQ+QLD · 1.5x</div><div class="ds">动量 3/4,趋势健康未到极致。50% QQQ + 50% QLD。</div></div>
- <div class="rule"><div class="lv" style="color:#b8912f">C · 中性偏多</div><div class="ex">→ QQQ 全仓 · 1.0x</div><div class="ds">价在 SMA200 上方但动量一般,或杠杆熔断触发。</div></div>
+ <div class="rule"><div class="lv" style="color:#6a9b3f">B · 趋势向上(最高档)</div><div class="ex">→ QQQ+QLD · 1.5x</div><div class="ds">动量 3–4 分,趋势健康。50% QQQ + 50% QLD。需 SMA250 上行 + 波动率&lt;40% 的熔断许可。</div></div>
+ <div class="rule"><div class="lv" style="color:#b8912f">C · 中性偏多</div><div class="ex">→ QQQ 全仓 · 1.0x</div><div class="ds">价在 SMA250 上方但动量一般(0–2 分),或杠杆熔断触发。</div></div>
  <div class="rule"><div class="lv" style="color:#c2453b">D · 温和回调</div><div class="ex">→ QQQ 半仓 · 0.5x</div><div class="ds">跌破 250 日线但未确认空头,留半仓底仓 + 半仓现金生息。</div></div>
  <div class="rule"><div class="lv" style="color:#5a6172">E · 强空头</div><div class="ex">→ 现金 · 0x</div><div class="ds">跌破 250 日线 且 MACD&lt;0 且 Supertrend 空头 → 清仓避险,现金买国债。</div></div>
  <div class="rule" style="background:#eef4ee;border-color:#c9e0c9"><div class="lv" style="color:#2f6f4f">★ 波动率目标</div><div class="ex">×(20%÷实际波动)</div><div class="ds">在上述档位上再缩放:波动飙升时自动砍杠杆(只降不升,上限 1.0 倍)。降回撤的核心。</div></div>
 </div>
 <ul class="rl">
  <li><b>宏观闸门:</b> 收盘价 vs 250 日均线,定多空大方向(经样本内外验证由 200 日优化而来)。</li>
- <li><b>动量打分(多头区间):</b> Supertrend 多头 +1、MACD 柱&gt;0 +1、MACD 线&gt;0 +1、RSI&gt;50 +1,分数映射到 C/B/A 档。</li>
+ <li><b>动量打分(多头区间):</b> Supertrend 多头 +1、MACD 柱&gt;0 +1、MACD 线&gt;0 +1、RSI&gt;50 +1;0–2 分→QQQ全仓,3–4 分→QQQ+QLD(1.5x 封顶,MAX_EXPOSURE=1.5)。</li>
  <li><b>波动率目标(核心):</b> 最终敞口 = 档位敞口 ×min(1.0, 20%÷近20日年化波动率),0–2x 封顶(只降不升)。2000/2008/2020 波动暴涨时自动大幅降杠杆,躲开杠杆 ETF 最致命的深亏。</li>
  <li><b>强空头清仓:</b> 跌破 250 日线且 MACD&lt;0 且 Supertrend 空头时,直接 100% 现金(买国债),而非半仓硬扛。</li>
  <li><b>抗抖动:</b> 敞口按 0.05 档确认、连续 <code>3</code> 日才切换,信号 T 日生成、T+1 执行(无未来函数),换手约 <span id="turn"></span> 次/年,平均净敞口 <span id="avgexp"></span>x。</li>
@@ -158,8 +157,8 @@ code{{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}}
 const R = {DATA};
 const fmtP = x => (x*100).toFixed(1)+'%';
 const fmtP0 = x => (x*100).toFixed(0)+'%';
-const NAMES = ['策略(V4.1动态滚仓)','QQQ半仓','QQQ全仓(=买入持有QQQ)','QQQ+QLD(50/50)','QLD全仓(=买入持有QLD)'];
-const COL = {{'策略(V4.1动态滚仓)':'#1c2230','QQQ半仓':'#c2453b','QQQ全仓(=买入持有QQQ)':'#c99a2e','QQQ+QLD(50/50)':'#3f7fb8','QLD全仓(=买入持有QLD)':'#9a7b3f'}};
+const NAMES = ['策略(V4.2动态滚仓)','QQQ半仓','QQQ全仓(=买入持有QQQ)','QQQ+QLD(50/50)','QLD全仓(=买入持有QLD)'];
+const COL = {{'策略(V4.2动态滚仓)':'#1c2230','QQQ半仓':'#c2453b','QQQ全仓(=买入持有QQQ)':'#c99a2e','QQQ+QLD(50/50)':'#3f7fb8','QLD全仓(=买入持有QLD)':'#9a7b3f'}};
 const STATECOL = {{'QLD全仓':'#2f8f5b','QQQ+QLD':'#6a9b3f','QQQ全仓':'#b8912f','QQQ半仓':'#c2453b','现金/避险':'#5a6172'}};
 // continuous net-exposure -> color band
 function expColor(v){{ if(v<0.25)return '#5a6172'; if(v<0.75)return '#c2453b'; if(v<1.25)return '#b8912f'; if(v<1.75)return '#6a9b3f'; return '#2f8f5b'; }}
@@ -182,7 +181,7 @@ document.getElementById('avgexp').textContent=R.avg_exp;
 // ---- KPI ----
 function renderKPI(period){{
  const M = period==='sub'? R.metrics_sub : R.metrics;
- const s=M['策略(V4.1动态滚仓)'];
+ const s=M['策略(V4.2动态滚仓)'];
  const qqq=M['QQQ全仓(=买入持有QQQ)'], qld=M['QLD全仓(=买入持有QLD)'];
  const boxes=[
   ['年化收益',fmtP(s.cagr),'CAGR'],
@@ -214,7 +213,7 @@ function renderTable(M, period){{
  cols.forEach(([c])=>{{ let vals=keys.map(k=>M[k][c]); best[c]= (c==='mdd')? Math.max(...vals): Math.max(...vals); if(c==='vol') best[c]=Math.min(...vals); }});
  let h='<thead><tr><th>方案</th>'+cols.map(c=>'<th>'+c[1]+'</th>').join('')+'</tr></thead><tbody>';
  keys.forEach(k=>{{
-   h+='<tr'+(k==='策略(V4.1动态滚仓)'?' class="hl"':'')+'><td>'+k+'</td>'+cols.map(([c,,f])=>{{
+   h+='<tr'+(k==='策略(V4.2动态滚仓)'?' class="hl"':'')+'><td>'+k+'</td>'+cols.map(([c,,f])=>{{
      let v=M[k][c]; let cls=(v===best[c])?' class="best"':''; return '<td'+cls+'>'+f(v)+'</td>';
    }}).join('')+'</tr>';
  }});
@@ -234,7 +233,7 @@ const SE=R.state_exp;  // per-point exposure aligned to D
 const EXPCOL={{0.5:'#c2453b',1.0:'#b8912f',1.5:'#6a9b3f',2.0:'#2f8f5b'}};
 const EXPNAME={{0.5:'QQQ半仓 0.5x',1.0:'QQQ全仓 1.0x',1.5:'QQQ+QLD 1.5x',2.0:'QLD全仓 2.0x'}};
 const stratDS={{
-  label:'策略(V4.1动态滚仓)',data:R.equity.strategy,borderWidth:2.6,pointRadius:0,tension:.05,
+  label:'策略(V4.2动态滚仓)',data:R.equity.strategy,borderWidth:2.6,pointRadius:0,tension:.05,
   borderColor:'#1c2230',
   segment:{{ borderColor: ctx => expColor(SE[ctx.p1DataIndex]) }}
 }};
@@ -255,7 +254,7 @@ const eqChart=new Chart(document.getElementById('eqchart'),{{type:'line',
 }});
 // state legend (what the colors mean) — continuous exposure bands
 document.getElementById('statelegend').innerHTML='<b style="color:#5a6172">策略主线配色(按净敞口):</b>'+
-  [['#2f8f5b','QLD全仓 ~2x'],['#6a9b3f','QQQ+QLD ~1.5x'],['#b8912f','QQQ全仓 ~1x'],['#c2453b','QQQ半仓 ~0.5x'],['#5a6172','现金/避险 0x']]
+  [['#6a9b3f','QQQ+QLD ~1.5x(最高档)'],['#b8912f','QQQ全仓 ~1x'],['#c2453b','QQQ半仓 ~0.5x'],['#5a6172','现金/避险 0x']]
   .map(([c,t])=>'<span><i class="dot" style="background:'+c+'"></i>'+t+'</span>').join('');
 document.getElementById('eqlegend').innerHTML='<b style="color:#5a6172">灰色参照:</b>'+
   '<span><i class="dot" style="background:#c9c0ac"></i>QQQ 买入持有</span>'+

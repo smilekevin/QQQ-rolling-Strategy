@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-第 2 步:回测 V4.1 动态滚仓策略  ->  results.json
+第 2 步:回测 V4.2 动态滚仓策略  ->  results.json
 
-策略(四档 + 现金,连续杠杆):
+策略(现金 + 三档,连续杠杆;V4.2 起去掉 QLD全仓2x 档,最高 1.5x):
   · 宏观闸门:收盘价 vs 250 日均线,定多空大方向。
   · 空头区:  强空头(MACD<0 且 Supertrend 空头)-> 100% 现金(买国债);
              否则温和回调 -> QQQ 半仓(0.5x)+ 半仓现金。
   · 多头区:  动量打分 = Supertrend多头 + MACD柱>0 + MACD线>0 + RSI>50 (0~4)
-             -> C=QQQ全仓(1x) / B=QQQ+QLD(1.5x) / A=QLD全仓(2x);RSI>78 时 A 降 B 防吹顶;
-             加杠杆(A/B)还需"250日线上行 且 20日波动率<40%"的熔断许可。
+             -> C=QQQ全仓(1x) / 3~4分=QQQ+QLD(1.5x,由 MAX_EXPOSURE 封顶);
+             加杠杆还需"250日线上行 且 20日波动率<40%"的熔断许可。
   · 波动率目标:最终净敞口 = 档位敞口 × min(VOL_CAP, VOL_TARGET / 20日年化波动率),0~2x 封顶。
   · 抗抖动:  净敞口按 0.05 档、连续 CONFIRM 日确认才切换;信号 T 日生成、T+1 执行(无未来函数)。
   · 现金按 ^IRX 短端国债利率计息;每次调仓计 COST_BPS 单边成本。
@@ -23,6 +23,7 @@ import pandas as pd, numpy as np, json
 SMA_LEN     = 250     # 趋势闸门均线长度(200/250/300;250 为验证后的稳健选择)
 VOL_TARGET  = 0.20    # 目标年化波动率(越低越保守;0.14~0.25 结果不敏感)
 VOL_CAP     = 1.0     # 波动目标只降不升(1.0=不在基础档位上再加杠杆);经验证比 1.15 回撤更低、收益持平
+MAX_EXPOSURE= 1.5     # 最高档位上限(1.5=去掉 QLD全仓2x 档;经验证 2x 档不赚风险溢价,砍掉零代价)
 ST_PERIOD   = 10      # Supertrend ATR 周期
 ST_MULT     = 3.0     # Supertrend 倍数(2~4)
 RVOL_WIN    = 20      # 实际波动率回看窗口(交易日)
@@ -74,8 +75,8 @@ def targets(r):
     if s==4 and r['rsi']>RSI_OB: state='B'
     if state in ('A','B') and not r['lever_ok']: state='C'
     w={'A':(0.0,1.0,0.0),'B':(0.5,0.5,0.0),'C':(1.0,0.0,0.0)}[state]
-    exp=w[0]+2*w[1]                             # 波动率目标叠加
-    if r['rvol']>0 and not np.isnan(r['rvol']):
+    exp=min(w[0]+2*w[1], MAX_EXPOSURE)          # 档位上限
+    if r['rvol']>0 and not np.isnan(r['rvol']): # 波动率目标叠加
         exp=max(0.0,min(2.0, exp*min(VOL_CAP, VOL_TARGET/r['rvol'])))
     return (exp,0.0,1-exp) if exp<=1.0 else (2-exp, exp-1, 0.0)
 
@@ -120,7 +121,7 @@ def metrics(e):
                 best_yr=yr.max(),worst_yr=yr.min())
 def rebased(s,start): s2=s[s.index>=start]; return s2/s2.iloc[0]
 
-series={'策略(V4.1动态滚仓)':eq,'QQQ半仓':st_half,'QQQ全仓(=买入持有QQQ)':bh_qqq,
+series={'策略(V4.2动态滚仓)':eq,'QQQ半仓':st_half,'QQQ全仓(=买入持有QQQ)':bh_qqq,
         'QQQ+QLD(50/50)':st_blend,'QLD全仓(=买入持有QLD)':bh_qld}
 M ={k:metrics(v)            for k,v in series.items()}
 M2={k:metrics(rebased(v,'2006-06-22')) for k,v in series.items()}
@@ -146,7 +147,7 @@ print(f"\n平均净敞口 {exp.mean():.2f}x  年化换手(单边) {turn.sum()/(l
 # ---------------- 导出 results.json(供报告使用)----------------
 def samp(s): return s.resample('W').last().dropna()
 export={
- 'variant':'V4.1',
+ 'variant':'V4.2',
  'dates':[d.strftime('%Y-%m-%d') for d in samp(eq).index],
  'equity':{'strategy':samp(eq).round(4).tolist(),'qqq':samp(bh_qqq).round(4).tolist(),
            'qld':samp(bh_qld).round(4).tolist(),'blend':samp(st_blend).round(4).tolist(),'half':samp(st_half).round(4).tolist()},
