@@ -109,8 +109,10 @@ code{{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}}
 <!-- 关键结论 -->
 <div class="card"><h2><span class="n">1</span>核心结论</h2>
 <div class="toggle" id="kpitog">
-  <button data-p="sub" class="on">2006年至今(真实QLD)</button>
-  <button data-p="full">1999年至今(全区间)</button>
+  <button data-p="sub" class="on">2006至今(真实QLD)</button>
+  <button data-p="p2010">2010至今</button>
+  <button data-p="p2020">2020至今</button>
+  <button data-p="full">1999至今(全区间)</button>
 </div>
 <div class="kpi" id="kpi"></div>
 <p class="note" style="margin-top:14px" id="kpinote"></p>
@@ -212,24 +214,29 @@ document.getElementById('turn').textContent=R.ann_switch;
 document.getElementById('avgexp').textContent=R.avg_exp;
 
 // ---- KPI ----
+const PMETA={{
+  full:{{m:R.metrics,      label:'1999-03 至今(全区间)', span:'1999至今'}},
+  sub :{{m:R.metrics_sub,  label:'2006-06 至今(真实QLD)', span:'2006至今'}},
+  p2010:{{m:R.metrics_2010,label:'2010-01 至今',          span:'2010至今'}},
+  p2020:{{m:R.metrics_2020,label:'2020-01 至今',          span:'2020至今'}},
+}};
 function renderKPI(period){{
- const M = period==='sub'? R.metrics_sub : R.metrics;
+ const meta=PMETA[period]||PMETA.sub; const M=meta.m;
  const s=M['策略(V4.2动态滚仓)'];
  const qqq=M['QQQ全仓(=买入持有QQQ)'], qld=M['QLD全仓(=买入持有QLD)'];
  const boxes=[
   ['年化收益',fmtP(s.cagr),'CAGR'],
   ['最大回撤',fmtP0(s.mdd),'峰值→谷底'],
-  ['Calmar',s.calmar.toFixed(2),'年化/回撤 · 全场最优'],
+  ['Calmar',s.calmar.toFixed(2),'年化/回撤'],
   ['夏普',s.sharpe.toFixed(2),'rf=0'],
   ['年化波动',fmtP(s.vol),''],
-  ['总收益',fmtP0(s.total),(period==='sub'?'2006至今':'1999至今')],
+  ['总收益',fmtP0(s.total),meta.span],
  ];
  document.getElementById('kpi').innerHTML=boxes.map(([k,v,ss])=>'<div class="box"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="s">'+ss+'</div></div>').join('');
- const note = period==='sub'
-  ? '真实 QLD 数据段(2006-06 至今)。策略年化 '+fmtP(s.cagr)+'、回撤 '+fmtP0(s.mdd)+',对比 QQQ 买入持有('+fmtP(qqq.cagr)+' / '+fmtP0(qqq.mdd)+')收益相当但回撤更浅;对比 QLD 买入持有('+fmtP(qld.cagr)+' / '+fmtP0(qld.mdd)+')以约一半回撤换取 Calmar 由 '+qld.calmar.toFixed(2)+' 提升到 '+s.calmar.toFixed(2)+'。'
-  : '含 2000–2002 互联网泡沫破裂(该段 QLD 为合成数据)。即便计入这一杠杆最不利的历史,策略 Calmar '+s.calmar.toFixed(2)+' 仍优于全部买入持有方案;QLD 买入持有同期回撤达 '+fmtP0(qld.mdd)+'。';
+ let note='区间 '+meta.label+':策略 年化 '+fmtP(s.cagr)+'、回撤 '+fmtP0(s.mdd)+'、Calmar '+s.calmar.toFixed(2)
+   +';同期买入持有 QQQ '+fmtP(qqq.cagr)+' / '+fmtP0(qqq.mdd)+',QLD '+fmtP(qld.cagr)+' / '+fmtP0(qld.mdd)+'。';
+ if(period==='full') note+=' 注:含 2000–2002 泡沫破裂,且该段 QLD 为合成数据(偏乐观约 0.8%/年)。';
  document.getElementById('kpinote').textContent=note;
- // table row rendering not used; note only
  renderTable(M, period);
 }}
 let tableCard=null;
@@ -252,7 +259,7 @@ function renderTable(M, period){{
  }});
  h+='</tbody>';
  document.getElementById('mtab').innerHTML=h;
- document.getElementById('tbnote').textContent=(period==='sub'?'区间 2006-06 至今(真实 QLD)':'区间 1999-03 至今(2006 前 QLD 为合成)')+'。绿色=该列最优。';
+ document.getElementById('tbnote').textContent='区间 '+(PMETA[period]||PMETA.sub).label+'。绿色=该列最优。';
 }}
 document.querySelectorAll('#kpitog button').forEach(b=>b.onclick=()=>{{
  document.querySelectorAll('#kpitog button').forEach(x=>x.classList.remove('on'));

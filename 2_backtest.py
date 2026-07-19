@@ -140,6 +140,8 @@ series={'策略(V4.2动态滚仓)':eq,'QQQ半仓':st_half,'QQQ全仓(=买入持�
         'QQQ+QLD(50/50)':st_blend,'QLD全仓(=买入持有QLD)':bh_qld}
 M ={k:metrics(v)            for k,v in series.items()}
 M2={k:metrics(rebased(v,'2006-06-22')) for k,v in series.items()}
+M2010={k:metrics(rebased(v,'2010-01-01')) for k,v in series.items()}
+M2020={k:metrics(rebased(v,'2020-01-01')) for k,v in series.items()}
 
 print(f"{'方案':<22}{'年化':>7}{'总收益':>9}{'波动':>7}{'夏普':>6}{'回撤':>8}{'Calmar':>7}{'最差年':>7}")
 for k,m in M.items():
@@ -182,6 +184,8 @@ export={
              'qqq':(samp(bh_qqq)/samp(bh_qqq).cummax()-1).round(3).tolist()},
  'metrics':{k:{kk:(None if isinstance(vv,float) and np.isnan(vv) else round(float(vv),4)) for kk,vv in m.items()} for k,m in M.items()},
  'metrics_sub':{k:{kk:(None if isinstance(vv,float) and np.isnan(vv) else round(float(vv),4)) for kk,vv in m.items()} for k,m in M2.items()},
+ 'metrics_2010':{k:{kk:(None if isinstance(vv,float) and np.isnan(vv) else round(float(vv),4)) for kk,vv in m.items()} for k,m in M2010.items()},
+ 'metrics_2020':{k:{kk:(None if isinstance(vv,float) and np.isnan(vv) else round(float(vv),4)) for kk,vv in m.items()} for k,m in M2020.items()},
  'dist':{nm:round(float(dist.get(nm,0)),4) for _,_,nm in BANDS},
  'switches':int(nsw),'ann_switch':round(nsw/(len(exp)/252),1),'ann_turnover':round(float(turn.sum()/(len(exp)/252)),2),
  'avg_exp':round(float(exp.mean()),2),
