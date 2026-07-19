@@ -13,7 +13,8 @@ QQQ / QLD **动态滚仓策略**:用 QQQ 的技术指标(MACD / RSI / Supertrend
 | 文件 | 作用 |
 |---|---|
 | `1_prepare_data.py` | 下载 QQQ/QLD/^IRX,合成 2006 前 QLD → `prices.csv` |
-| `2_backtest.py` | 指标 + V4.3 策略回测 → `results.json`。**顶部 CONFIG 是唯一调参处** |
+| `indicators.py` | **共享指标模块**:ema/macd/rsi/supertrend/compute + decide_tier/DECNAME。被 2/daily_check 复用 |
+| `2_backtest.py` | 指标(import indicators)+ V4.3 策略回测 → `results.json`。**顶部 CONFIG 是唯一调参处** |
 | `3_generate_report.py` | 渲染自包含交互式网页 → `qqq_qld_report.html` |
 | `daily_check.py` | 盘后算目标敞口 + 决策档,给"持有/调仓"建议 |
 | `opt.py` | 参数稳健性 / 样本内外验证(向量化,<1s) |
@@ -86,7 +87,7 @@ RSI_OB=78 CONFIRM=3 COST_BPS=5/10000  (报告/日检里 DEADBAND=0.10)
 
 ## 9. 一致性要求(改代码务必遵守)
 
-- **改策略参数/逻辑,`2_backtest.py` 和 `daily_check.py` 两处都要同步改**(daily_check 复刻了同一套指标+决策逻辑)。
+- **指标与决策档逻辑已统一到 `indicators.py`**,`2_backtest.py` 和 `daily_check.py` 都 import 它——改指标/决策只需改这一处。但**决策后的敞口映射**(动量分→档位敞口、波动率目标缩放)仍在两文件各自的 `targets()`/主循环里,改这部分仍需两处同步。`opt.py`/`ablation.py` 为扫描参数而各自内联指标,不依赖模块。
 - **档位/决策边界**:`band()`(2_backtest,敞口分档)用 `lo < v <= hi`(上界闭);`daily_check.tier()` 已对齐。曾出过 bug:tier 用 `<` 导致 0.25/0.75 等边界值归档错位。
 - **决策档定义**必须与 targets() 一致:`decide_tier` 返回 B 仅当 `s>=3 且 lever_ok`,否则 C(与 targets 里 base>1 且 not lever_ok→降 C 一致)。
 - 报告 `STATECOL` 的 key 必须与 `results.json` 的 `dist` key(决策档名)完全一致,否则占比图颜色错。

@@ -9,6 +9,7 @@
 | 文件 | 作用 | 产物 |
 |---|---|---|
 | `1_prepare_data.py` | 下载 QQQ/QLD/^IRX,合成 2006 前 QLD,拼接价格 | `prices.csv` |
+| `indicators.py` | 共享指标模块(MACD/RSI/Supertrend/闸门 + 决策档),被下面两个脚本复用 | — |
 | `2_backtest.py` | 计算指标、跑 V4.3 策略回测、导出结果 | `results.json` |
 | `3_generate_report.py` | 把结果渲染成自包含交互式网页 | `qqq_qld_report.html` |
 | `daily_check.py` | 盘后算今日目标敞口,给"持有/调仓"建议 | 打印到终端 |
