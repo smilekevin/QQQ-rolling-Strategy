@@ -97,14 +97,23 @@ lastw={}
 for i,s in zip(W.index,sig): lastw[s]=(W.loc[i,'q'],W.loc[i,'l'],W.loc[i,'c'])
 Wc=pd.DataFrame([lastw[s] for s in confsig],index=W.index,columns=['q','l','c']).shift(1).bfill()
 
-# ---------------- 回测引擎(漂移 + 换手成本 + 现金生息)----------------
+# ---------------- 回测引擎(档位内不再平衡,仅换档时调仓 + 现金生息)----------------
+# 持有期内任凭 QQQ/QLD 权重随行情漂移(不做日内再平衡),只有当目标档位变化时
+# 才从当前(漂移后)权重成交到新目标,并按实际成交量计交易成本 —— 与实盘一致。
 def run(Wc):
-    val=1.0; pq=pl=0.0; eq=[]; exps=[]; turns=[]
-    for dt in Wc.index:
-        tq,tl,tc=Wc.loc[dt,'q'],Wc.loc[dt,'l'],Wc.loc[dt,'c']
-        turn=abs(tq-pq)+abs(tl-pl); val*=(1-turn*COST_BPS)
-        val*=(1+tq*rq.loc[dt]+tl*rl.loc[dt]+tc*rf.loc[dt])
-        eq.append(val); exps.append(tq+2*tl); turns.append(turn); pq,pl=tq,tl
+    val=1.0; wq=wl=wc=0.0; ptq=ptl=None; eq=[]; exps=[]; turns=[]
+    Q=Wc['q'].values; L=Wc['l'].values; C=Wc['c'].values
+    RQ=rq.values; RL=rl.values; RF=rf.values
+    for i in range(len(Wc)):
+        tq,tl,tc=Q[i],L[i],C[i]
+        turn=0.0
+        if ptq is None or abs(tq-ptq)>1e-9 or abs(tl-ptl)>1e-9:   # 目标档位变化才调仓
+            turn=abs(tq-wq)+abs(tl-wl); val*=(1-turn*COST_BPS)
+            wq,wl,wc=tq,tl,tc; ptq,ptl=tq,tl
+        val*=(1+wq*RQ[i]+wl*RL[i]+wc*RF[i])
+        eq.append(val); exps.append(wq+2*wl); turns.append(turn)
+        nq=wq*(1+RQ[i]); nl=wl*(1+RL[i]); ncash=wc*(1+RF[i]); tot=nq+nl+ncash  # 漂移到次日
+        if tot>0: wq,wl,wc=nq/tot,nl/tot,ncash/tot
     return pd.Series(eq,index=Wc.index),pd.Series(exps,index=Wc.index),pd.Series(turns,index=Wc.index)
 eq,exp,turn=run(Wc)
 
@@ -141,7 +150,8 @@ def band(v):
         if lo<v<=hi: return nm
     return 'QLD全仓'
 dist=exp.apply(band).value_counts(normalize=True)
-nsw=(exp.round(2)!=exp.round(2).shift()).sum()
+tgt_exp=(Wc['q']+2*Wc['l']).round(2)          # 目标敞口(换档信号),用于统计切换次数
+nsw=(tgt_exp!=tgt_exp.shift()).sum()
 print(f"\n平均净敞口 {exp.mean():.2f}x  年化换手(单边) {turn.sum()/(len(exp)/252):.2f}  状态切换 {nsw/(len(exp)/252):.1f} 次/年")
 
 # ---------------- 导出 results.json(供报告使用)----------------

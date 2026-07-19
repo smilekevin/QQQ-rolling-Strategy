@@ -70,7 +70,7 @@ code{{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}}
 <body><div class="wrap">
 <div class="eyebrow">QQQ · QLD — 技术指标驱动的杠杆滚仓 · V4.2</div>
 <h1>动态滚仓策略回测(V4.2 增强版)</h1>
-<p class="sub">基于 QQQ 的 <b>MACD / RSI / Supertrend</b> + 250 日趋势闸门决定仓位档位,叠加 <b>20% 波动率目标</b>与<b>强空头清仓</b>两层风控,并让避险现金赚取短端国债收益。经样本内外验证优化(趋势闸门 250 日、波动率目标只降不升、去掉不赚风险溢价的 QLD全仓2x 档):全周期年化 12.2%、最大回撤压缩至 −30%,Calmar 达 0.41、夏普 0.71(全场最优),总收益反超买入持有 QQQ。净敞口在 <b>0(现金)→ 1.5x(QQQ+QLD)</b> 间连续调节。</p>
+<p class="sub">基于 QQQ 的 <b>MACD / RSI / Supertrend</b> + 250 日趋势闸门决定仓位档位,叠加 <b>20% 波动率目标</b>与<b>强空头清仓</b>两层风控,并让避险现金赚取短端国债收益。经样本内外验证优化(趋势闸门 250 日、波动率目标只降不升、去掉不赚风险溢价的 QLD全仓2x 档):全周期年化 12.3%、最大回撤压缩至 −30%,Calmar 达 0.41、夏普 0.70(全场最优),总收益反超买入持有 QQQ。净敞口在 <b>0(现金)→ 1.5x(QQQ+QLD)</b> 间连续调节。<b>组合在档位持有期内不做再平衡</b>,仅换档时调仓(与实盘一致)。</p>
 
 <!-- 当前信号 -->
 <div class="card"><h2><span class="n">◆</span>当前建议仓位</h2>
@@ -328,7 +328,7 @@ new Chart(document.getElementById('expchart'),{{type:'line',
 document.getElementById('foot').innerHTML=
  '数据:QQQ / QLD / ^IRX 复权收盘(yfinance),区间 '+R.range[0]+' 至 '+R.range[1]+'。'+
  '2006-06 前 QLD 由「2×QQQ 日收益 − (0.95% 费率 + 短端利率融资成本)/252」合成,与真实 QLD 重叠期日收益相关性 0.996、CAGR 偏乐观约 0.8%/年。'+
- '<br>V4 回测含 5bps/边 交易成本;避险现金按 ^IRX 短端国债利率计息;夏普用 rf=0。指标在 QQQ 上计算,信号 T 日收盘生成、T+1 执行。波动率目标使净敞口连续变化(0–2x)。'+
+ '<br>V4.2 回测含 5bps/边 交易成本;避险现金按 ^IRX 短端国债利率计息;夏普用 rf=0。指标在 QQQ 上计算,信号 T 日收盘生成、T+1 执行。<b>档位持有期内不做再平衡</b>(QQQ/QLD 权重随行情漂移),仅在换档时按实际成交计成本——与实盘一致。'+
  '<br><b>重要:</b>历史回测不代表未来收益;杠杆 ETF 存在波动损耗与日度重置风险。本页面仅供研究与教育,非投资建议。';
 </script>
 </body></html>"""
