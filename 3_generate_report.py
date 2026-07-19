@@ -377,7 +377,7 @@ new Chart(document.getElementById('distchart'),{{type:'doughnut',
 
 // ---- exposure over time ----
 new Chart(document.getElementById('expchart'),{{type:'line',
- data:{{labels:R.exposure.dates,datasets:[{{label:'净敞口',data:R.exposure.vals,borderColor:'#3f7fb8',backgroundColor:'rgba(63,127,184,.12)',fill:true,borderWidth:1,pointRadius:0,stepped:true}}]}},
+ data:{{labels:D,datasets:[{{label:'净敞口',data:R.exposure.vals,borderColor:'#3f7fb8',backgroundColor:'rgba(63,127,184,.12)',fill:true,borderWidth:1,pointRadius:0,stepped:true}}]}},
  options:{{responsive:true,maintainAspectRatio:false,animation:false,
    plugins:{{legend:{{display:false}},tooltip:{{callbacks:{{label:c=>'敞口 '+c.parsed.y.toFixed(1)+'x'}}}}}},
    scales:{{x:{{ticks:{{maxTicksLimit:10,color:'#8a8570'}},grid:{{display:false}}}},

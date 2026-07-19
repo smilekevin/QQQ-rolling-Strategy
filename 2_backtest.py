@@ -169,17 +169,17 @@ cur_e=float(exec_ser.iloc[-1]); days_since=int((df.index[-1]-last_reb).days)
 print(f"\n平均净敞口 {exp.mean():.2f}x  年化换手(单边) {turn.sum()/(len(exp)/252):.2f}  状态切换 {nsw/(len(exp)/252):.1f} 次/年")
 
 # ---------------- 导出 results.json(供报告使用)----------------
-def samp(s): return s.resample('W').last().dropna()
+def samp(s): return s.dropna()          # 日线(每个交易日一个点),支持按日缩放
 export={
  'variant':'V4.2',
  'dates':[d.strftime('%Y-%m-%d') for d in samp(eq).index],
- 'equity':{'strategy':samp(eq).round(4).tolist(),'qqq':samp(bh_qqq).round(4).tolist(),
-           'qld':samp(bh_qld).round(4).tolist(),'blend':samp(st_blend).round(4).tolist(),'half':samp(st_half).round(4).tolist()},
- 'exposure':{'dates':[d.strftime('%Y-%m-%d') for d in samp(exp).index],'vals':samp(exp).round(2).tolist()},
+ 'equity':{'strategy':samp(eq).round(3).tolist(),'qqq':samp(bh_qqq).round(3).tolist(),
+           'qld':samp(bh_qld).round(3).tolist(),'blend':samp(st_blend).round(3).tolist(),'half':samp(st_half).round(3).tolist()},
+ 'exposure':{'vals':samp(exp).round(2).tolist()},   # 日期复用 dates(见报告),不再单列
  'state_exp':exp.reindex(samp(eq).index,method='ffill').round(2).tolist(),
- 'drawdown':{'strategy':(samp(eq)/samp(eq).cummax()-1).round(4).tolist(),
-             'qld':(samp(bh_qld)/samp(bh_qld).cummax()-1).round(4).tolist(),
-             'qqq':(samp(bh_qqq)/samp(bh_qqq).cummax()-1).round(4).tolist()},
+ 'drawdown':{'strategy':(samp(eq)/samp(eq).cummax()-1).round(3).tolist(),
+             'qld':(samp(bh_qld)/samp(bh_qld).cummax()-1).round(3).tolist(),
+             'qqq':(samp(bh_qqq)/samp(bh_qqq).cummax()-1).round(3).tolist()},
  'metrics':{k:{kk:(None if isinstance(vv,float) and np.isnan(vv) else round(float(vv),4)) for kk,vv in m.items()} for k,m in M.items()},
  'metrics_sub':{k:{kk:(None if isinstance(vv,float) and np.isnan(vv) else round(float(vv),4)) for kk,vv in m.items()} for k,m in M2.items()},
  'dist':{nm:round(float(dist.get(nm,0)),4) for _,_,nm in BANDS},
