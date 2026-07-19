@@ -2,7 +2,7 @@
 """
 第 2 步:回测 V4.3 动态滚仓策略  ->  results.json
 
-策略(现金 + 三档,连续杠杆;V4.2 起去掉 QLD全仓2x 档,最高 1.5x):
+策略(现金 + 三档,连续杠杆;已去掉 QLD全仓2x 档,最高 1.5x):
   · 宏观闸门:收盘价 vs 250 日均线,定多空大方向。
   · 空头区:  强空头(MACD<0 且 Supertrend 空头)-> 100% 现金(买国债);
              否则温和回调 -> QQQ 半仓(0.5x)+ 半仓现金。
@@ -165,12 +165,6 @@ print("--- 2006-06 后(全真实 QLD)---")
 for k,m in M2.items():
     print(f"{k:<22}{m['cagr']*100:>6.1f}%  回撤 {m['mdd']*100:6.1f}%  Calmar {m['calmar']:.2f}")
 
-# 敞口分档(用于报告着色/占比)
-BANDS=[(-.01,.25,'防御'),(.25,.75,'约半仓'),(.75,1.25,'约满仓'),(1.25,1.75,'约1.5倍'),(1.75,2.1,'约2倍')]
-def band(v):
-    for lo,hi,nm in BANDS:
-        if lo<v<=hi: return nm
-    return 'QLD全仓'
 dist=DEC_exec.map(DECNAME).value_counts(normalize=True)     # 各决策档时间占比
 tgt_exp=(Wc['q']+2*Wc['l']).round(2)          # 目标敞口(换档信号),用于统计切换次数
 nsw=(tgt_exp!=tgt_exp.shift()).sum()
@@ -191,12 +185,8 @@ export={
  'dates':[d.strftime('%Y-%m-%d') for d in samp(eq).index],
  'equity':{'strategy':samp(eq).round(3).tolist(),'qqq':samp(bh_qqq).round(3).tolist(),
            'qld':samp(bh_qld).round(3).tolist(),'blend':samp(st_blend).round(3).tolist(),'half':samp(st_half).round(3).tolist()},
- 'exposure':{'vals':samp(exp).round(2).tolist()},   # 日期复用 dates(见报告),不再单列
- 'state_exp':exp.reindex(samp(eq).index,method='ffill').round(2).tolist(),
+ 'state_exp':samp(exp).round(2).tolist(),                            # 每日净敞口(敞口图+悬浮共用;回撤在前端由 equity 算)
  'decision':DEC_exec.reindex(samp(eq).index,method='ffill').tolist(),   # 每日决策档(B/C/D/E),着色用
- 'drawdown':{'strategy':(samp(eq)/samp(eq).cummax()-1).round(3).tolist(),
-             'qld':(samp(bh_qld)/samp(bh_qld).cummax()-1).round(3).tolist(),
-             'qqq':(samp(bh_qqq)/samp(bh_qqq).cummax()-1).round(3).tolist()},
  'metrics':{k:{kk:(None if isinstance(vv,float) and np.isnan(vv) else round(float(vv),4)) for kk,vv in m.items()} for k,m in M.items()},
  'metrics_sub':{k:{kk:(None if isinstance(vv,float) and np.isnan(vv) else round(float(vv),4)) for kk,vv in m.items()} for k,m in M2.items()},
  'metrics_2010':{k:{kk:(None if isinstance(vv,float) and np.isnan(vv) else round(float(vv),4)) for kk,vv in m.items()} for k,m in M2010.items()},
@@ -207,7 +197,7 @@ export={
  'range':[df.index[0].strftime('%Y-%m-%d'),df.index[-1].strftime('%Y-%m-%d')],
  'latest':{'date':df.index[-1].strftime('%Y-%m-%d'),'state':DECNAME[DEC.iloc[-1]],'dec':DEC.iloc[-1],'exp':round(cur_e,2),
            'last_reb':last_reb.strftime('%Y-%m-%d'),'days_since':days_since,
-           'prev_exp':round(prev_e,2),'prev_state':band(prev_e),
+           'prev_exp':round(prev_e,2),
            'macd_hist':round(float(macd_hist.iloc[-1]),3),'macd_line':round(float(macd_line.iloc[-1]),3),
            'rsi':round(float(rsi.iloc[-1]),1),'st_bull':bool(st_bull.iloc[-1]),'price':round(float(px.iloc[-1]),2),
            'st_level':round(float(st.iloc[-1]),2),'rvol':round(float(rvol.iloc[-1]),3),'macro_bull':bool(macro_bull.iloc[-1])},

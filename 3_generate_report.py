@@ -159,13 +159,13 @@ code{{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}}
 
 <!-- 杠杆暴露 -->
 <div class="card"><h2><span class="n">5</span>净杠杆暴露随时间变化</h2>
-<div class="note">数值 = 组合对 QQQ 的等效敞口(0x 现金 → 2.0x QLD全仓),经波动率目标连续调节。可见熊市(2000、2008、2020、2022)自动降到现金或半仓。</div>
+<div class="note">数值 = 组合对 QQQ 的等效敞口(0x 现金 → 最高 1.5x),经波动率目标连续调节。可见熊市(2000、2008、2020、2022)自动降到现金或低敞口。</div>
 <div class="chartbox sm"><canvas id="expchart"></canvas></div>
 </div>
 
 <!-- 策略规则 -->
 <div class="card"><h2><span class="n">6</span>切换规则</h2>
-<div class="note">决策链:①先用 250 日均线定多空 → ②多头区间用 Supertrend/MACD/RSI 打分(0–4)定<b>基础档</b> → ③用 20% 波动率目标把基础档<b>连续缩放</b>成最终敞口 → ④强空头直接清仓。避险现金买短端国债生息。<b>V4.2 起去掉 QLD全仓2x 档,最高 1.5x。</b><br><span style="color:#b06a2e">⚠ 下面 B–E 是"决策档",给的是<b>基础(名义)敞口</b>;曲线配色与占比图按<b>最终净敞口</b>分区,两者经波动率目标缩放后不等同——例如高波动时 C 档(1.0x)会被缩到约 0.75x,显示成"半仓"色带,<b>此时价格其实仍在 250 日线上方,并非跌破</b>。</span></div>
+<div class="note">决策链:①先用 250 日均线定多空 → ②多头区间用 Supertrend/MACD/RSI 打分(0–4)定<b>基础档</b> → ③用 20% 波动率目标把基础档<b>连续缩放</b>成最终敞口 → ④强空头直接清仓。避险现金买短端国债生息。<b>去掉 QLD全仓2x 档,最高 1.5x。</b><br><span style="color:#b06a2e">⚠ 下面 B–E 是"决策档",给的是<b>基础(名义)敞口</b>;<b>净值曲线按决策档着色</b>,而<b>实际净敞口</b>(经波动率目标缩放,连续变化)见悬浮提示——两者不等同:例如决策 C(名义 1.0x)在高波动时实际敞口可能只有 0.75x,但颜色仍是 C(中性偏多)。</span></div>
 <div class="rules">
  <div class="rule"><div class="lv" style="color:#6a9b3f">B · 趋势向上(最高档)</div><div class="ex">实际 0.75–1.5x</div><div class="ds">基础 1.5x(QQQ+QLD),经波动率目标后<b>实际 0.75–1.5x,中位 1.5x</b>。需 SMA250 上行 + 波动率&lt;40% 熔断许可。</div></div>
  <div class="rule"><div class="lv" style="color:#b8912f">C · 中性偏多</div><div class="ex">实际 0.2–1.0x</div><div class="ds">基础 1.0x(QQQ全仓),经波动率目标后<b>实际 0.22–1.0x,中位 1.0x</b>——高波动时缩得最狠。价在 SMA250 上方、动量一般(0–2 分)或熔断触发。</div></div>
@@ -195,9 +195,6 @@ const STATECOL = {{'趋势向上':'#6a9b3f','中性偏多':'#b8912f','温和回�
 const DEC=R.decision;                 // 每日决策档(B/C/D/E)
 const DECCOL={{'B':'#6a9b3f','C':'#b8912f','D':'#c2453b','E':'#5a6172'}};
 const DECNM ={{'B':'趋势向上','C':'中性偏多','D':'温和回调','E':'强空头/现金'}};
-// continuous net-exposure -> color band
-function expColor(v){{ if(v<0.25)return '#5a6172'; if(v<0.75)return '#c2453b'; if(v<1.25)return '#b8912f'; if(v<1.75)return '#6a9b3f'; return '#2f8f5b'; }}
-function expName(v){{ const z = v<0.25?'防御':(v<0.75?'约半仓':(v<1.25?'约满仓':(v<1.75?'约1.5倍':'约2倍'))); return '净敞口 '+v.toFixed(2)+'x · '+z; }}
 
 // ---- latest signal ----
 const L=R.latest;
@@ -272,9 +269,8 @@ renderKPI('sub');
 
 // ---- equity chart : strategy line colored by active position ----
 const D=R.dates;
-const SE=R.state_exp;  // per-point exposure aligned to D
-const EXPCOL={{0.5:'#c2453b',1.0:'#b8912f',1.5:'#6a9b3f',2.0:'#2f8f5b'}};
-const EXPNAME={{0.5:'QQQ半仓 0.5x',1.0:'QQQ全仓 1.0x',1.5:'QQQ+QLD 1.5x',2.0:'QLD全仓 2.0x'}};
+const SE=R.state_exp;  // per-point net exposure aligned to D(悬浮提示 + 敞口图共用)
+const ddown=arr=>{{let pk=-1e9;return arr.map(v=>{{pk=Math.max(pk,v);return v/pk-1;}});}};  // 由净值算回撤,免存冗余
 const stratDS={{
   label:'策略(V4.3动态滚仓)',data:R.equity.strategy,borderWidth:2.6,pointRadius:0,tension:.05,
   borderColor:'#1c2230',
@@ -366,9 +362,9 @@ document.getElementById('zreset').onclick=()=>{{
 // ---- drawdown ----
 new Chart(document.getElementById('ddchart'),{{type:'line',
  data:{{labels:D,datasets:[
-   {{label:'策略',data:R.drawdown.strategy,borderColor:'#1c2230',backgroundColor:'rgba(28,34,48,.10)',fill:true,borderWidth:1.6,pointRadius:0}},
-   {{label:'QQQ买入持有',data:R.drawdown.qqq,borderColor:'#c99a2e',borderWidth:1,pointRadius:0}},
-   {{label:'QLD买入持有',data:R.drawdown.qld,borderColor:'#9a7b3f',borderWidth:1,pointRadius:0,borderDash:[4,3]}},
+   {{label:'策略',data:ddown(R.equity.strategy),borderColor:'#1c2230',backgroundColor:'rgba(28,34,48,.10)',fill:true,borderWidth:1.6,pointRadius:0}},
+   {{label:'QQQ买入持有',data:ddown(R.equity.qqq),borderColor:'#c99a2e',borderWidth:1,pointRadius:0}},
+   {{label:'QLD买入持有',data:ddown(R.equity.qld),borderColor:'#9a7b3f',borderWidth:1,pointRadius:0,borderDash:[4,3]}},
  ]}},
  options:{{responsive:true,maintainAspectRatio:false,animation:false,
    plugins:{{legend:{{labels:{{boxWidth:12,font:{{size:11}}}}}},tooltip:{{mode:'index',intersect:false,callbacks:{{label:c=>c.dataset.label+': '+(c.parsed.y*100).toFixed(0)+'%'}}}}}},
@@ -387,7 +383,7 @@ new Chart(document.getElementById('distchart'),{{type:'doughnut',
 
 // ---- exposure over time ----
 new Chart(document.getElementById('expchart'),{{type:'line',
- data:{{labels:D,datasets:[{{label:'净敞口',data:R.exposure.vals,borderColor:'#3f7fb8',backgroundColor:'rgba(63,127,184,.12)',fill:true,borderWidth:1,pointRadius:0,stepped:true}}]}},
+ data:{{labels:D,datasets:[{{label:'净敞口',data:SE,borderColor:'#3f7fb8',backgroundColor:'rgba(63,127,184,.12)',fill:true,borderWidth:1,pointRadius:0,stepped:true}}]}},
  options:{{responsive:true,maintainAspectRatio:false,animation:false,
    plugins:{{legend:{{display:false}},tooltip:{{callbacks:{{label:c=>'敞口 '+c.parsed.y.toFixed(1)+'x'}}}}}},
    scales:{{x:{{ticks:{{maxTicksLimit:10,color:'#8a8570'}},grid:{{display:false}}}},
@@ -397,7 +393,7 @@ new Chart(document.getElementById('expchart'),{{type:'line',
 document.getElementById('foot').innerHTML=
  '数据:QQQ / QLD / ^IRX 复权收盘(yfinance),区间 '+R.range[0]+' 至 '+R.range[1]+'。'+
  '2006-06 前 QLD 由「2×QQQ 日收益 − (0.95% 费率 + 短端利率融资成本)/252」合成,与真实 QLD 重叠期日收益相关性 0.996、CAGR 偏乐观约 0.8%/年。'+
- '<br>V4.2 回测含 5bps/边 交易成本;避险现金按 ^IRX 短端国债利率计息;夏普用 rf=0。指标在 QQQ 上计算,信号 T 日收盘生成、T+1 执行。<b>档位持有期内不做再平衡</b>(QQQ/QLD 权重随行情漂移),仅在换档时按实际成交计成本——与实盘一致。'+
+ '<br>V4.3 回测含 5bps/边 交易成本;避险现金按 ^IRX 短端国债利率计息;夏普用 rf=0。指标在 QQQ 上计算,信号 T 日收盘生成、T+1 执行。<b>档位持有期内不做再平衡</b>(QQQ/QLD 权重随行情漂移),仅在换档时按实际成交计成本——与实盘一致。'+
  '<br><b>重要:</b>历史回测不代表未来收益;杠杆 ETF 存在波动损耗与日度重置风险。本页面仅供研究与教育,非投资建议。';
 </script>
 </body></html>"""

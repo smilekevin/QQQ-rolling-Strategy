@@ -90,7 +90,8 @@ RSI_OB=78 CONFIRM=3 COST_BPS=5/10000  (报告/日检里 DEADBAND=0.10)
 - **档位/决策边界**:`band()`(2_backtest,敞口分档)用 `lo < v <= hi`(上界闭);`daily_check.tier()` 已对齐。曾出过 bug:tier 用 `<` 导致 0.25/0.75 等边界值归档错位。
 - **决策档定义**必须与 targets() 一致:`decide_tier` 返回 B 仅当 `s>=3 且 lever_ok`,否则 C(与 targets 里 base>1 且 not lever_ok→降 C 一致)。
 - 报告 `STATECOL` 的 key 必须与 `results.json` 的 `dist` key(决策档名)完全一致,否则占比图颜色错。
-- 报告是自包含 HTML,只能从 CDN 加载 Chart.js;其余内联。数据为日线(6880点,~600KB)。
+- 报告是自包含 HTML,只能从 CDN 加载 Chart.js;其余内联。数据为日线(6880点,~430KB;回撤在前端由 equity 算、敞口图与悬浮共用 state_exp,不存冗余)。
+- `results.json` 导出键:dates / equity{strategy,qqq,qld,blend,half} / state_exp / decision(B/C/D/E,着色用)/ dist(决策档占比)/ metrics(四区间)/ latest。曲线着色按 decision,悬浮显示 state_exp(净敞口)。
 
 ## 10. 数据与免责
 

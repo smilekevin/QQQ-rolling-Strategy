@@ -68,13 +68,6 @@ for i in range(n):
 conf=res/20.0
 target=conf[-1]                      # 今日收盘确认的目标敞口 -> 下个交易日执行
 
-def tier(e):
-    # 敞口分区,边界与 2_backtest.py 的 band() 一致:lo < v <= hi(上界闭)
-    if e<=0.25: return 0,'防御'
-    if e<=0.75: return 1,'约半仓'
-    if e<=1.25: return 2,'约满仓'
-    if e<=1.75: return 3,'约1.5倍'
-    return 4,'约2倍'
 def comp(e):   # 目标敞口 -> 下单比例
     if e<=1.0: return e,0.0,1-e      # QQQ, QLD, cash
     return 2-e, e-1, 0.0
