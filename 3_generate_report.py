@@ -288,7 +288,7 @@ const eqChart=new Chart(document.getElementById('eqchart'),{{type:'line',
  options:{{responsive:true,maintainAspectRatio:false,animation:false,interaction:{{mode:'index',intersect:false}},
    plugins:{{legend:{{display:false}},tooltip:{{callbacks:{{
       title:items=>{{const i=items[0].dataIndex;return D[i]+'  ·  '+expName(SE[i]);}},
-      label:c=>c.dataset.label+': '+c.parsed.y.toFixed(1)+'x'}}}}}},
+      label:c=>c.dataset.label+': '+c.parsed.y.toFixed(3)+'x'}}}}}},
    scales:{{x:{{type:'category',min:0,max:D.length-1,ticks:{{maxTicksLimit:10,color:'#8a8570'}},grid:{{display:false}}}},
      y:{{type:'logarithmic',ticks:{{color:'#8a8570',callback:v=>[1,3,10,30,100,300].includes(v)?v+'x':''}},grid:{{color:'#eee4d2'}}}}}}}}
 }});
