@@ -191,10 +191,10 @@ const fmtP = x => (x*100).toFixed(1)+'%';
 const fmtP0 = x => (x*100).toFixed(0)+'%';
 const NAMES = ['策略(V4.3动态滚仓)','QQQ半仓','QQQ全仓(=买入持有QQQ)','QQQ+QLD(50/50)','QLD全仓(=买入持有QLD)'];
 const COL = {{'策略(V4.3动态滚仓)':'#1c2230','QQQ半仓':'#c2453b','QQQ全仓(=买入持有QQQ)':'#c99a2e','QQQ+QLD(50/50)':'#3f7fb8','QLD全仓(=买入持有QLD)':'#9a7b3f'}};
-const STATECOL = {{'QLD全仓':'#2f8f5b','QQQ+QLD':'#6a9b3f','QQQ全仓':'#b8912f','QQQ半仓':'#c2453b','现金/避险':'#5a6172'}};
+const STATECOL = {{'约2倍':'#2f8f5b','约1.5倍':'#6a9b3f','约满仓':'#b8912f','约半仓':'#c2453b','防御':'#5a6172'}};
 // continuous net-exposure -> color band
 function expColor(v){{ if(v<0.25)return '#5a6172'; if(v<0.75)return '#c2453b'; if(v<1.25)return '#b8912f'; if(v<1.75)return '#6a9b3f'; return '#2f8f5b'; }}
-function expName(v){{ if(v<0.25)return '现金/避险 '+v.toFixed(2)+'x'; if(v<0.75)return 'QQQ半仓区 '+v.toFixed(2)+'x'; if(v<1.25)return 'QQQ全仓区 '+v.toFixed(2)+'x'; if(v<1.75)return 'QQQ+QLD区 '+v.toFixed(2)+'x'; return 'QLD全仓区 '+v.toFixed(2)+'x'; }}
+function expName(v){{ const z = v<0.25?'防御':(v<0.75?'约半仓':(v<1.25?'约满仓':(v<1.75?'约1.5倍':'约2倍'))); return '净敞口 '+v.toFixed(2)+'x · '+z; }}
 
 // ---- latest signal ----
 const L=R.latest;
@@ -294,7 +294,7 @@ const eqChart=new Chart(document.getElementById('eqchart'),{{type:'line',
 }});
 // state legend (what the colors mean) — continuous exposure bands
 document.getElementById('statelegend').innerHTML='<b style="color:#5a6172">策略主线配色(按<b>最终净敞口</b>所在区间):</b>'+
-  [['#6a9b3f','QQQ+QLD区 1.25–1.75x'],['#b8912f','QQQ全仓区 0.75–1.25x'],['#c2453b','半仓区 0.25–0.75x'],['#5a6172','现金/避险 0–0.25x']]
+  [['#6a9b3f','约1.5倍 1.25–1.75x'],['#b8912f','约满仓 0.75–1.25x'],['#c2453b','约半仓 0.25–0.75x'],['#5a6172','防御 0–0.25x']]
   .map(([c,t])=>'<span><i class="dot" style="background:'+c+'"></i>'+t+'</span>').join('');
 document.getElementById('eqlegend').innerHTML='<b style="color:#5a6172">灰色参照:</b>'+
   '<span><i class="dot" style="background:#c9c0ac"></i>QQQ 买入持有</span>'+
