@@ -68,6 +68,8 @@ tr.hl td{{background:#fbf4e3;font-weight:750}}
   table{{font-size:12.5px}} th,td{{padding:7px 5px}}
   .ind-grid{{grid-template-columns:repeat(auto-fit,minmax(96px,1fr))}}
   input[type=date]{{font-size:16px !important}}   /* 防 iOS 聚焦时自动放大 */
+  .two{{gap:16px;margin-top:16px}}                 /* 竖直堆叠时与其他卡片间距一致 */
+  .two .card{{margin-top:0}}                        /* 去掉叠加的 margin,避免间距偏大 */
 }}
 @media(max-width:430px){{
   .kpi{{grid-template-columns:repeat(2,1fr)}}
