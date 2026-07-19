@@ -39,40 +39,14 @@ df = pd.read_csv(OUT+'prices.csv', parse_dates=['Date'], index_col='Date')
 px=df['qqq']; high=df['qhigh']; low=df['qlow']
 rq=df['qqq_ret']; rl=df['qld_ret']; rf=(df['irx']/100.0/252.0)   # 现金日利率
 
-# ---------------- 指标(全部基于 QQQ)----------------
-def ema(s,n): return s.ewm(span=n,adjust=False).mean()
-macd_line = ema(px,12)-ema(px,26)
-macd_hist = macd_line-ema(macd_line,9)
-d=px.diff(); up=d.clip(lower=0); dn=-d.clip(upper=0)
-rsi=(100-100/(1+up.ewm(alpha=1/14,adjust=False).mean()
-     /dn.ewm(alpha=1/14,adjust=False).mean().replace(0,np.nan))).fillna(50)
-# Supertrend(真实 True Range)
-pc=px.shift(1)
-tr=pd.concat([(high-low),(high-pc).abs(),(low-pc).abs()],axis=1).max(axis=1)
-atr=tr.ewm(alpha=1/ST_PERIOD,adjust=False).mean(); hl2=(high+low)/2
-ub=(hl2+ST_MULT*atr).values; lb=(hl2-ST_MULT*atr).values; c=px.values; n=len(px)
-fu=ub.copy(); fl=lb.copy(); direc=np.ones(n,int); stv=np.full(n,np.nan)
-for i in range(1,n):
-    fu[i]=ub[i] if (ub[i]<fu[i-1] or c[i-1]>fu[i-1]) else fu[i-1]
-    fl[i]=lb[i] if (lb[i]>fl[i-1] or c[i-1]<fl[i-1]) else fl[i-1]
-    direc[i]=(-1 if c[i]<fl[i-1] else 1) if direc[i-1]==1 else (1 if c[i]>fu[i-1] else -1)
-    stv[i]=fl[i] if direc[i]==1 else fu[i]
-st=pd.Series(stv,index=px.index); st_bull=pd.Series(direc==1,index=px.index)
-sma=px.rolling(SMA_LEN).mean(); macro_bull=(px>sma).fillna(False)
-sma_rising=(sma>sma.shift(20)).fillna(False)
-rvol=px.pct_change().rolling(RVOL_WIN).std()*np.sqrt(252)
-lever_ok=sma_rising&(rvol<LEVER_VOLCEIL)
-ind=pd.DataFrame({'macd_line':macd_line,'macd_hist':macd_hist,'rsi':rsi,'st_bull':st_bull,'st':st,
-                  'macro_bull':macro_bull,'lever_ok':lever_ok,'rvol':rvol})
-
-# ---------------- 决策档(基础仓位,着色/占比用)----------------
-DECNAME={'B':'趋势向上','C':'中性偏多','D':'温和回调','E':'强空头/现金'}
-def decide_tier(r):
-    if not r['macro_bull']:
-        return 'E' if (r['macd_line']<0 and not r['st_bull']) else 'D'
-    s=int(r['st_bull'])+int(r['macd_hist']>0)+int(r['macd_line']>0)+int(r['rsi']>50)
-    return 'B' if (s>=3 and r['lever_ok']) else 'C'
-DEC=ind.apply(decide_tier,axis=1)
+# ---------------- 指标 + 决策档(共享模块,见 indicators.py)----------------
+import indicators as ta
+ind=ta.compute(px, high, low, sma_len=SMA_LEN, st_period=ST_PERIOD, st_mult=ST_MULT,
+               rvol_win=RVOL_WIN, lever_volceil=LEVER_VOLCEIL)
+macd_line=ind['macd_line']; macd_hist=ind['macd_hist']; rsi=ind['rsi']
+st=ind['st']; st_bull=ind['st_bull']; macro_bull=ind['macro_bull']; rvol=ind['rvol']
+DECNAME=ta.DECNAME
+DEC=ind.apply(ta.decide_tier,axis=1)   # 决策档(基础仓位,着色/占比用)
 DEC_exec=DEC.shift(1).bfill()          # T+1,与执行时间线对齐
 
 # ---------------- 目标权重(w_qqq, w_qld, w_cash)----------------
