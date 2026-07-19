@@ -158,6 +158,14 @@ def band(v):
 dist=exp.apply(band).value_counts(normalize=True)
 tgt_exp=(Wc['q']+2*Wc['l']).round(2)          # 目标敞口(换档信号),用于统计切换次数
 nsw=(tgt_exp!=tgt_exp.shift()).sum()
+
+# 最近一次调仓:用执行后的目标敞口序列(0.05档+死区)找最后一次变化
+exec_ser=pd.Series(e_exec,index=W.index).round(2)
+_chg=exec_ser.ne(exec_ser.shift()); _chg.iloc[0]=False
+_ci=np.where(_chg.values)[0]
+if len(_ci): last_reb=exec_ser.index[_ci[-1]]; prev_e=float(exec_ser.iloc[_ci[-1]-1])
+else:        last_reb=exec_ser.index[0];        prev_e=float(exec_ser.iloc[0])
+cur_e=float(exec_ser.iloc[-1]); days_since=int((df.index[-1]-last_reb).days)
 print(f"\n平均净敞口 {exp.mean():.2f}x  年化换手(单边) {turn.sum()/(len(exp)/252):.2f}  状态切换 {nsw/(len(exp)/252):.1f} 次/年")
 
 # ---------------- 导出 results.json(供报告使用)----------------
@@ -178,7 +186,9 @@ export={
  'switches':int(nsw),'ann_switch':round(nsw/(len(exp)/252),1),'ann_turnover':round(float(turn.sum()/(len(exp)/252)),2),
  'avg_exp':round(float(exp.mean()),2),
  'range':[df.index[0].strftime('%Y-%m-%d'),df.index[-1].strftime('%Y-%m-%d')],
- 'latest':{'date':df.index[-1].strftime('%Y-%m-%d'),'state':band(exp.iloc[-1]),'exp':round(float(exp.iloc[-1]),2),
+ 'latest':{'date':df.index[-1].strftime('%Y-%m-%d'),'state':band(cur_e),'exp':round(cur_e,2),
+           'last_reb':last_reb.strftime('%Y-%m-%d'),'days_since':days_since,
+           'prev_exp':round(prev_e,2),'prev_state':band(prev_e),
            'macd_hist':round(float(macd_hist.iloc[-1]),3),'macd_line':round(float(macd_line.iloc[-1]),3),
            'rsi':round(float(rsi.iloc[-1]),1),'st_bull':bool(st_bull.iloc[-1]),'price':round(float(px.iloc[-1]),2),
            'st_level':round(float(st.iloc[-1]),2),'rvol':round(float(rvol.iloc[-1]),3),'macro_bull':bool(macro_bull.iloc[-1])},

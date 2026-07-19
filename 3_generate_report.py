@@ -101,6 +101,7 @@ code{{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}}
   <div style="min-width:180px">
     <div class="bigstate" id="lstate"></div>
     <div id="lstatebar" style="margin-top:8px"></div>
+    <div id="lreb" style="margin-top:10px;font-size:12.5px;color:#6a7183;line-height:1.7"></div>
   </div>
   <div class="ind-grid" id="lind"></div>
 </div></div>
@@ -198,7 +199,10 @@ const L=R.latest;
 document.getElementById('ldate').textContent=L.date;
 document.getElementById('lstate').textContent=L.state;
 document.getElementById('lstate').style.color=expColor(L.exp);
-document.getElementById('lstatebar').innerHTML='<span class="pill" style="background:'+expColor(L.exp)+'22;color:'+expColor(L.exp)+'">净敞口 '+L.exp.toFixed(2)+'x</span>';
+document.getElementById('lstatebar').innerHTML='<span class="pill" style="background:'+expColor(L.exp)+'22;color:'+expColor(L.exp)+'">建议净敞口 '+L.exp.toFixed(2)+'x</span>';
+document.getElementById('lreb').innerHTML=
+  '上次调仓:<b>'+L.last_reb+'</b>(距今 '+L.days_since+' 天)<br>'+
+  '之前仓位:'+L.prev_state+' · '+L.prev_exp.toFixed(2)+'x  →  现 '+L.exp.toFixed(2)+'x';
 const ind=[['价格',L.price.toFixed(0),''],['250日趋势',L.macro_bull?'多头':'空头',L.macro_bull?'up':'dn'],
  ['Supertrend',L.st_level.toFixed(0),L.st_bull?'up':'dn'],
  ['MACD 柱',L.macd_hist.toFixed(2),L.macd_hist>0?'up':'dn'],['MACD 线',L.macd_line.toFixed(2),L.macd_line>0?'up':'dn'],
@@ -300,7 +304,8 @@ function idxFromStr(str,isEnd){{
 const dStart=document.getElementById('dstart'), dEnd=document.getElementById('dend');
 function setRange(a,b){{
   a=Math.max(0,Math.round(a)); b=Math.min(D.length-1,Math.round(b));
-  if(b-a<3) return;
+  if(b<a){{ const t=a;a=b;b=t; }}                  // 顺序颠倒则交换
+  if(b-a<1) b=Math.min(D.length-1,a+1);            // 至少 2 个点即可(不再强制 ≥3)
   eqChart.options.scales.x.min=a; eqChart.options.scales.x.max=b; eqChart.update('none');
   document.getElementById('rangelabel').textContent=D[a]+' → '+D[b];
   dStart.value=D[a]; dEnd.value=D[b];            // 同步到日期选择器
@@ -316,7 +321,6 @@ document.querySelectorAll('#rangetog button').forEach(b=>b.onclick=()=>{{
 document.getElementById('dapply').onclick=()=>{{
   if(!dStart.value||!dEnd.value) return;
   let a=idxFromStr(dStart.value,false), b=idxFromStr(dEnd.value,true);
-  if(b-a<3){{ document.getElementById('rangelabel').textContent='区间过短,请拉大'; return; }}
   document.querySelectorAll('#rangetog button').forEach(x=>x.classList.remove('on'));  // 取消预设高亮
   setRange(a,b);
 }};
@@ -339,7 +343,7 @@ document.getElementById('zreset').onclick=()=>{{
   function move(x){{ if(!dragging)return; cx=x; ov.style.left=Math.min(sx,cx)+'px'; ov.style.width=Math.abs(cx-sx)+'px'; }}
   function end(){{ if(!dragging)return; dragging=false; ov.style.display='none';
     let a=xToIdx(Math.min(sx,cx)),b=xToIdx(Math.max(sx,cx));
-    if(Math.abs(cx-sx)>8 && Math.abs(b-a)>=3){{ document.querySelectorAll('#rangetog button').forEach(x=>x.classList.remove('on')); setRange(a,b); }}
+    if(Math.abs(cx-sx)>8 && Math.abs(b-a)>=1){{ document.querySelectorAll('#rangetog button').forEach(x=>x.classList.remove('on')); setRange(a,b); }}
   }}
   cv.addEventListener('mousedown',e=>start(e.offsetX));
   cv.addEventListener('mousemove',e=>move(e.offsetX));
