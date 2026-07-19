@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-每日盘后检查:算出 V4.2 策略今日的目标净敞口,并给出"持有/调仓"建议。
+每日盘后检查:算出 V4.3 策略今日的目标净敞口,并给出"持有/调仓"建议。
 
 用法:
   python daily_check.py                 # 只看今日目标敞口与持仓构成
@@ -47,7 +47,8 @@ mlv=ml.values; mhv=mh.values; rsiv=rsi.values
 exp=np.empty(n)
 for i in range(n):
     if not macro[i]:
-        exp[i]=0.0 if (mlv[i]<0 and not stb[i]) else 0.5
+        if mlv[i]<0 and not stb[i]: exp[i]=0.0                         # 强空头 -> 现金
+        else: exp[i]=max(0.0,min(2.0,0.5*min(VCAP,VOLT/rvol[i])))      # 温和回调:0.5x×波动率目标(V4.3)
         continue
     s=int(stb[i])+(mhv[i]>0)+(mlv[i]>0)+(rsiv[i]>50)
     e=2.0 if s>=4 else (1.5 if s>=3 else 1.0)
@@ -80,7 +81,7 @@ def comp(e):   # 目标敞口 -> 下单比例
 
 ti,tn=tier(target); q,l,cash=comp(target)
 last=px.index[-1].date()
-print(f"\n===== V4.2 每日检查 · 基于 {last} 收盘 =====")
+print(f"\n===== V4.3 每日检查 · 基于 {last} 收盘 =====")
 print(f"目标净敞口: {target:.2f}x   档位: {tn}")
 print(f"目标持仓构成: QQQ {q*100:.0f}%   QLD {l*100:.0f}%   现金 {cash*100:.0f}%")
 print(f"指标: 价格 {px.iloc[-1]:.1f} | 250日线 {'上方' if macro[-1] else '下方'} | "

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-第 2 步:回测 V4.2 动态滚仓策略  ->  results.json
+第 2 步:回测 V4.3 动态滚仓策略  ->  results.json
 
 策略(现金 + 三档,连续杠杆;V4.2 起去掉 QLD全仓2x 档,最高 1.5x):
   · 宏观闸门:收盘价 vs 250 日均线,定多空大方向。
@@ -70,7 +70,11 @@ def targets(r):
     if not r['macro_bull']:
         if (r['macd_line']<0) and (not r['st_bull']):
             return (0.0,0.0,1.0)              # 强空头 -> 现金
-        return (0.5,0.0,0.5)                   # 温和回调 -> 半仓
+        # 温和回调:基础 0.5x 再套波动率目标(只降不升)—— V4.3 起不再固定 0.5
+        e=0.5
+        if r['rvol']>0 and not np.isnan(r['rvol']):
+            e=max(0.0,min(2.0, 0.5*min(VOL_CAP, VOL_TARGET/r['rvol'])))
+        return (e,0.0,1-e)
     s=int(r['st_bull'])+int(r['macd_hist']>0)+int(r['macd_line']>0)+int(r['rsi']>50)
     state={0:'C',1:'C',2:'C',3:'B',4:'A'}[s]
     if s==4 and r['rsi']>RSI_OB: state='B'
@@ -136,7 +140,7 @@ def metrics(e):
                 best_yr=yr.max(),worst_yr=yr.min())
 def rebased(s,start): s2=s[s.index>=start]; return s2/s2.iloc[0]
 
-series={'策略(V4.2动态滚仓)':eq,'QQQ半仓':st_half,'QQQ全仓(=买入持有QQQ)':bh_qqq,
+series={'策略(V4.3动态滚仓)':eq,'QQQ半仓':st_half,'QQQ全仓(=买入持有QQQ)':bh_qqq,
         'QQQ+QLD(50/50)':st_blend,'QLD全仓(=买入持有QLD)':bh_qld}
 M ={k:metrics(v)            for k,v in series.items()}
 M2={k:metrics(rebased(v,'2006-06-22')) for k,v in series.items()}
@@ -173,7 +177,7 @@ print(f"\n平均净敞口 {exp.mean():.2f}x  年化换手(单边) {turn.sum()/(l
 # ---------------- 导出 results.json(供报告使用)----------------
 def samp(s): return s.dropna()          # 日线(每个交易日一个点),支持按日缩放
 export={
- 'variant':'V4.2',
+ 'variant':'V4.3',
  'dates':[d.strftime('%Y-%m-%d') for d in samp(eq).index],
  'equity':{'strategy':samp(eq).round(3).tolist(),'qqq':samp(bh_qqq).round(3).tolist(),
            'qld':samp(bh_qld).round(3).tolist(),'blend':samp(st_blend).round(3).tolist(),'half':samp(st_half).round(3).tolist()},
