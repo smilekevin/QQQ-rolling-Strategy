@@ -82,7 +82,7 @@ code{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}
 
 <!-- 净值曲线 -->
 <div class="card"><h2><span class="n">2</span>净值增长曲线(对数刻度)</h2>
-<div class="note">起始 = 1.0。<b>策略主线按当时所处仓位分段着色</b>,基准线为灰色参照。可缩放:点选下方区间,或直接在图上<b>拖拽框选</b>放大。</div>
+<div class="note">起始 = 1.0。<b>策略主线按当时所处仓位分段着色</b>,基准线为灰色参照。可缩放:点选预设区间、<b>手动选起止日期</b>,或在图上<b>拖拽框选</b>放大。</div>
 <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px">
   <div class="toggle" id="rangetog">
     <button data-r="all" class="on">全部</button>
@@ -92,6 +92,13 @@ code{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}
     <button data-r="2022">2022后</button>
   </div>
   <button id="zreset" style="border:1px solid #d9cfb8;background:#fffdf8;border-radius:8px;padding:6px 13px;font-size:12.5px;font-weight:650;color:#6a7183;cursor:pointer;font-family:inherit">↺ 复位缩放</button>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px">
+  <span style="font-size:12.5px;color:#6a7183;font-weight:650">自定义区间</span>
+  <input type="date" id="dstart" style="border:1px solid #d9cfb8;background:#fffdf8;border-radius:7px;padding:5px 9px;font-size:12.5px;color:#1c2230;font-family:inherit">
+  <span style="color:#8a8570">→</span>
+  <input type="date" id="dend" style="border:1px solid #d9cfb8;background:#fffdf8;border-radius:7px;padding:5px 9px;font-size:12.5px;color:#1c2230;font-family:inherit">
+  <button id="dapply" style="border:0;background:#1c2230;color:#f4f1ea;border-radius:7px;padding:6px 14px;font-size:12.5px;font-weight:650;cursor:pointer;font-family:inherit">应用</button>
   <span style="font-size:12px;color:#8a8570" id="rangelabel"></span>
 </div>
 <div class="chartbox" id="eqbox"><canvas id="eqchart"></canvas></div>
@@ -250,17 +257,34 @@ document.getElementById('eqlegend').innerHTML='<b style="color:#5a6172">灰色�
 
 // ---- zoom: preset ranges + drag-to-select ----
 function idxForDate(y){ for(let i=0;i<D.length;i++){ if(+D[i].slice(0,4)>=y) return i; } return 0; }
+// 日期字符串 -> 索引:start 取首个 >= 该日,end 取末个 <= 该日
+function idxFromStr(str,isEnd){
+  if(isEnd){ let r=D.length-1; for(let i=D.length-1;i>=0;i--){ if(D[i]<=str){r=i;break;} } return r; }
+  let r=0; for(let i=0;i<D.length;i++){ if(D[i]>=str){r=i;break;} } return r;
+}
+const dStart=document.getElementById('dstart'), dEnd=document.getElementById('dend');
 function setRange(a,b){
   a=Math.max(0,Math.round(a)); b=Math.min(D.length-1,Math.round(b));
   if(b-a<3) return;
   eqChart.options.scales.x.min=a; eqChart.options.scales.x.max=b; eqChart.update('none');
   document.getElementById('rangelabel').textContent=D[a]+' → '+D[b];
+  dStart.value=D[a]; dEnd.value=D[b];            // 同步到日期选择器
 }
+// 初始化日期选择器的可选范围与默认值
+dStart.min=dEnd.min=D[0]; dStart.max=dEnd.max=D[D.length-1];
+dStart.value=D[0]; dEnd.value=D[D.length-1];
 document.querySelectorAll('#rangetog button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('#rangetog button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
   const r=b.dataset.r;
   if(r==='all') setRange(0,D.length-1); else setRange(idxForDate(+r),D.length-1);
 });
+document.getElementById('dapply').onclick=()=>{
+  if(!dStart.value||!dEnd.value) return;
+  let a=idxFromStr(dStart.value,false), b=idxFromStr(dEnd.value,true);
+  if(b-a<3){ document.getElementById('rangelabel').textContent='区间过短,请拉大'; return; }
+  document.querySelectorAll('#rangetog button').forEach(x=>x.classList.remove('on'));  // 取消预设高亮
+  setRange(a,b);
+};
 document.getElementById('zreset').onclick=()=>{
   document.querySelectorAll('#rangetog button').forEach(x=>x.classList.remove('on'));
   document.querySelector('#rangetog button[data-r=all]').classList.add('on');
@@ -296,7 +320,9 @@ new Chart(document.getElementById('ddchart'),{type:'line',
 });
 
 // ---- distribution donut ----
-const dl=Object.keys(R.dist), dv=Object.values(R.dist);
+// 只保留占比 > 0 的档位(如去掉 QLD全仓2x 后其占比为 0,不在图中出现)
+const dEntries=Object.entries(R.dist).filter(([k,v])=>v>0.0005);
+const dl=dEntries.map(e=>e[0]), dv=dEntries.map(e=>e[1]);
 new Chart(document.getElementById('distchart'),{type:'doughnut',
  data:{labels:dl,datasets:[{data:dv.map(x=>+(x*100).toFixed(1)),backgroundColor:dl.map(k=>STATECOL[k]),borderColor:'#fffdf8',borderWidth:2}]},
  options:{responsive:true,maintainAspectRatio:false,cutout:'58%',
