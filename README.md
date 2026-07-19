@@ -11,6 +11,7 @@
 | `1_prepare_data.py` | 下载 QQQ/QLD/^IRX,合成 2006 前 QLD,拼接价格 | `prices.csv` |
 | `2_backtest.py` | 计算指标、跑 V4.2 策略回测、导出结果 | `results.json` |
 | `3_generate_report.py` | 把结果渲染成自包含交互式网页 | `qqq_qld_report.html` |
+| `daily_check.py` | 盘后算今日目标敞口,给"持有/调仓"建议 | 打印到终端 |
 | `README.md` | 本说明 | — |
 
 > 附:`opt.py` 为参数稳健性 / 样本内外验证脚本(可选,见第五节)。
@@ -72,6 +73,19 @@ open qqq_qld_report.html      # macOS;Windows 直接双击该文件
 - **有物理上限**:用杠杆扛过 2000/2008 两次崩盘又想要高收益,数学上做不到;−32% 已接近杠杆策略在那两次崩盘下的实际地板。
 
 `opt.py` 运行:`python opt.py`(需先有 `prices.csv`),会打印 volt×vcap 网格 + 各参数 1D 敏感性。
+
+## 五之二、每日盘后执行(daily_check.py)
+
+```bash
+python daily_check.py                 # 看今日目标敞口与持仓构成(QQQ%/QLD%/现金%)
+python daily_check.py --current 0.66  # 传入当前净敞口,输出 持有 / 调仓 建议
+```
+
+执行纪律(避免被日间零点几的波动带着频繁交易):
+
+- **必调**:目标跨越关键边界——从"投资↔清仓"或"无杠杆↔动用 QLD 杠杆(1.0 线)"。
+- **同区微调**:目标与当前敞口差 **≥ 0.10x** 才调,否则持有。
+- 天天看没问题(回测里每日检查回撤最浅),真正动手全年约 12–15 次,平均两三周一次。
 
 ## 六、数据与方法说明
 
