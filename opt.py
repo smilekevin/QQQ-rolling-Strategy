@@ -8,7 +8,9 @@ px=df['qqq']; high=df['qhigh']; low=df['qlow']
 rq=df['qqq_ret']; rl=df['qld_ret']; rf=(df['irx']/100.0/252.0)
 def ema(s,n): return s.ewm(span=n,adjust=False).mean()
 
-def indicators(sma_len=200, st_p=10, st_m=3.0, rvol_win=20):
+BASE_SMA=250   # 与主策略 V4.1 一致(此前误用 200,会使 volt/vcap/confirm/lev 扫描在错误闸门下进行)
+
+def indicators(sma_len=BASE_SMA, st_p=10, st_m=3.0, rvol_win=20):
     macd_line=ema(px,12)-ema(px,26); macd_hist=macd_line-ema(macd_line,9)
     d=px.diff(); up=d.clip(lower=0); dn=-d.clip(upper=0)
     rsi=(100-100/(1+up.ewm(alpha=1/14,adjust=False).mean()/dn.ewm(alpha=1/14,adjust=False).mean().replace(0,np.nan))).fillna(50)
@@ -85,7 +87,7 @@ TRAIN_END='2013-01-01'  # ~ first 40% for training
 base_ind=indicators()
 
 print("="*96)
-print("A) 波动率目标 volt × 杠杆上限 vcap 网格  —— 指标固定,只变风控叠加(计算最快、逻辑最强)")
+print(f"A) 波动率目标 volt × 杠杆上限 vcap 网格  —— 指标固定(SMA={BASE_SMA},与主策略一致),只变风控叠加")
 print("   每格显示  全周期Calmar / 训练段(≤2012) / 验证段(2013+)   —— 看是否'训练验证都好'")
 print("="*96)
 volts=[0.14,0.16,0.18,0.20,0.22,0.25]; vcaps=[1.0,1.15,1.3,1.5]
@@ -108,7 +110,7 @@ for (vt,vc),(cf,ctr,cte,cg,md) in best:
     print(f"  volt={vt} vcap={vc:<4} | 全周期 CAGR {cg*100:4.1f}% 回撤 {md*100:5.1f}% Calmar {cf:.2f} | 训练 {ctr:.2f} 验证 {cte:.2f}")
 
 print("\n"+"="*96)
-print("B) 1D 敏感性(每次只动一个,看是否'高原')  基准 volt=0.20 vcap=1.15")
+print(f"B) 1D 敏感性(每次只动一个,看是否'高原')  基准 SMA={BASE_SMA} volt=0.20 vcap=1.15")
 print("="*96)
 def one(label, ind, **kw):
     e,ex=run(build(ind,**kw)); cg,md,cal,sh=met(e)
