@@ -152,13 +152,13 @@ code{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}
 
 <!-- 策略规则 -->
 <div class="card"><h2><span class="n">6</span>切换规则</h2>
-<div class="note">决策链:①先用 250 日均线定多空 → ②多头区间用 Supertrend/MACD/RSI 打分(0–4)决定基础档位 → ③用 20% 波动率目标缩放最终敞口 → ④强空头直接清仓。避险现金买短端国债生息。<b>V4.2 起去掉 QLD全仓2x 档(经验证不赚风险溢价),最高 1.5x。</b></div>
+<div class="note">决策链:①先用 250 日均线定多空 → ②多头区间用 Supertrend/MACD/RSI 打分(0–4)定<b>基础档</b> → ③用 20% 波动率目标把基础档<b>连续缩放</b>成最终敞口 → ④强空头直接清仓。避险现金买短端国债生息。<b>V4.2 起去掉 QLD全仓2x 档,最高 1.5x。</b><br><span style="color:#b06a2e">⚠ 下面 B–E 是"决策档",给的是<b>基础(名义)敞口</b>;曲线配色与占比图按<b>最终净敞口</b>分区,两者经波动率目标缩放后不等同——例如高波动时 C 档(1.0x)会被缩到约 0.75x,显示成"半仓"色带,<b>此时价格其实仍在 250 日线上方,并非跌破</b>。</span></div>
 <div class="rules">
- <div class="rule"><div class="lv" style="color:#6a9b3f">B · 趋势向上(最高档)</div><div class="ex">→ QQQ+QLD · 1.5x</div><div class="ds">动量 3–4 分,趋势健康。50% QQQ + 50% QLD。需 SMA250 上行 + 波动率&lt;40% 的熔断许可。</div></div>
- <div class="rule"><div class="lv" style="color:#b8912f">C · 中性偏多</div><div class="ex">→ QQQ 全仓 · 1.0x</div><div class="ds">价在 SMA250 上方但动量一般(0–2 分),或杠杆熔断触发。</div></div>
- <div class="rule"><div class="lv" style="color:#c2453b">D · 温和回调</div><div class="ex">→ QQQ 半仓 · 0.5x</div><div class="ds">跌破 250 日线但未确认空头,留半仓底仓 + 半仓现金生息。</div></div>
- <div class="rule"><div class="lv" style="color:#5a6172">E · 强空头</div><div class="ex">→ 现金 · 0x</div><div class="ds">跌破 250 日线 且 MACD&lt;0 且 Supertrend 空头 → 清仓避险,现金买国债。</div></div>
- <div class="rule" style="background:#eef4ee;border-color:#c9e0c9"><div class="lv" style="color:#2f6f4f">★ 波动率目标</div><div class="ex">×(20%÷实际波动)</div><div class="ds">在上述档位上再缩放:波动飙升时自动砍杠杆(只降不升,上限 1.0 倍)。降回撤的核心。</div></div>
+ <div class="rule"><div class="lv" style="color:#6a9b3f">B · 趋势向上(最高档)</div><div class="ex">基础 1.5x · QQQ+QLD</div><div class="ds">动量 3–4 分,趋势健康。50% QQQ + 50% QLD;需 SMA250 上行 + 波动率&lt;40% 熔断许可。</div></div>
+ <div class="rule"><div class="lv" style="color:#b8912f">C · 中性偏多</div><div class="ex">基础 1.0x · QQQ全仓</div><div class="ds">价在 SMA250 上方、动量一般(0–2 分),或杠杆熔断触发。</div></div>
+ <div class="rule"><div class="lv" style="color:#c2453b">D · 温和回调</div><div class="ex">基础 0.5x · QQQ半仓</div><div class="ds">价跌破 250 日线但未确认空头 → 半仓 QQQ + 半仓现金生息。</div></div>
+ <div class="rule"><div class="lv" style="color:#5a6172">E · 强空头</div><div class="ex">0x · 现金</div><div class="ds">跌破 250 日线 且 MACD&lt;0 且 Supertrend 空头 → 清仓避险,现金买国债。</div></div>
+ <div class="rule" style="background:#eef4ee;border-color:#c9e0c9"><div class="lv" style="color:#2f6f4f">★ 波动率目标</div><div class="ex">×min(1.0, 20%÷实际波动)</div><div class="ds">把基础档连续缩放:波动飙升自动砍杠杆(只降不升)。所以最终敞口是连续值、落在哪个色带都可能。</div></div>
 </div>
 <ul class="rl">
  <li><b>宏观闸门:</b> 收盘价 vs 250 日均线,定多空大方向(经样本内外验证由 200 日优化而来)。</li>
@@ -280,8 +280,8 @@ const eqChart=new Chart(document.getElementById('eqchart'),{type:'line',
      y:{type:'logarithmic',ticks:{color:'#8a8570',callback:v=>[1,3,10,30,100,300].includes(v)?v+'x':''},grid:{color:'#eee4d2'}}}}
 });
 // state legend (what the colors mean) — continuous exposure bands
-document.getElementById('statelegend').innerHTML='<b style="color:#5a6172">策略主线配色(按净敞口):</b>'+
-  [['#6a9b3f','QQQ+QLD ~1.5x(最高档)'],['#b8912f','QQQ全仓 ~1x'],['#c2453b','QQQ半仓 ~0.5x'],['#5a6172','现金/避险 0x']]
+document.getElementById('statelegend').innerHTML='<b style="color:#5a6172">策略主线配色(按<b>最终净敞口</b>所在区间):</b>'+
+  [['#6a9b3f','QQQ+QLD区 1.25–1.75x'],['#b8912f','QQQ全仓区 0.75–1.25x'],['#c2453b','半仓区 0.25–0.75x'],['#5a6172','现金/避险 0–0.25x']]
   .map(([c,t])=>'<span><i class="dot" style="background:'+c+'"></i>'+t+'</span>').join('');
 document.getElementById('eqlegend').innerHTML='<b style="color:#5a6172">灰色参照:</b>'+
   '<span><i class="dot" style="background:#c9c0ac"></i>QQQ 买入持有</span>'+
