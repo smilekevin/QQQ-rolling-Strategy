@@ -4,21 +4,22 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
 <script src="report_data.js"></script>
 <style>
-:root{color-scheme:light}
+:root{color-scheme:light;--grid-gap:12px;--section-gap:22px}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#f4f1ea;color:#1c2230;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
 .wrap{max-width:1120px;margin:0 auto;padding:34px 22px 70px}
 .eyebrow{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:#9a7b3f;font-weight:700}
 h1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:6px 0 4px}
 .sub{color:#5a6172;font-size:14.5px}
-.card{background:#fffdf8;border:1px solid #e5ddcb;border-radius:14px;padding:22px 24px;margin-top:22px;box-shadow:0 1px 2px rgba(40,30,10,.04)}
+.card{background:#fffdf8;border:1px solid #e5ddcb;border-radius:14px;padding:22px 24px;margin-top:var(--section-gap);box-shadow:0 1px 2px rgba(40,30,10,.04)}
 h2{font-size:18px;font-weight:750;margin-bottom:3px;display:flex;align-items:center;gap:9px}
 h2 .n{font-size:11px;background:#1c2230;color:#f4f1ea;width:22px;height:22px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
 .note{color:#6a7183;font-size:13px;margin-bottom:14px}
-.signal{display:flex;flex-wrap:wrap;gap:18px;align-items:center}
+.signal{display:grid;grid-template-columns:1fr;gap:var(--grid-gap)}
+.signal-summary{min-width:0}
 .bigstate{font-size:34px;font-weight:850;letter-spacing:-.02em;color:#1c2230}
 .pill{display:inline-block;padding:4px 12px;border-radius:999px;font-size:12.5px;font-weight:700}
-.ind-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:6px;flex:1}
+.ind-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:var(--grid-gap)}
 .ind{background:#faf6ec;border:1px solid #ece3d0;border-radius:10px;padding:10px 12px}
 .ind .k{font-size:11px;color:#8a8570;text-transform:uppercase;letter-spacing:.08em}
 .ind .v{font-size:18px;font-weight:750;margin-top:2px}
@@ -37,27 +38,26 @@ tr.hl td{background:#fbf4e3;font-weight:750}
 .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:#5a6172;margin-top:10px}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .dot{width:11px;height:3px;border-radius:2px;display:inline-block}
-.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px;margin-top:4px}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:var(--grid-gap);margin-top:4px}
 .rule{border:1px solid #e5ddcb;border-radius:11px;padding:13px 15px;background:#faf6ec}
 .rule .lv{font-size:12px;font-weight:700;letter-spacing:.05em}
 .rule .ex{font-size:22px;font-weight:800;margin:3px 0}
 .rule .ds{font-size:12.5px;color:#5a6172}
-.two{display:grid;grid-template-columns:1.35fr 1fr;gap:22px}
+.two{display:grid;grid-template-columns:1fr;gap:var(--section-gap);margin-top:var(--section-gap)}
+.two .card{min-width:0;margin-top:0}
 @media(max-width:760px){
-  .two{grid-template-columns:1fr}
+  :root{--section-gap:16px}
   .bigstate{font-size:28px}
   .wrap{padding:20px 13px 54px}
   h1{font-size:23px}
   .sub{font-size:13.5px}
-  .card{padding:16px 15px;border-radius:12px;margin-top:16px}
+  .card{padding:16px 15px;border-radius:12px;margin-top:var(--section-gap)}
   h2{font-size:16px}
   .chartbox{height:300px}
   .chartbox.sm{height:230px}
   table{font-size:12.5px} th,td{padding:7px 5px}
   .ind-grid{grid-template-columns:repeat(auto-fit,minmax(96px,1fr))}
   input[type=date]{font-size:16px !important}   /* 防 iOS 聚焦时自动放大 */
-  .two{gap:16px;margin-top:16px}                 /* 竖直堆叠时与其他卡片间距一致 */
-  .two .card{margin-top:0}                        /* 去掉叠加的 margin,避免间距偏大 */
 }
 @media(max-width:430px){
   .kpi{grid-template-columns:repeat(2,1fr)}
@@ -71,7 +71,7 @@ ul.rl li{padding:5px 0 5px 22px;position:relative;border-bottom:1px dashed #ece3
 ul.rl li:before{content:"▸";position:absolute;left:2px;color:#9a7b3f}
 code{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}
 .foot{color:#8a8570;font-size:12px;margin-top:26px;line-height:1.7}
-.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:var(--grid-gap)}
 .kpi .box{background:#faf6ec;border:1px solid #ece3d0;border-radius:11px;padding:13px 15px}
 .kpi .box .k{font-size:11px;color:#8a8570;text-transform:uppercase;letter-spacing:.07em}
 .kpi .box .v{font-size:24px;font-weight:800;margin-top:2px;letter-spacing:-.02em}
@@ -86,7 +86,7 @@ code{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}
 <div class="card"><h2><span class="n">◆</span>当前建议仓位</h2>
 <div class="note">截至 <b id="ldate"></b> 收盘,依据最新指标状态。仅供研究参考,非投资建议。</div>
 <div class="signal">
-  <div style="min-width:180px">
+  <div class="signal-summary">
     <div class="bigstate" id="lstate"></div>
     <div id="lstatebar" style="margin-top:8px"></div>
     <div id="lreb" style="margin-top:10px;font-size:12.5px;color:#6a7183;line-height:1.7"></div>
@@ -352,7 +352,7 @@ document.getElementById('zreset').onclick=()=>{
 })();
 
 // ---- drawdown ----
-new Chart(document.getElementById('ddchart'),{type:'line',
+const ddChart = new Chart(document.getElementById('ddchart'),{type:'line',
  data:{labels:D,datasets:[
    {label:'策略',data:ddown(R.equity.strategy),borderColor:'#1c2230',backgroundColor:'rgba(28,34,48,.10)',fill:true,borderWidth:1.6,pointRadius:0},
    {label:'QQQ买入持有',data:ddown(R.equity.qqq),borderColor:'#c99a2e',borderWidth:1,pointRadius:0},
@@ -363,23 +363,32 @@ new Chart(document.getElementById('ddchart'),{type:'line',
    scales:{x:{ticks:{maxTicksLimit:8,color:'#8a8570'},grid:{display:false}},y:{ticks:{color:'#8a8570',callback:v=>(v*100).toFixed(0)+'%'},grid:{color:'#eee4d2'}}}}
 });
 
-// ---- distribution donut ----
+// ---- distribution bars ----
 // 只保留占比 > 0 的决策档。
 const dEntries=Object.entries(R.dist).filter(([k,v])=>v>0.0005);
 const dl=dEntries.map(e=>e[0]), dv=dEntries.map(e=>e[1]);
-new Chart(document.getElementById('distchart'),{type:'doughnut',
- data:{labels:dl,datasets:[{data:dv.map(x=>+(x*100).toFixed(1)),backgroundColor:dl.map(k=>STATECOL[k]),borderColor:'#fffdf8',borderWidth:2}]},
- options:{responsive:true,maintainAspectRatio:false,cutout:'58%',
-   plugins:{legend:{position:(window.innerWidth<560?'bottom':'right'),labels:{boxWidth:12,font:{size:12}}},tooltip:{callbacks:{label:c=>c.label+': '+c.parsed+'%'}}}}
+const distChart = new Chart(document.getElementById('distchart'),{type:'bar',
+ data:{labels:dl,datasets:[{data:dv.map(x=>+(x*100).toFixed(1)),backgroundColor:dl.map(k=>STATECOL[k]),borderRadius:4,barThickness:24}]},
+ options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:false,
+   plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.x.toFixed(1)+'%'}}},
+   scales:{x:{beginAtZero:true,max:100,ticks:{color:'#8a8570',callback:v=>v+'%'},grid:{color:'#eee4d2'}},y:{ticks:{color:'#5a6172'},grid:{display:false}}}}
 });
 
 // ---- exposure over time ----
-new Chart(document.getElementById('expchart'),{type:'line',
+const expChart = new Chart(document.getElementById('expchart'),{type:'line',
  data:{labels:D,datasets:[{label:'净敞口',data:SE,borderColor:'#3f7fb8',backgroundColor:'rgba(63,127,184,.12)',fill:true,borderWidth:1,pointRadius:0,stepped:true}]},
  options:{responsive:true,maintainAspectRatio:false,animation:false,
    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'敞口 '+c.parsed.y.toFixed(1)+'x'}}},
    scales:{x:{ticks:{maxTicksLimit:10,color:'#8a8570'},grid:{display:false}},
      y:{min:0,max:2.1,ticks:{color:'#8a8570',stepSize:0.5,callback:v=>v.toFixed(1)+'x'},grid:{color:'#eee4d2'}}}}
+});
+
+let resizeTimer;
+window.addEventListener('resize',()=>{
+  clearTimeout(resizeTimer);
+  resizeTimer=setTimeout(()=>{
+    [ddChart,distChart,expChart].forEach(chart=>chart.resize());
+  },100);
 });
 
 document.getElementById('foot').innerHTML=
