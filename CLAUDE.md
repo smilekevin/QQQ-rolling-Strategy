@@ -15,13 +15,14 @@ QQQ / QLD **动态滚仓策略**:用 QQQ 的技术指标(MACD / RSI / Supertrend
 | `1_prepare_data.py` | 下载 QQQ/QLD/^IRX,合成 2006 前 QLD → `prices.csv` |
 | `indicators.py` | **共享指标模块**:ema/macd/rsi/supertrend/compute + decide_tier/DECNAME。被 2/daily_check 复用 |
 | `2_backtest.py` | 指标(import indicators)+ V4.3 策略回测 → `results.json`。**顶部 CONFIG 是唯一调参处** |
-| `3_generate_report.py` | 生成交互式报告数据 → `report_data.js`;固定页面壳为 `qqq_qld_report.html` |
+| `3_generate_report.py` | 只更新交互式报告数据 → `report_data.js`,不改写 HTML |
+| `qqq_qld_report.html` | 固定交互式页面壳,从本地 `report_data.js` 读取日更数据 |
 | `daily_check.py` | 盘后算目标敞口 + 决策档,给"持有/调仓"建议 |
 | `opt.py` | 参数稳健性 / 样本内外验证(向量化,<1s) |
 | `ablation.py` | 指标消融实验 |
 | `README.md` | 面向用户的说明 |
 
-流水线顺序:`1 → 2 → 3`。`prices.csv` / `results.json` 被 gitignore(可重建)。
+流水线顺序:`1 → 2 → 3`。`prices.csv` / `results.json` / `report_data.js` 被 gitignore(可重建);`qqq_qld_report.html` 固定并提交到 Git。
 
 ## 3. 当前策略 V4.3(完整规则)
 
@@ -91,7 +92,7 @@ CONFIRM=3 COST_BPS=5/10000  (报告/日检里 DEADBAND=0.10)
 - **档位/决策边界**:`band()`(2_backtest,敞口分档)用 `lo < v <= hi`(上界闭);`daily_check.tier()` 已对齐。曾出过 bug:tier 用 `<` 导致 0.25/0.75 等边界值归档错位。
 - **决策档定义**必须与 targets() 一致:`decide_tier` 返回 B 仅当 `s>=3 且 lever_ok`,否则 C(与 targets 里 base>1 且 not lever_ok→降 C 一致)。
 - 报告 `STATECOL` 的 key 必须与 `results.json` 的 `dist` key(决策档名)完全一致,否则占比图颜色错。
-- 报告 HTML 是固定页面壳,只能从 CDN 加载 Chart.js;日更数据写入 gitignored 的 `report_data.js`。数据为日线(约6880点,~430KB;回撤在前端由 equity 算、敞口图与悬浮共用 state_exp,不存冗余)。
+- 报告 HTML 是固定页面壳,只能从 CDN 加载 Chart.js;`3_generate_report.py` 不改写 HTML,只把日更数据写入 gitignored 的 `report_data.js`。数据为日线(约6880点,目前约350KB并随区间增长;回撤在前端由 equity 算、敞口图与悬浮共用 state_exp,不存冗余)。
 - `results.json` 导出键:dates / equity{strategy,qqq,qld,blend,half} / state_exp / decision(B/C/D/E,着色用)/ dist(决策档占比)/ metrics(四区间)/ latest。曲线着色按 decision,悬浮显示 state_exp(净敞口)。
 
 ## 10. 数据与免责
