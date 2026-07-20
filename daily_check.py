@@ -16,7 +16,7 @@ import argparse, numpy as np, pandas as pd, yfinance as yf
 
 # —— 参数须与 2_backtest.py 的 CONFIG 保持一致 ——
 SMA_LEN=250; VOLT=0.20; VCAP=1.0; MAXE=1.5; ST_P=10; ST_M=3.0; RVOL_WIN=20
-LEV_CEIL=0.40; RSI_OB=78; CONFIRM=3; DEADBAND=0.10
+LEV_CEIL=0.40; CONFIRM=3; DEADBAND=0.10
 
 ap=argparse.ArgumentParser()
 ap.add_argument('--current', type=float, default=None, help='你当前的净敞口(如 0.66)')
@@ -40,10 +40,8 @@ for i in range(n):
         else: exp[i]=max(0.0,min(2.0,0.5*min(VCAP,VOLT/rvol[i])))      # 温和回调:0.5x×波动率目标(V4.3)
         continue
     s=int(stb[i])+(mhv[i]>0)+(mlv[i]>0)+(rsiv[i]>50)
-    e=2.0 if s>=4 else (1.5 if s>=3 else 1.0)
-    if s>=4 and rsiv[i]>RSI_OB: e=1.5
+    e=MAXE if s>=3 else 1.0
     if e>1.0 and not (rising[i] and rvol[i]<LEV_CEIL): e=1.0
-    e=min(e,MAXE)
     if rvol[i]>0 and not np.isnan(rvol[i]): e=max(0.0,min(2.0,e*min(VCAP,VOLT/rvol[i])))
     exp[i]=e
 # 3 日确认(0.05 档)

@@ -1,6 +1,6 @@
 # QQQ / QLD 动态滚仓策略 —— 回测与报告流水线
 
-基于技术指标(MACD / RSI / Supertrend + 250 日趋势闸门)在 **QQQ半仓 → QQQ全仓 → QQQ+QLD → QLD全仓 → 现金** 之间自动滚动切换仓位的策略,附完整历史回测与交互式 HTML 报告。
+基于技术指标(MACD / RSI / Supertrend + 250 日趋势闸门)在 **现金 → 低仓 QQQ → QQQ全仓 → QQQ+QLD(最高 1.5x)** 之间自动滚动切换仓位的策略,附完整历史回测与交互式 HTML 报告。
 
 ---
 
@@ -11,7 +11,7 @@
 | `1_prepare_data.py` | 下载 QQQ/QLD/^IRX,合成 2006 前 QLD,拼接价格 | `prices.csv` |
 | `indicators.py` | 共享指标模块(MACD/RSI/Supertrend/闸门 + 决策档),被下面两个脚本复用 | — |
 | `2_backtest.py` | 计算指标、跑 V4.3 策略回测、导出结果 | `results.json` |
-| `3_generate_report.py` | 把结果渲染成自包含交互式网页 | `qqq_qld_report.html` |
+| `3_generate_report.py` | 生成交互式报告数据,供固定 HTML 页面壳读取 | `report_data.js` |
 | `daily_check.py` | 盘后算今日目标敞口,给"持有/调仓"建议 | 打印到终端 |
 | `README.md` | 本说明 | — |
 
@@ -26,13 +26,13 @@ pip install yfinance pandas numpy
 # 按顺序运行(三个脚本都把产物写到脚本所在目录)
 python 1_prepare_data.py      # 联网下载,约 10 秒
 python 2_backtest.py          # 回测,约 5 秒,打印指标表
-python 3_generate_report.py   # 生成 HTML
+python 3_generate_report.py   # 生成 report_data.js(日更数据,不提交)
 
 # 打开报告
 open qqq_qld_report.html      # macOS;Windows 直接双击该文件
 ```
 
-数据每天更新:重跑这三步即可刷新到最新交易日。
+数据每天更新:重跑这三步即可刷新到最新交易日。`qqq_qld_report.html` 是固定页面壳,日更数据在 `report_data.js` 中,该文件与 `prices.csv` / `results.json` 一样被 gitignore。
 
 ## 三、策略逻辑(V4.3)
 
@@ -46,11 +46,11 @@ open qqq_qld_report.html      # macOS;Windows 直接双击该文件
    - 0~2 → **QQQ全仓(1.0x)**,3~4 → **QQQ+QLD(1.5x)**。
    - **最高档为 1.5x**(`MAX_EXPOSURE=1.5`,去掉原 QLD全仓 2x 档——经验证 2x 不赚风险溢价,砍掉零代价)。
    - 上 1.5x 还需**熔断许可**:250日线上行 **且** 20日年化波动率 < 40%。
-4. **波动率目标(核心风控)** —— 最终净敞口 = 档位敞口 × `min(1.0, 20% ÷ 20日实际年化波动率)`,0~2x 封顶(只降不升)。
+4. **波动率目标(核心风控)** —— 最终净敞口 = 档位敞口 × `min(1.0, 20% ÷ 20日实际年化波动率)`,当前版本默认 0~1.5x(只降不升)。
    波动飙升时自动砍杠杆,是压低回撤的关键。
 5. **执行细节** —— 净敞口按 0.05 档、连续 3 日确认;再设 **0.10x 死区**(`DEADBAND`,目标偏离当前持仓 <0.10x 则不调仓,与实盘一致);现金按 ^IRX 利率计息;每次调仓计 5bp 单边成本。全周期约 13 次调仓/年。
 
-因为有波动率目标,实际净敞口是 **0(现金)~ 2.0x** 连续变化的,不是死板的四档。
+因为有波动率目标,实际净敞口是 **0(现金)~ 1.5x** 连续变化的,不是死板的四档。
 
 ## 四、回测结果(1999-03 ~ 至今,含成本)
 
@@ -71,9 +71,9 @@ open qqq_qld_report.html      # macOS;Windows 直接双击该文件
 - **只在样本内找、拿样本外验**:用 `opt.py` 可看每组参数在"训练段(≤2012)/验证段(2013+)"的分别表现。两段都好才可信。
 - **找高原、别找尖峰**:好参数应是"邻近值都不错"的平缓区。已验证 `SMA_LEN` 在 250/300 都好(故选 250);`VOL_TARGET` 在 0.14~0.25 之间结果都相近(不敏感)。
 - **少调、只调有逻辑的**:把多个"单独最优"的参数一起堆叠,往往**不如只改一个**——这就是过拟合。
-- **有物理上限**:用杠杆扛过 2000/2008 两次崩盘又想要高收益,数学上做不到;−32% 已接近杠杆策略在那两次崩盘下的实际地板。
+- **有物理上限**:用杠杆扛过 2000/2008 两次崩盘又想要高收益,数学上做不到;V4.3 的 −26% 回撤已相当依赖趋势闸门与波动率缩放配合。
 
-`opt.py` 运行:`python opt.py`(需先有 `prices.csv`),会打印 volt×vcap 网格 + 各参数 1D 敏感性。
+`opt.py` 运行:`python opt.py`(需先有 `prices.csv`),会打印 V4.3 口径下的 volt×VOL_CAP 网格 + 各参数 1D 敏感性。
 
 ## 五之二、每日盘后执行(daily_check.py)
 

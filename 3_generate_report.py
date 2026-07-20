@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-第 3 步:把 results.json 渲染成自包含交互式报告 qqq_qld_report.html
+第 3 步:把 results.json 渲染成交互式报告数据 report_data.js
 运行:  python 3_generate_report.py   (需先跑完 2_backtest.py 生成 results.json)
-产物是单个 HTML 文件,双击即可用浏览器打开;仅从 CDN 加载 Chart.js,其余全部内联。
+HTML 是固定页面壳 qqq_qld_report.html;每日变化的数据写入 gitignored 的 report_data.js。
+双击 HTML 即可打开;页面从本地 report_data.js 加载数据,并从 CDN 加载 Chart.js。
 """
 import os, json
 OUT = os.path.dirname(os.path.abspath(__file__)) + os.sep
 R=json.load(open(OUT+'results.json'))
 DATA=json.dumps(R, ensure_ascii=False)
+DATAFILE='report_data.js'
 
 CHART='<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>'
 
@@ -15,6 +17,7 @@ html = f"""<!DOCTYPE html>
 <html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>QQQ/QLD 动态滚仓策略回测</title>
 {CHART}
+<script src="{DATAFILE}"></script>
 <style>
 :root{{color-scheme:light}}
 *{{box-sizing:border-box;margin:0;padding:0}}
@@ -174,9 +177,9 @@ code{{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}}
  <div class="rule" style="background:#eef4ee;border-color:#c9e0c9"><div class="lv" style="color:#2f6f4f">★ 波动率目标</div><div class="ex">×min(1.0, 20%÷实际波动)</div><div class="ds">把基础档连续缩放:波动飙升自动砍杠杆(只降不升)。所以最终敞口是连续值、落在哪个色带都可能。</div></div>
 </div>
 <ul class="rl">
- <li><b>宏观闸门:</b> 收盘价 vs 250 日均线,定多空大方向(经样本内外验证由 200 日优化而来)。</li>
+<li><b>宏观闸门:</b> 收盘价 vs 250 日均线,定多空大方向(经样本内外验证由 200 日优化而来)。</li>
  <li><b>动量打分(多头区间):</b> Supertrend 多头 +1、MACD 柱&gt;0 +1、MACD 线&gt;0 +1、RSI&gt;50 +1;0–2 分→QQQ全仓,3–4 分→QQQ+QLD(1.5x 封顶,MAX_EXPOSURE=1.5)。</li>
- <li><b>波动率目标(核心):</b> 最终敞口 = 档位敞口 ×min(1.0, 20%÷近20日年化波动率),0–2x 封顶(只降不升)。2000/2008/2020 波动暴涨时自动大幅降杠杆,躲开杠杆 ETF 最致命的深亏。</li>
+ <li><b>波动率目标(核心):</b> 最终敞口 = 档位敞口 ×min(1.0, 20%÷近20日年化波动率),当前版本默认 0–1.5x(只降不升)。2000/2008/2020 波动暴涨时自动大幅降杠杆,躲开杠杆 ETF 最致命的深亏。</li>
  <li><b>强空头清仓:</b> 跌破 250 日线且 MACD&lt;0 且 Supertrend 空头时,直接 100% 现金(买国债),而非半仓硬扛。</li>
  <li><b>抗抖动:</b> 敞口按 0.05 档、连续 <code>3</code> 日确认;再设 <code>0.10x</code> 死区(目标偏离当前持仓 &lt;0.10x 则不动),信号 T 日生成、T+1 执行(无未来函数)。全周期换手约 <span id="turn"></span> 次/年,平均净敞口 <span id="avgexp"></span>x。</li>
 </ul>
@@ -186,7 +189,11 @@ code{{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}}
 </div>
 
 <script>
-const R = {DATA};
+const R = window.QQQ_REPORT_DATA;
+if(!R){{
+  document.body.innerHTML='<div style="max-width:760px;margin:56px auto;padding:24px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;line-height:1.6;color:#1c2230"><h1>缺少报告数据</h1><p>请先运行 <code>python 3_generate_report.py</code> 生成 <code>{DATAFILE}</code>,再打开本页面。</p></div>';
+  throw new Error('Missing {DATAFILE}');
+}}
 const fmtP = x => (x*100).toFixed(1)+'%';
 const fmtP0 = x => (x*100).toFixed(0)+'%';
 const NAMES = ['策略(V4.3动态滚仓)','QQQ半仓','QQQ全仓(=买入持有QQQ)','QQQ+QLD(50/50)','QLD全仓(=买入持有QLD)'];
@@ -372,7 +379,7 @@ new Chart(document.getElementById('ddchart'),{{type:'line',
 }});
 
 // ---- distribution donut ----
-// 只保留占比 > 0 的档位(如去掉 QLD全仓2x 后其占比为 0,不在图中出现)
+// 只保留占比 > 0 的决策档。
 const dEntries=Object.entries(R.dist).filter(([k,v])=>v>0.0005);
 const dl=dEntries.map(e=>e[0]), dv=dEntries.map(e=>e[1]);
 new Chart(document.getElementById('distchart'),{{type:'doughnut',
@@ -398,5 +405,7 @@ document.getElementById('foot').innerHTML=
 </script>
 </body></html>"""
 
+open(OUT+DATAFILE,'w').write('window.QQQ_REPORT_DATA = '+DATA+';\n')
 open(OUT+'qqq_qld_report.html','w').write(html)
+print(f"{DATAFILE} bytes:",len(DATA))
 print("HTML bytes:",len(html))

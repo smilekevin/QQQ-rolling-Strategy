@@ -5,11 +5,11 @@
 策略(现金 + 三档,连续杠杆;已去掉 QLD全仓2x 档,最高 1.5x):
   · 宏观闸门:收盘价 vs 250 日均线,定多空大方向。
   · 空头区:  强空头(MACD<0 且 Supertrend 空头)-> 100% 现金(买国债);
-             否则温和回调 -> QQQ 半仓(0.5x)+ 半仓现金。
+             否则温和回调 -> 基础 0.5x 再套波动率目标。
   · 多头区:  动量打分 = Supertrend多头 + MACD柱>0 + MACD线>0 + RSI>50 (0~4)
-             -> C=QQQ全仓(1x) / 3~4分=QQQ+QLD(1.5x,由 MAX_EXPOSURE 封顶);
+             -> C=QQQ全仓(1x) / 3~4分=QQQ+QLD(1.5x);
              加杠杆还需"250日线上行 且 20日波动率<40%"的熔断许可。
-  · 波动率目标:最终净敞口 = 档位敞口 × min(VOL_CAP, VOL_TARGET / 20日年化波动率),0~2x 封顶。
+  · 波动率目标:最终净敞口 = 档位敞口 × min(VOL_CAP, VOL_TARGET / 20日年化波动率),默认 0~1.5x。
   · 抗抖动:  净敞口按 0.05 档、连续 CONFIRM 日确认才切换;信号 T 日生成、T+1 执行(无未来函数)。
   · 现金按 ^IRX 短端国债利率计息;每次调仓计 COST_BPS 单边成本。
 
@@ -28,7 +28,6 @@ ST_PERIOD   = 10      # Supertrend ATR 周期
 ST_MULT     = 3.0     # Supertrend 倍数(2~4)
 RVOL_WIN    = 20      # 实际波动率回看窗口(交易日)
 LEVER_VOLCEIL = 0.40  # 允许加杠杆的波动率天花板
-RSI_OB      = 78      # RSI 超买保护阈值(满分动量但超买时不上满杠杆)
 CONFIRM     = 3       # 目标敞口需连续几日确认才切换(降低抖动)
 DEADBAND    = 0.10    # 死区:确认目标与"当前持有敞口"偏离≥此值才调仓,否则沿用前一日(0=不设死区)
 COST_BPS    = 5/10000 # 单边交易成本(5bp)
@@ -60,11 +59,9 @@ def targets(r):
             e=max(0.0,min(2.0, 0.5*min(VOL_CAP, VOL_TARGET/r['rvol'])))
         return (e,0.0,1-e)
     s=int(r['st_bull'])+int(r['macd_hist']>0)+int(r['macd_line']>0)+int(r['rsi']>50)
-    state={0:'C',1:'C',2:'C',3:'B',4:'A'}[s]
-    if s==4 and r['rsi']>RSI_OB: state='B'
-    if state in ('A','B') and not r['lever_ok']: state='C'
-    w={'A':(0.0,1.0,0.0),'B':(0.5,0.5,0.0),'C':(1.0,0.0,0.0)}[state]
-    exp=min(w[0]+2*w[1], MAX_EXPOSURE)          # 档位上限
+    exp=MAX_EXPOSURE if s>=3 else 1.0
+    if exp>1.0 and not r['lever_ok']:
+        exp=1.0
     if r['rvol']>0 and not np.isnan(r['rvol']): # 波动率目标叠加
         exp=max(0.0,min(2.0, exp*min(VOL_CAP, VOL_TARGET/r['rvol'])))
     return (exp,0.0,1-exp) if exp<=1.0 else (2-exp, exp-1, 0.0)

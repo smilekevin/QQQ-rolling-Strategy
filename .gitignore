@@ -1,6 +1,7 @@
 # 生成的中间数据(可由脚本重建)
 prices.csv
 results.json
+report_data.js
 __pycache__/
 *.pyc
 .DS_Store
