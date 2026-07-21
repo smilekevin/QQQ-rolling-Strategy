@@ -37,7 +37,7 @@ COST_BPS    = 5/10000 # 单边交易成本(5bp)
 
 OUT = os.path.dirname(os.path.abspath(__file__)) + os.sep
 df = pd.read_csv(OUT+'prices.csv', parse_dates=['Date'], index_col='Date')
-px=df['qqq']; high=df['qhigh']; low=df['qlow']
+px=df['signal_close']; high=df['signal_high']; low=df['signal_low']
 rq=df['qqq_ret']; rl=df['qld_ret']; rf=(df['irx']/100.0/252.0)   # 现金日利率
 
 # ---------------- 指标 + 决策档(共享模块,见 indicators.py)----------------
@@ -92,6 +92,11 @@ e_exec=np.array(ded)/20.0                           # 实际执行的目标净�
 q=np.where(e_exec<=1,e_exec,2-e_exec); l=np.where(e_exec<=1,0.0,e_exec-1.0); cash=1.0-q-l
 Wc=pd.DataFrame({'q':q,'l':l,'c':cash},index=W.index).shift(1).bfill()
 
+# ^NDX 仅用于 QQQ 上市前的指标暖机;收益、换手和全部绩效从真实 QQQ 日收益开始。
+trade_index=df.index[df['qqq_ret'].notna() & df['qld_ret'].notna()]
+Wc=Wc.loc[trade_index]
+rq=rq.loc[trade_index]; rl=rl.loc[trade_index]; rf=rf.loc[trade_index]
+
 # ---------------- 回测引擎(档位内不再平衡,仅换档时调仓 + 现金生息)----------------
 # 持有期内任凭 QQQ/QLD 权重随行情漂移(不做日内再平衡),只有当目标档位变化时
 # 才从当前(漂移后)权重成交到新目标,并按实际成交量计交易成本 —— 与实盘一致。
@@ -140,7 +145,7 @@ print("--- 2006-06 后(全真实 QLD)---")
 for k,m in M2.items():
     print(f"{k:<22}{m['cagr']*100:>6.1f}%  回撤 {m['mdd']*100:6.1f}%  Calmar {m['calmar']:.2f}")
 
-dist=DEC_exec.map(DECNAME).value_counts(normalize=True)     # 各决策档时间占比
+dist=DEC_exec.reindex(eq.index).map(DECNAME).value_counts(normalize=True)     # 各决策档时间占比
 tgt_exp=(Wc['q']+2*Wc['l']).round(2)          # 目标敞口(换档信号),用于统计切换次数
 nsw=(tgt_exp!=tgt_exp.shift()).sum()
 
@@ -169,7 +174,7 @@ export={
  'dist':{DECNAME[k]:round(float(dist.get(DECNAME[k],0)),4) for k in ['B','C','D','E']},
  'switches':int(nsw),'ann_switch':round(nsw/(len(exp)/252),1),'ann_turnover':round(float(turn.sum()/(len(exp)/252)),2),
  'avg_exp':round(float(exp.mean()),2),
- 'range':[df.index[0].strftime('%Y-%m-%d'),df.index[-1].strftime('%Y-%m-%d')],
+ 'range':[eq.index[0].strftime('%Y-%m-%d'),eq.index[-1].strftime('%Y-%m-%d')],
  'latest':{'date':df.index[-1].strftime('%Y-%m-%d'),'state':DECNAME[DEC.iloc[-1]],'dec':DEC.iloc[-1],'exp':round(cur_e,2),
            'last_reb':last_reb.strftime('%Y-%m-%d'),'days_since':days_since,
            'prev_exp':round(prev_e,2),

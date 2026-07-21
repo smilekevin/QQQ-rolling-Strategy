@@ -16,8 +16,9 @@ if not os.path.exists(DATA):
     sys.exit('缺少 prices.csv: 请先运行 python 1_prepare_data.py')
 
 df = pd.read_csv(DATA, parse_dates=['Date'], index_col='Date')
-px = df['qqq']; high = df['qhigh']; low = df['qlow']
+px = df['signal_close']; high = df['signal_high']; low = df['signal_low']
 rq = df['qqq_ret']; rl = df['qld_ret']; rf = df['irx'] / 100.0 / 252.0
+TRADE_INDEX = df.index[df['qqq_ret'].notna() & df['qld_ret'].notna()]
 
 # ---------------- V4.4 baseline config ----------------
 BASE_SMA = 250
@@ -41,11 +42,14 @@ def ema(s, n):
 
 
 def macro_regime(sma, bull_reentry_buffer):
-    state = False
+    state = None
     result = []
     for price, average in zip(px, sma):
         if np.isnan(average):
-            state = False
+            result.append(False)
+            continue
+        if state is None:
+            state = price >= average
         elif state and price < average:
             state = False
         elif not state and price > average * (1 + bull_reentry_buffer):
@@ -155,12 +159,13 @@ def build(ind, volt=BASE_VOLT, vcap=BASE_VCAP, max_exposure=BASE_MAXE,
     return pd.DataFrame({'q': q, 'l': l, 'c': c}, index=ind.index).shift(1).bfill()
 
 
-RQ = rq.values
-RL = rl.values
-RF = rf.values
+RQ = rq.loc[TRADE_INDEX].values
+RL = rl.loc[TRADE_INDEX].values
+RF = rf.loc[TRADE_INDEX].values
 
 
 def run(Wc):
+    Wc = Wc.loc[TRADE_INDEX]
     val = 1.0
     wq = wl = wc = 0.0
     ptq = ptl = None

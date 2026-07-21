@@ -40,9 +40,12 @@ def supertrend(px, high, low, period=10, mult=3.0):
 
 def macro_regime(px, sma, bull_reentry_buffer=0.01):
     """多头跌破 SMA 即退出;熊市后需站上 SMA*(1+buffer) 才重新进入多头。"""
-    state=False; result=[]
+    state=None; result=[]
     for price, average in zip(px, sma):
-        if np.isnan(average): state=False
+        if np.isnan(average):
+            result.append(False)
+            continue
+        if state is None: state=price>=average
         elif state and price<average: state=False
         elif not state and price>average*(1+bull_reentry_buffer): state=True
         result.append(state)

@@ -14,8 +14,9 @@ if not os.path.exists(DATA):
     sys.exit('缺少 prices.csv: 请先运行 python 1_prepare_data.py')
 
 df = pd.read_csv(DATA, parse_dates=['Date'], index_col='Date')
-px = df['qqq']; high = df['qhigh']; low = df['qlow']
+px = df['signal_close']; high = df['signal_high']; low = df['signal_low']
 rq = df['qqq_ret']; rl = df['qld_ret']; rf = df['irx'] / 100.0 / 252.0
+TRADE_INDEX = df.index[df['qqq_ret'].notna() & df['qld_ret'].notna()]
 
 SMA_LEN = 250
 BEAR_EXIT_BUFFER = 0.04
@@ -60,9 +61,12 @@ for i in range(1, n):
 st_bull = pd.Series(direc == 1, index=px.index)
 sma = px.rolling(SMA_LEN).mean()
 macro_values = []
-macro_state = False
+macro_state = None
 for price, average in zip(px, sma):
-    if np.isnan(average): macro_state = False
+    if np.isnan(average):
+        macro_values.append(False)
+        continue
+    if macro_state is None: macro_state = price >= average
     elif macro_state and price < average: macro_state = False
     elif not macro_state and price > average * (1 + BULL_REENTRY_BUFFER): macro_state = True
     macro_values.append(macro_state)
@@ -151,12 +155,13 @@ def build(use_macd=True, use_rsi=True, use_st=True):
     return pd.DataFrame({'q': q, 'l': l, 'c': cash}, index=ind.index).shift(1).bfill()
 
 
-RQ = rq.values
-RL = rl.values
-RF = rf.values
+RQ = rq.loc[TRADE_INDEX].values
+RL = rl.loc[TRADE_INDEX].values
+RF = rf.loc[TRADE_INDEX].values
 
 
 def run(Wc):
+    Wc = Wc.loc[TRADE_INDEX]
     val = 1.0
     wq = wl = wc = 0.0
     ptq = ptl = None

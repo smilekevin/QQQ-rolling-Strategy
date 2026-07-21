@@ -80,7 +80,7 @@ code{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}
 <body><div class="wrap">
 <div class="eyebrow">QQQ · QLD — 技术指标驱动的杠杆滚仓 · V4.4</div>
 <h1>动态滚仓策略回测(V4.4 滞回增强版)</h1>
-<p class="sub">基于 QQQ 的 <b>MACD / RSI / Supertrend</b> + 250 日趋势闸门决定仓位档位,叠加 <b>20% 波动率目标</b>与<b>强空头清仓</b>两层风控。V4.4 为趋势闸门加入非对称滞回:跌破 250 日线即退出多头,重新站上均线 <b>1%</b> 才恢复;只有深破均线 <b>4%</b> 且空头指标共振才清仓,用于降低长期均线附近反复横跳造成的震荡损失。全周期年化 13.1%、最大回撤 −25.3%、Calmar 0.51、夏普 0.76。净敞口在 <b>0(现金)→ 1.5x(QQQ+QLD)</b> 间连续调节,避险现金赚取短端国债收益。<b>档位持有期内不做再平衡</b>,且设 <b>0.15x 死区</b>。</p>
+<p class="sub">基于 QQQ 的 <b>MACD / RSI / Supertrend</b> + 250 日趋势闸门决定仓位档位,叠加 <b>20% 波动率目标</b>与<b>强空头清仓</b>两层风控。V4.4 为趋势闸门加入非对称滞回:跌破 250 日线即退出多头,重新站上均线 <b>1%</b> 才恢复;只有深破均线 <b>4%</b> 且空头指标共振才清仓,用于降低长期均线附近反复横跳造成的震荡损失。全周期年化 14.2%、最大回撤 −25.3%、Calmar 0.56、夏普 0.79。净敞口在 <b>0(现金)→ 1.5x(QQQ+QLD)</b> 间连续调节,避险现金赚取短端国债收益。<b>档位持有期内不做再平衡</b>,且设 <b>0.15x 死区</b>。</p>
 
 <!-- 当前信号 -->
 <div class="card"><h2><span class="n">◆</span>当前建议仓位</h2>
@@ -140,7 +140,7 @@ code{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}
 </div>
 <!-- 仓位分布 -->
 <div class="card"><h2><span class="n">4</span>各决策档时间占比</h2>
-<div class="note">按决策档(基础仓位)统计。趋势向上约 43%、中性偏多约 28%、温和回调约 16%、强空头/现金约 13%。</div>
+<div class="note">按决策档(基础仓位)统计。趋势向上约 45%、中性偏多约 30%、温和回调约 13%、强空头/现金约 13%。</div>
 <div class="chartbox sm"><canvas id="distchart"></canvas></div>
 </div>
 </div>
@@ -229,7 +229,7 @@ function renderKPI(period){
  document.getElementById('kpi').innerHTML=boxes.map(([k,v,ss])=>'<div class="box"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="s">'+ss+'</div></div>').join('');
  let note='区间 '+meta.label+':策略 年化 '+fmtP(s.cagr)+'、回撤 '+fmtP0(s.mdd)+'、Calmar '+s.calmar.toFixed(2)
    +';同期买入持有 QQQ '+fmtP(qqq.cagr)+' / '+fmtP0(qqq.mdd)+',QLD '+fmtP(qld.cagr)+' / '+fmtP0(qld.mdd)+'。';
- if(period==='full') note+=' 注:含 2000–2002 泡沫破裂,且该段 QLD 为合成数据(偏乐观约 0.8%/年)。';
+ if(period==='full') note+=' 注:含 2000–2002 泡沫破裂;1999 上市前用缩放后的 ^NDX 暖机指标,收益仍从真实 QQQ 开始。若从 QQQ 自身 SMA250 成熟后才计绩效,保守参考为年化 12.4%、回撤 −25.3%、Calmar 0.49。';
  document.getElementById('kpinote').textContent=note;
  renderTable(M, period);
 }
@@ -394,9 +394,9 @@ window.addEventListener('resize',()=>{
 });
 
 document.getElementById('foot').innerHTML=
- '数据:QQQ / QLD / ^IRX 复权收盘(yfinance),区间 '+R.range[0]+' 至 '+R.range[1]+'。'+
+ '数据:QQQ / QLD / ^NDX / ^IRX(yfinance),区间 '+R.range[0]+' 至 '+R.range[1]+'。QQQ 上市前的 ^NDX OHLC 按 QQQ 首日收盘价缩放,<b>只用于指标暖机,不计入收益</b>。'+
  '2006-06 前 QLD 由「2×QQQ 日收益 − (0.95% 费率 + 短端利率融资成本)/252」合成,与真实 QLD 重叠期日收益相关性 0.996、CAGR 偏乐观约 0.8%/年。'+
- '<br>V4.4 回测含 5bps/边 交易成本;避险现金按 ^IRX 短端国债利率计息;夏普用 rf=0。指标在 QQQ 上计算,信号 T 日收盘生成、T+1 执行。<b>档位持有期内不做再平衡</b>(QQQ/QLD 权重随行情漂移),仅在换档时按实际成交计成本——与实盘一致。'+
+ '<br>V4.4 回测含 5bps/边 交易成本;避险现金按 ^IRX 短端国债利率计息;夏普用 rf=0。指标在 QQQ 上计算(仅上市前暖机段使用 ^NDX),信号 T 日收盘生成、T+1 执行。<b>档位持有期内不做再平衡</b>(QQQ/QLD 权重随行情漂移),仅在换档时按实际成交计成本——与实盘一致。'+
  '<br><b>重要:</b>历史回测不代表未来收益;杠杆 ETF 存在波动损耗与日度重置风险。本页面仅供研究与教育,非投资建议。';
 </script>
 </body></html>
