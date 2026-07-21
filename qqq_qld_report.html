@@ -78,9 +78,9 @@ code{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}
 .kpi .box .s{font-size:11.5px;color:#6a7183}
 </style></head>
 <body><div class="wrap">
-<div class="eyebrow">QQQ · QLD — 技术指标驱动的杠杆滚仓 · V4.3</div>
-<h1>动态滚仓策略回测(V4.3 增强版)</h1>
-<p class="sub">基于 QQQ 的 <b>MACD / RSI / Supertrend</b> + 250 日趋势闸门决定仓位档位,叠加 <b>20% 波动率目标</b>与<b>强空头清仓</b>两层风控,并让避险现金赚取短端国债收益。经样本内外验证优化(趋势闸门 250 日、波动率目标只降不升、去掉 QLD全仓2x 档、温和回调档 D 也套波动率目标):全周期年化 12.1%、最大回撤压缩至 −26%,Calmar 达 0.47、夏普 0.72(全场最优),总收益反超买入持有 QQQ。净敞口在 <b>0(现金)→ 1.5x(QQQ+QLD)</b> 间连续调节。<b>档位持有期内不做再平衡</b>,且设 <b>0.15x 死区</b>——目标偏离当前持仓不足 0.15x 时不动手,与实盘操作一致。</p>
+<div class="eyebrow">QQQ · QLD — 技术指标驱动的杠杆滚仓 · V4.4</div>
+<h1>动态滚仓策略回测(V4.4 滞回增强版)</h1>
+<p class="sub">基于 QQQ 的 <b>MACD / RSI / Supertrend</b> + 250 日趋势闸门决定仓位档位,叠加 <b>20% 波动率目标</b>与<b>强空头清仓</b>两层风控。V4.4 为趋势闸门加入非对称滞回:跌破 250 日线即退出多头,重新站上均线 <b>1%</b> 才恢复;只有深破均线 <b>4%</b> 且空头指标共振才清仓,用于降低长期均线附近反复横跳造成的震荡损失。全周期年化 13.1%、最大回撤 −25.3%、Calmar 0.51、夏普 0.76。净敞口在 <b>0(现金)→ 1.5x(QQQ+QLD)</b> 间连续调节,避险现金赚取短端国债收益。<b>档位持有期内不做再平衡</b>,且设 <b>0.15x 死区</b>。</p>
 
 <!-- 当前信号 -->
 <div class="card"><h2><span class="n">◆</span>当前建议仓位</h2>
@@ -140,7 +140,7 @@ code{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}
 </div>
 <!-- 仓位分布 -->
 <div class="card"><h2><span class="n">4</span>各决策档时间占比</h2>
-<div class="note">按决策档(基础仓位)统计。趋势向上约 43%、中性偏多约 29%、温和回调约 11%、强空头/现金约 16%。</div>
+<div class="note">按决策档(基础仓位)统计。趋势向上约 43%、中性偏多约 28%、温和回调约 16%、强空头/现金约 13%。</div>
 <div class="chartbox sm"><canvas id="distchart"></canvas></div>
 </div>
 </div>
@@ -153,19 +153,19 @@ code{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}
 
 <!-- 策略规则 -->
 <div class="card"><h2><span class="n">6</span>切换规则</h2>
-<div class="note">决策链:①先用 250 日均线定多空 → ②多头区间用 Supertrend/MACD/RSI 打分(0–4)定<b>基础档</b> → ③用 20% 波动率目标把基础档<b>连续缩放</b>成最终敞口 → ④强空头直接清仓。避险现金买短端国债生息。<b>去掉 QLD全仓2x 档,最高 1.5x。</b><br><span style="color:#b06a2e">⚠ 下面 B–E 是"决策档",给的是<b>基础(名义)敞口</b>;<b>净值曲线按决策档着色</b>,而<b>实际净敞口</b>(经波动率目标缩放,连续变化)见悬浮提示——两者不等同:例如决策 C(名义 1.0x)在高波动时实际敞口可能只有 0.75x,但颜色仍是 C(中性偏多)。</span></div>
+<div class="note">决策链:①用带滞回的 250 日均线判断多空状态 → ②多头区间用 Supertrend/MACD/RSI 打分(0–4)定<b>基础档</b> → ③空头区间按距均线深度分 D/E → ④用 20% 波动率目标把基础档<b>连续缩放</b>成最终敞口。避险现金买短端国债生息。<b>最高 1.5x。</b><br><span style="color:#b06a2e">⚠ 下面 B–E 是"决策档",给的是<b>基础(名义)敞口</b>;<b>净值曲线按决策档着色</b>,而<b>实际净敞口</b>(经波动率目标缩放,连续变化)见悬浮提示——两者不等同:例如决策 C(名义 1.0x)在高波动时实际敞口可能只有 0.75x,但颜色仍是 C(中性偏多)。</span></div>
 <div class="rules">
  <div class="rule"><div class="lv" style="color:#6a9b3f">B · 趋势向上(最高档)</div><div class="ex">实际 0.75–1.5x</div><div class="ds">基础 1.5x(QQQ+QLD),经波动率目标后<b>实际 0.75–1.5x,中位 1.5x</b>。需 SMA250 上行 + 波动率&lt;40% 熔断许可。</div></div>
  <div class="rule"><div class="lv" style="color:#b8912f">C · 中性偏多</div><div class="ex">实际 0.2–1.0x</div><div class="ds">基础 1.0x(QQQ全仓),经波动率目标后<b>实际 0.22–1.0x,中位 1.0x</b>——高波动时缩得最狠。价在 SMA250 上方、动量一般(0–2 分)或熔断触发。</div></div>
- <div class="rule"><div class="lv" style="color:#c2453b">D · 温和回调</div><div class="ex">实际 0.15–0.5x</div><div class="ds">价跌破 250 日线但未确认空头。基础 0.5x(QQQ+现金)<b>再套波动率目标</b>(V4.3 起)——颠簸越剧烈越接近清仓,实际约 0.15–0.5x。</div></div>
- <div class="rule"><div class="lv" style="color:#5a6172">E · 强空头</div><div class="ex">0x · 现金</div><div class="ds">跌破 250 日线 且 MACD&lt;0 且 Supertrend 空头 → 清仓避险,现金买国债。</div></div>
+ <div class="rule"><div class="lv" style="color:#c2453b">D · 温和回调</div><div class="ex">实际 0.15–0.5x</div><div class="ds">跌破 250 日线后退出多头,但尚未深破 4% 或空头指标未共振。基础 0.5x(QQQ+现金)<b>再套波动率目标</b>——颠簸越剧烈越接近清仓。</div></div>
+ <div class="rule"><div class="lv" style="color:#5a6172">E · 强空头</div><div class="ex">0x · 现金</div><div class="ds">价格低于 250 日线 4%,且 MACD&lt;0、Supertrend 空头 → 清仓避险,现金买国债。</div></div>
  <div class="rule" style="background:#eef4ee;border-color:#c9e0c9"><div class="lv" style="color:#2f6f4f">★ 波动率目标</div><div class="ex">×min(1.0, 20%÷实际波动)</div><div class="ds">把基础档连续缩放:波动飙升自动砍杠杆(只降不升)。所以最终敞口是连续值、落在哪个色带都可能。</div></div>
 </div>
 <ul class="rl">
-<li><b>宏观闸门:</b> 收盘价 vs 250 日均线,定多空大方向(经样本内外验证由 200 日优化而来)。</li>
+<li><b>宏观闸门:</b> 多头跌破 250 日均线即退出;进入空头后,需重新站上均线 1% 才恢复多头。非对称滞回用于过滤均线附近的假突破。</li>
  <li><b>动量打分(多头区间):</b> Supertrend 多头 +1、MACD 柱&gt;0 +1、MACD 线&gt;0 +1、RSI&gt;50 +1;0–2 分→QQQ全仓,3–4 分→QQQ+QLD(1.5x 封顶,MAX_EXPOSURE=1.5)。</li>
  <li><b>波动率目标(核心):</b> 最终敞口 = 档位敞口 ×min(1.0, 20%÷近20日年化波动率),当前版本默认 0–1.5x(只降不升)。2000/2008/2020 波动暴涨时自动大幅降杠杆,躲开杠杆 ETF 最致命的深亏。</li>
- <li><b>强空头清仓:</b> 跌破 250 日线且 MACD&lt;0 且 Supertrend 空头时,直接 100% 现金(买国债),而非半仓硬扛。</li>
+ <li><b>强空头清仓:</b> 只有价格低于 250 日线 4%,且 MACD&lt;0、Supertrend 空头时,才直接转为 100% 现金;浅破阶段保留 D 档低敞口。</li>
  <li><b>抗抖动:</b> 敞口按 0.05 档、连续 <code>3</code> 日确认;再设 <code>0.15x</code> 死区(目标偏离当前持仓 &lt;0.15x 则不动),信号 T 日生成、T+1 执行(无未来函数)。全周期换手约 <span id="turn"></span> 次/年,平均净敞口 <span id="avgexp"></span>x。</li>
 </ul>
 </div>
@@ -181,8 +181,9 @@ if(!R){
 }
 const fmtP = x => (x*100).toFixed(1)+'%';
 const fmtP0 = x => (x*100).toFixed(0)+'%';
-const NAMES = ['策略(V4.3动态滚仓)','QQQ半仓','QQQ全仓(=买入持有QQQ)','QQQ+QLD(50/50)','QLD全仓(=买入持有QLD)'];
-const COL = {'策略(V4.3动态滚仓)':'#1c2230','QQQ半仓':'#c2453b','QQQ全仓(=买入持有QQQ)':'#c99a2e','QQQ+QLD(50/50)':'#3f7fb8','QLD全仓(=买入持有QLD)':'#9a7b3f'};
+const STRATEGY = '策略(V4.4动态滚仓)';
+const NAMES = [STRATEGY,'QQQ半仓','QQQ全仓(=买入持有QQQ)','QQQ+QLD(50/50)','QLD全仓(=买入持有QLD)'];
+const COL = {[STRATEGY]:'#1c2230','QQQ半仓':'#c2453b','QQQ全仓(=买入持有QQQ)':'#c99a2e','QQQ+QLD(50/50)':'#3f7fb8','QLD全仓(=买入持有QLD)':'#9a7b3f'};
 const STATECOL = {'趋势向上':'#6a9b3f','中性偏多':'#b8912f','温和回调':'#c2453b','强空头/现金':'#5a6172'};
 const DEC=R.decision;                 // 每日决策档(B/C/D/E)
 const DECCOL={'B':'#6a9b3f','C':'#b8912f','D':'#c2453b','E':'#5a6172'};
@@ -197,7 +198,8 @@ document.getElementById('lstatebar').innerHTML='<span class="pill" style="backgr
 document.getElementById('lreb').innerHTML=
   '上次调仓:<b>'+L.last_reb+'</b>(距今 '+L.days_since+' 天)<br>'+
   '之前净敞口:'+L.prev_exp.toFixed(2)+'x  →  现 '+L.exp.toFixed(2)+'x';
-const ind=[['价格',L.price.toFixed(0),''],['250日趋势',L.macro_bull?'多头':'空头',L.macro_bull?'up':'dn'],
+const macroState=L.macro_bull?'多头':(L.deep_bear?'深空头':'回调观察');
+const ind=[['价格',L.price.toFixed(0),''],['SMA250',L.sma250.toFixed(0),''],['250日状态',macroState,L.macro_bull?'up':'dn'],
  ['Supertrend',L.st_level.toFixed(0),L.st_bull?'up':'dn'],
  ['MACD 柱',L.macd_hist.toFixed(2),L.macd_hist>0?'up':'dn'],['MACD 线',L.macd_line.toFixed(2),L.macd_line>0?'up':'dn'],
  ['RSI(14)',L.rsi.toFixed(1),L.rsi>50?'up':'dn'],['20日波动率',(L.rvol*100).toFixed(0)+'%',L.rvol<0.4?'up':'dn']];
@@ -214,7 +216,7 @@ const PMETA={
 };
 function renderKPI(period){
  const meta=PMETA[period]||PMETA.sub; const M=meta.m;
- const s=M['策略(V4.3动态滚仓)'];
+ const s=M[STRATEGY];
  const qqq=M['QQQ全仓(=买入持有QQQ)'], qld=M['QLD全仓(=买入持有QLD)'];
  const boxes=[
   ['年化收益',fmtP(s.cagr),'CAGR'],
@@ -245,7 +247,7 @@ function renderTable(M, period){
  cols.forEach(([c])=>{ let vals=keys.map(k=>M[k][c]); best[c]= (c==='mdd')? Math.max(...vals): Math.max(...vals); if(c==='vol') best[c]=Math.min(...vals); });
  let h='<thead><tr><th>方案</th>'+cols.map(c=>'<th>'+c[1]+'</th>').join('')+'</tr></thead><tbody>';
  keys.forEach(k=>{
-   h+='<tr'+(k==='策略(V4.3动态滚仓)'?' class="hl"':'')+'><td>'+k+'</td>'+cols.map(([c,,f])=>{
+   h+='<tr'+(k===STRATEGY?' class="hl"':'')+'><td>'+k+'</td>'+cols.map(([c,,f])=>{
      let v=M[k][c]; let cls=(v===best[c])?' class="best"':''; return '<td'+cls+'>'+f(v)+'</td>';
    }).join('')+'</tr>';
  });
@@ -264,7 +266,7 @@ const D=R.dates;
 const SE=R.state_exp;  // per-point net exposure aligned to D(悬浮提示 + 敞口图共用)
 const ddown=arr=>{let pk=-1e9;return arr.map(v=>{pk=Math.max(pk,v);return v/pk-1;});};  // 由净值算回撤,免存冗余
 const stratDS={
-  label:'策略(V4.3动态滚仓)',data:R.equity.strategy,borderWidth:2.6,pointRadius:0,tension:.05,
+  label:STRATEGY,data:R.equity.strategy,borderWidth:2.6,pointRadius:0,tension:.05,
   borderColor:'#1c2230',
   segment:{ borderColor: ctx => DECCOL[DEC[ctx.p1DataIndex]]||'#1c2230' }
 };
@@ -394,7 +396,7 @@ window.addEventListener('resize',()=>{
 document.getElementById('foot').innerHTML=
  '数据:QQQ / QLD / ^IRX 复权收盘(yfinance),区间 '+R.range[0]+' 至 '+R.range[1]+'。'+
  '2006-06 前 QLD 由「2×QQQ 日收益 − (0.95% 费率 + 短端利率融资成本)/252」合成,与真实 QLD 重叠期日收益相关性 0.996、CAGR 偏乐观约 0.8%/年。'+
- '<br>V4.3 回测含 5bps/边 交易成本;避险现金按 ^IRX 短端国债利率计息;夏普用 rf=0。指标在 QQQ 上计算,信号 T 日收盘生成、T+1 执行。<b>档位持有期内不做再平衡</b>(QQQ/QLD 权重随行情漂移),仅在换档时按实际成交计成本——与实盘一致。'+
+ '<br>V4.4 回测含 5bps/边 交易成本;避险现金按 ^IRX 短端国债利率计息;夏普用 rf=0。指标在 QQQ 上计算,信号 T 日收盘生成、T+1 执行。<b>档位持有期内不做再平衡</b>(QQQ/QLD 权重随行情漂移),仅在换档时按实际成交计成本——与实盘一致。'+
  '<br><b>重要:</b>历史回测不代表未来收益;杠杆 ETF 存在波动损耗与日度重置风险。本页面仅供研究与教育,非投资建议。';
 </script>
 </body></html>

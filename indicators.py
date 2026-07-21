@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-共享指标模块 —— MACD / RSI / Supertrend / 250日闸门 / 波动率,以及决策档判定。
+共享指标模块 —— MACD / RSI / Supertrend / 250日滞回闸门 / 波动率,以及决策档判定。
 
 被 2_backtest.py、daily_check.py 共用,确保"指标 + 决策逻辑"只有一份实现,
 避免改一处忘改另一处(见 CLAUDE.md 第 9 节)。opt.py / ablation.py 因需要
@@ -38,23 +38,38 @@ def supertrend(px, high, low, period=10, mult=3.0):
         stv[i]=fl[i] if direc[i]==1 else fu[i]
     return pd.Series(stv,index=px.index), pd.Series(direc==1,index=px.index)
 
+def macro_regime(px, sma, bull_reentry_buffer=0.01):
+    """多头跌破 SMA 即退出;熊市后需站上 SMA*(1+buffer) 才重新进入多头。"""
+    state=False; result=[]
+    for price, average in zip(px, sma):
+        if np.isnan(average): state=False
+        elif state and price<average: state=False
+        elif not state and price>average*(1+bull_reentry_buffer): state=True
+        result.append(state)
+    return pd.Series(result,index=px.index)
+
 def compute(px, high, low, sma_len=250, st_period=10, st_mult=3.0,
-            rvol_win=20, lever_volceil=0.40):
+            rvol_win=20, lever_volceil=0.40, bear_exit_buffer=0.04,
+            bull_reentry_buffer=0.01):
     """一次性算全套指标,返回 DataFrame:
-       macd_line, macd_hist, rsi, st, st_bull, macro_bull, sma_rising, lever_ok, rvol"""
+       macd_line, macd_hist, rsi, st, st_bull, sma, macro_bull, deep_bear,
+       sma_rising, lever_ok, rvol"""
     macd_line, macd_hist = macd(px)
     st, st_bull = supertrend(px, high, low, st_period, st_mult)
     sma=px.rolling(sma_len).mean()
-    macro_bull=(px>sma).fillna(False)
+    macro_bull=macro_regime(px,sma,bull_reentry_buffer)
+    deep_bear=(px<sma*(1-bear_exit_buffer)).fillna(False)
     sma_rising=(sma>sma.shift(20)).fillna(False)
     rvol=px.pct_change().rolling(rvol_win).std()*np.sqrt(252)
     lever_ok=sma_rising&(rvol<lever_volceil)
     return pd.DataFrame({'macd_line':macd_line,'macd_hist':macd_hist,'rsi':rsi(px),
-                         'st':st,'st_bull':st_bull,'macro_bull':macro_bull,
+                         'st':st,'st_bull':st_bull,'sma':sma,'macro_bull':macro_bull,
+                         'deep_bear':deep_bear,
                          'sma_rising':sma_rising,'lever_ok':lever_ok,'rvol':rvol})
 
 # ---------------- 决策档(基础/名义仓位)----------------
-# 与 2_backtest.targets() 一致:B 仅当动量≥3 且 lever_ok,否则 C;空头区分 D/E。
+# 与 2_backtest.targets() 一致:B 仅当动量≥3 且 lever_ok,否则 C;
+# 空头区只有深破缓冲线且 MACD/Supertrend 共振才进入 E。
 DECNAME={'B':'趋势向上','C':'中性偏多','D':'温和回调','E':'强空头/现金'}
 
 def momentum_score(r):
@@ -64,5 +79,5 @@ def momentum_score(r):
 def decide_tier(r):
     """返回决策档 'B'/'C'/'D'/'E'。r 为 compute() 的一行(或含同名字段的对象)。"""
     if not r['macro_bull']:
-        return 'E' if (r['macd_line']<0 and not r['st_bull']) else 'D'
+        return 'E' if (r['deep_bear'] and r['macd_line']<0 and not r['st_bull']) else 'D'
     return 'B' if (momentum_score(r)>=3 and r['lever_ok']) else 'C'

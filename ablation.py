@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-# V4.3 消融实验:在当前策略口径下分别去掉 MACD / RSI / Supertrend。
+# V4.4 消融实验:在当前策略口径下分别去掉 MACD / RSI / Supertrend。
 #
-# 默认逻辑与 2_backtest.py V4.3 对齐:VOL_CAP=1.0、MAX_EXPOSURE=1.5、
-# D 档 = 0.5x * 波动率目标、0.10x 死区、T+1 执行、档位内不再平衡。
+# 默认逻辑与 2_backtest.py V4.4 对齐:4%/1% 宏观滞回、VOL_CAP=1.0、
+# MAX_EXPOSURE=1.5、D=0.5x * 波动率目标、0.15x 死区、T+1、不再平衡。
 import os
 import sys
 import pandas as pd
@@ -18,12 +18,14 @@ px = df['qqq']; high = df['qhigh']; low = df['qlow']
 rq = df['qqq_ret']; rl = df['qld_ret']; rf = df['irx'] / 100.0 / 252.0
 
 SMA_LEN = 250
+BEAR_EXIT_BUFFER = 0.04
+BULL_REENTRY_BUFFER = 0.01
 VOLT = 0.20
 VCAP = 1.0
 MAX_EXPOSURE = 1.5
 LEV_VOLCEIL = 0.40
 CONFIRM = 3
-DEADBAND = 0.10
+DEADBAND = 0.15
 COST = 5 / 10000
 
 
@@ -57,13 +59,21 @@ for i in range(1, n):
 
 st_bull = pd.Series(direc == 1, index=px.index)
 sma = px.rolling(SMA_LEN).mean()
-macro = (px > sma).fillna(False)
+macro_values = []
+macro_state = False
+for price, average in zip(px, sma):
+    if np.isnan(average): macro_state = False
+    elif macro_state and price < average: macro_state = False
+    elif not macro_state and price > average * (1 + BULL_REENTRY_BUFFER): macro_state = True
+    macro_values.append(macro_state)
+macro = pd.Series(macro_values, index=px.index)
+deep_bear = (px < sma * (1 - BEAR_EXIT_BUFFER)).fillna(False)
 rising = (sma > sma.shift(20)).fillna(False)
 rvol = px.pct_change().rolling(20).std() * np.sqrt(252)
 lever_ok = rising & (rvol < LEV_VOLCEIL)
 ind = pd.DataFrame({
     'ml': macd_line, 'mh': macd_hist, 'rsi': rsi, 'stb': st_bull,
-    'macro': macro, 'lok': lever_ok, 'rvol': rvol
+    'macro': macro, 'deep': deep_bear, 'lok': lever_ok, 'rvol': rvol
 })
 
 
@@ -96,7 +106,7 @@ def build(use_macd=True, use_rsi=True, use_st=True):
                 conds.append(r['ml'] < 0)
             if use_st:
                 conds.append(not r['stb'])
-            strong_down = len(conds) > 0 and all(conds)
+            strong_down = bool(r['deep']) and len(conds) > 0 and all(conds)
             e = 0.0 if strong_down else max(0.0, min(2.0, 0.5 * scale))
             exp.append(e)
             continue
@@ -113,7 +123,7 @@ def build(use_macd=True, use_rsi=True, use_st=True):
             mx += 1
             pts += int(r['rsi'] > 50)
 
-        # Full V4.3 uses 3 of 4 points for B. In ablations, keep the same
+        # Full V4.4 uses 3 of 4 points for B. In ablations, keep the same
         # "roughly 75% of available momentum checks are bullish" threshold.
         need = int(np.ceil(0.75 * mx)) if mx else 999
         e = MAX_EXPOSURE if pts >= need else 1.0
@@ -195,7 +205,7 @@ def sub(e, s='2006-06-22'):
 
 
 configs = [
-    ('V4.3 完整(3指标)', dict()),
+    ('V4.4 完整(3指标)', dict()),
     ('去掉 MACD', dict(use_macd=False)),
     ('去掉 RSI', dict(use_rsi=False)),
     ('去掉 Supertrend', dict(use_st=False)),
@@ -217,7 +227,7 @@ for name, kw in configs:
     cg, md, cal, sh, tot = sub(e)
     print(f"{name:<20}{cg*100:>6.1f}%{md*100:>8.1f}%{cal:>8.2f}")
 
-base = res['V4.3 完整(3指标)']
+base = res['V4.4 完整(3指标)']
 print("\n相对完整版的变化:")
 for name in ['去掉 MACD', '去掉 RSI', '去掉 Supertrend']:
     cg, md, cal, sh, tot, ae, at = res[name]

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-# V4.3 robustness / in-sample vs out-of-sample scan.
+# V4.4 robustness / in-sample vs out-of-sample scan.
 #
 # This script intentionally keeps indicator construction inline because it scans
-# indicator parameters. The strategy/execution defaults match 2_backtest.py V4.3:
-# 250d gate, VOL_CAP=1.0, MAX_EXPOSURE=1.5, D=0.5x * vol target, 0.10x deadband,
-# T+1 execution, and no rebalancing inside a held tier.
+# indicator parameters. The strategy/execution defaults match 2_backtest.py V4.4:
+# 250d asymmetric hysteresis, VOL_CAP=1.0, MAX_EXPOSURE=1.5,
+# D=0.5x * vol target, 0.15x deadband, T+1 execution, and no rebalancing.
 import os
 import sys
 import pandas as pd
@@ -19,8 +19,10 @@ df = pd.read_csv(DATA, parse_dates=['Date'], index_col='Date')
 px = df['qqq']; high = df['qhigh']; low = df['qlow']
 rq = df['qqq_ret']; rl = df['qld_ret']; rf = df['irx'] / 100.0 / 252.0
 
-# ---------------- V4.3 baseline config ----------------
+# ---------------- V4.4 baseline config ----------------
 BASE_SMA = 250
+BASE_BEAR_EXIT = 0.04
+BASE_BULL_REENTRY = 0.01
 BASE_VOLT = 0.20
 BASE_VCAP = 1.0
 BASE_MAXE = 1.5
@@ -29,7 +31,7 @@ BASE_ST_M = 3.0
 BASE_RVOL_WIN = 20
 BASE_LEV_CEIL = 0.40
 BASE_CONFIRM = 3
-BASE_DEADBAND = 0.10
+BASE_DEADBAND = 0.15
 COST = 5 / 10000
 TRAIN_END = '2013-01-01'
 
@@ -38,7 +40,22 @@ def ema(s, n):
     return s.ewm(span=n, adjust=False).mean()
 
 
-def indicators(sma_len=BASE_SMA, st_p=BASE_ST_P, st_m=BASE_ST_M, rvol_win=BASE_RVOL_WIN):
+def macro_regime(sma, bull_reentry_buffer):
+    state = False
+    result = []
+    for price, average in zip(px, sma):
+        if np.isnan(average):
+            state = False
+        elif state and price < average:
+            state = False
+        elif not state and price > average * (1 + bull_reentry_buffer):
+            state = True
+        result.append(state)
+    return pd.Series(result, index=px.index)
+
+
+def indicators(sma_len=BASE_SMA, st_p=BASE_ST_P, st_m=BASE_ST_M,
+               rvol_win=BASE_RVOL_WIN, bull_reentry_buffer=BASE_BULL_REENTRY):
     macd_line = ema(px, 12) - ema(px, 26)
     macd_hist = macd_line - ema(macd_line, 9)
 
@@ -65,12 +82,12 @@ def indicators(sma_len=BASE_SMA, st_p=BASE_ST_P, st_m=BASE_ST_M, rvol_win=BASE_R
         direc[i] = (-1 if c[i] < fl[i-1] else 1) if direc[i-1] == 1 else (1 if c[i] > fu[i-1] else -1)
 
     sma = px.rolling(sma_len).mean()
-    macro = (px > sma).fillna(False)
+    macro = macro_regime(sma, bull_reentry_buffer)
     rising = (sma > sma.shift(20)).fillna(False)
     rvol = px.pct_change().rolling(rvol_win).std() * np.sqrt(252)
     return pd.DataFrame({
         'ml': macd_line, 'mh': macd_hist, 'rsi': rsi, 'stb': pd.Series(direc == 1, index=px.index),
-        'macro': macro, 'rising': rising, 'rvol': rvol
+        'sma': sma, 'macro': macro, 'rising': rising, 'rvol': rvol
     })
 
 
@@ -93,7 +110,7 @@ def confirm(vals, k):
 
 def build(ind, volt=BASE_VOLT, vcap=BASE_VCAP, max_exposure=BASE_MAXE,
           lev_volceil=BASE_LEV_CEIL, confirm_k=BASE_CONFIRM,
-          deadband=BASE_DEADBAND):
+          deadband=BASE_DEADBAND, bear_exit_buffer=BASE_BEAR_EXIT):
     ml = ind['ml'].values
     mh = ind['mh'].values
     rsi = ind['rsi'].values
@@ -113,7 +130,8 @@ def build(ind, volt=BASE_VOLT, vcap=BASE_VCAP, max_exposure=BASE_MAXE,
         scale = np.minimum(vcap, np.where(valid, volt / rvol, vcap))
     exp = np.where(valid, np.clip(exp * scale, 0.0, 2.0), exp)
 
-    strong_bear = (~macro) & (ml < 0) & (~stb)
+    deep_bear = px.values < ind['sma'].values * (1 - bear_exit_buffer)
+    strong_bear = (~macro) & deep_bear & (ml < 0) & (~stb)
     mild_bear = (~macro) & (~strong_bear)
     d_exp = np.where(valid, np.clip(0.5 * scale, 0.0, 2.0), 0.5)
     exp = np.where(strong_bear, 0.0, exp)
@@ -194,7 +212,7 @@ def seg(e, a, b):
 base_ind = indicators()
 
 print("=" * 96)
-print(f"A) V4.3 波动率目标 volt × VOL_CAP 网格  —— 指标固定(SMA={BASE_SMA}), MAX_EXPOSURE={BASE_MAXE}")
+print(f"A) V4.4 波动率目标 volt × VOL_CAP 网格  —— 指标固定(SMA={BASE_SMA}), MAX_EXPOSURE={BASE_MAXE}")
 print("   每格显示 全周期Calmar / 训练段(≤2012) / 验证段(2013+)；VOL_CAP<=1 表示只降不升")
 print("=" * 96)
 volts = [0.14, 0.16, 0.18, 0.20, 0.22, 0.25]
@@ -218,7 +236,7 @@ for (vt, vc), (cf, ctr, cte, cg, md) in best:
     print(f"  volt={vt} cap={vc:<4} | 全周期 CAGR {cg*100:4.1f}% 回撤 {md*100:5.1f}% Calmar {cf:.2f} | 训练 {ctr:.2f} 验证 {cte:.2f}")
 
 print("\n" + "=" * 96)
-print(f"B) V4.3 1D 敏感性(每次只动一个)  基准 SMA={BASE_SMA} volt={BASE_VOLT} cap={BASE_VCAP} max={BASE_MAXE}")
+print(f"B) V4.4 1D 敏感性(每次只动一个)  基准 SMA={BASE_SMA} volt={BASE_VOLT} cap={BASE_VCAP} max={BASE_MAXE}")
 print("=" * 96)
 
 
@@ -247,3 +265,17 @@ for db in [0.00, 0.05, 0.10, 0.15, 0.20]:
 print("· 加杠杆的波动天花板 lev_volceil:")
 for cz in [0.30, 0.35, 0.40, 0.50, 0.99]:
     one(f"lev_volceil={cz}", base_ind, lev_volceil=cz)
+
+print("\n" + "=" * 96)
+print("C) V4.4 宏观滞回缓冲  E清仓深度 × 多头再入场")
+print("=" * 96)
+for reentry in [0.005, 0.010, 0.015]:
+    ind_buffered = indicators(bull_reentry_buffer=reentry)
+    for bear_exit in [0.035, 0.040, 0.045]:
+        e, _, turn = run(build(ind_buffered, bear_exit_buffer=bear_exit))
+        cg, md, cal, sh = met(e)
+        ctr = seg(e, '1999-01-01', TRAIN_END)[2]
+        cte = seg(e, TRAIN_END, '2027-01-01')[2]
+        ann_turn = turn.sum() / (len(turn) / 252)
+        print(f"  exit={bear_exit:5.1%} reentry={reentry:4.1%} | CAGR {cg:5.1%} 回撤 {md:6.1%} "
+              f"Calmar {cal:.3f} 训练 {ctr:.3f} 验证 {cte:.3f} 换手 {ann_turn:.2f}")

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-第 2 步:回测 V4.3 动态滚仓策略  ->  results.json
+第 2 步:回测 V4.4 动态滚仓策略  ->  results.json
 
 策略(现金 + 三档,连续杠杆;已去掉 QLD全仓2x 档,最高 1.5x):
-  · 宏观闸门:收盘价 vs 250 日均线,定多空大方向。
-  · 空头区:  强空头(MACD<0 且 Supertrend 空头)-> 100% 现金(买国债);
+  · 宏观闸门:多头跌破 250 日均线即退出;熊市后需站上均线 1% 才恢复多头。
+  · 空头区:  低于 250 日线 4% 且 MACD<0、Supertrend 空头 -> 100% 现金;
              否则温和回调 -> 基础 0.5x 再套波动率目标。
   · 多头区:  动量打分 = Supertrend多头 + MACD柱>0 + MACD线>0 + RSI>50 (0~4)
              -> C=QQQ全仓(1x) / 3~4分=QQQ+QLD(1.5x);
@@ -21,6 +21,8 @@ import pandas as pd, numpy as np, json
 
 # ============================ CONFIG(可调参数)============================
 SMA_LEN     = 250     # 趋势闸门均线长度(200/250/300;250 为验证后的稳健选择)
+BEAR_EXIT_BUFFER = 0.04  # 低于 SMA250 4% 且指标共振才进入 E 现金,过滤浅破震荡
+BULL_REENTRY_BUFFER = 0.01 # 熊市后需高于 SMA250 1% 才恢复多头,避免假突破
 VOL_TARGET  = 0.20    # 目标年化波动率(越低越保守;0.14~0.25 结果不敏感)
 VOL_CAP     = 1.0     # 波动目标只降不升(1.0=不在基础档位上再加杠杆);经验证比 1.15 回撤更低、收益持平
 MAX_EXPOSURE= 1.5     # 最高档位上限(1.5=去掉 QLD全仓2x 档;经验证 2x 档不赚风险溢价,砍掉零代价)
@@ -41,9 +43,11 @@ rq=df['qqq_ret']; rl=df['qld_ret']; rf=(df['irx']/100.0/252.0)   # 现金日利�
 # ---------------- 指标 + 决策档(共享模块,见 indicators.py)----------------
 import indicators as ta
 ind=ta.compute(px, high, low, sma_len=SMA_LEN, st_period=ST_PERIOD, st_mult=ST_MULT,
-               rvol_win=RVOL_WIN, lever_volceil=LEVER_VOLCEIL)
+               rvol_win=RVOL_WIN, lever_volceil=LEVER_VOLCEIL,
+               bear_exit_buffer=BEAR_EXIT_BUFFER, bull_reentry_buffer=BULL_REENTRY_BUFFER)
 macd_line=ind['macd_line']; macd_hist=ind['macd_hist']; rsi=ind['rsi']
-st=ind['st']; st_bull=ind['st_bull']; macro_bull=ind['macro_bull']; rvol=ind['rvol']
+st=ind['st']; st_bull=ind['st_bull']; sma=ind['sma']; macro_bull=ind['macro_bull']
+deep_bear=ind['deep_bear']; rvol=ind['rvol']
 DECNAME=ta.DECNAME
 DEC=ind.apply(ta.decide_tier,axis=1)   # 决策档(基础仓位,着色/占比用)
 DEC_exec=DEC.shift(1).bfill()          # T+1,与执行时间线对齐
@@ -51,7 +55,7 @@ DEC_exec=DEC.shift(1).bfill()          # T+1,与执行时间线对齐
 # ---------------- 目标权重(w_qqq, w_qld, w_cash)----------------
 def targets(r):
     if not r['macro_bull']:
-        if (r['macd_line']<0) and (not r['st_bull']):
+        if r['deep_bear'] and (r['macd_line']<0) and (not r['st_bull']):
             return (0.0,0.0,1.0)              # 强空头 -> 现金
         # 温和回调:基础 0.5x 再套波动率目标(只降不升)—— V4.3 起不再固定 0.5
         e=0.5
@@ -121,7 +125,7 @@ def metrics(e):
                 best_yr=yr.max(),worst_yr=yr.min())
 def rebased(s,start): s2=s[s.index>=start]; return s2/s2.iloc[0]
 
-series={'策略(V4.3动态滚仓)':eq,'QQQ半仓':st_half,'QQQ全仓(=买入持有QQQ)':bh_qqq,
+series={'策略(V4.4动态滚仓)':eq,'QQQ半仓':st_half,'QQQ全仓(=买入持有QQQ)':bh_qqq,
         'QQQ+QLD(50/50)':st_blend,'QLD全仓(=买入持有QLD)':bh_qld}
 M ={k:metrics(v)            for k,v in series.items()}
 M2={k:metrics(rebased(v,'2006-06-22')) for k,v in series.items()}
@@ -152,7 +156,7 @@ print(f"\n平均净敞口 {exp.mean():.2f}x  年化换手(单边) {turn.sum()/(l
 # ---------------- 导出 results.json(供报告使用)----------------
 def samp(s): return s.dropna()          # 日线(每个交易日一个点),支持按日缩放
 export={
- 'variant':'V4.3',
+ 'variant':'V4.4',
  'dates':[d.strftime('%Y-%m-%d') for d in samp(eq).index],
  'equity':{'strategy':samp(eq).round(3).tolist(),'qqq':samp(bh_qqq).round(3).tolist(),
            'qld':samp(bh_qld).round(3).tolist(),'blend':samp(st_blend).round(3).tolist(),'half':samp(st_half).round(3).tolist()},
@@ -171,7 +175,9 @@ export={
            'prev_exp':round(prev_e,2),
            'macd_hist':round(float(macd_hist.iloc[-1]),3),'macd_line':round(float(macd_line.iloc[-1]),3),
            'rsi':round(float(rsi.iloc[-1]),1),'st_bull':bool(st_bull.iloc[-1]),'price':round(float(px.iloc[-1]),2),
-           'st_level':round(float(st.iloc[-1]),2),'rvol':round(float(rvol.iloc[-1]),3),'macro_bull':bool(macro_bull.iloc[-1])},
+           'st_level':round(float(st.iloc[-1]),2),'rvol':round(float(rvol.iloc[-1]),3),
+           'sma250':round(float(sma.iloc[-1]),2),'macro_bull':bool(macro_bull.iloc[-1]),
+           'deep_bear':bool(deep_bear.iloc[-1])},
 }
 json.dump(export,open(OUT+'results.json','w'),ensure_ascii=False)
 print(f"\n已保存 {OUT}results.json")

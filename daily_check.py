@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-每日盘后检查:算出 V4.3 策略今日的目标净敞口,并给出"持有/调仓"建议。
+每日盘后检查:算出 V4.4 策略今日的目标净敞口,并给出"持有/调仓"建议。
 
 用法:
   python daily_check.py                 # 只看今日目标敞口与持仓构成
@@ -8,14 +8,15 @@
   python daily_check.py --current 1.30  # 例:当前 1.3x
 
 判断规则(与回测一致的执行纪律):
-  · 目标跨越档位边界(0.25/0.75/1.25)→ 建议调仓(趋势/风险切换,应及时);
-  · 同档内漂移:与当前敞口差 ≥ 0.10x → 调仓,否则持有(忽略零点几的噪声)。
+  · 目标跨越现金/无杠杆/带杠杆边界 → 建议调仓;
+  · 同区漂移:与当前敞口差 ≥ 0.15x → 调仓,否则持有。
 依赖: pip install yfinance pandas numpy
 """
 import argparse, numpy as np, pandas as pd, yfinance as yf
 
 # —— 参数须与 2_backtest.py 的 CONFIG 保持一致 ——
 SMA_LEN=250; VOLT=0.20; VCAP=1.0; MAXE=1.5; ST_P=10; ST_M=3.0; RVOL_WIN=20
+BEAR_EXIT_BUFFER=0.04; BULL_REENTRY_BUFFER=0.01
 LEV_CEIL=0.40; CONFIRM=3; DEADBAND=0.15
 
 ap=argparse.ArgumentParser()
@@ -27,16 +28,18 @@ px=px_ohlc['Close'].squeeze(); high=px_ohlc['High'].squeeze(); low=px_ohlc['Low'
 
 import indicators as ta
 ind=ta.compute(px, high, low, sma_len=SMA_LEN, st_period=ST_P, st_mult=ST_M,
-               rvol_win=RVOL_WIN, lever_volceil=LEV_CEIL)
+               rvol_win=RVOL_WIN, lever_volceil=LEV_CEIL,
+               bear_exit_buffer=BEAR_EXIT_BUFFER, bull_reentry_buffer=BULL_REENTRY_BUFFER)
 n=len(px)
-stb=ind['st_bull'].values; macro=ind['macro_bull'].values; rising=ind['sma_rising'].values
+stb=ind['st_bull'].values; macro=ind['macro_bull'].values; deep=ind['deep_bear'].values
+rising=ind['sma_rising'].values
 rvol=ind['rvol'].values; mlv=ind['macd_line'].values; mhv=ind['macd_hist'].values; rsiv=ind['rsi'].values
 
 # 逐日目标净敞口
 exp=np.empty(n)
 for i in range(n):
     if not macro[i]:
-        if mlv[i]<0 and not stb[i]: exp[i]=0.0                         # 强空头 -> 现金
+        if deep[i] and mlv[i]<0 and not stb[i]: exp[i]=0.0             # 深度强空头 -> 现金
         else: exp[i]=max(0.0,min(2.0,0.5*min(VCAP,VOLT/rvol[i])))      # 温和回调:0.5x×波动率目标(V4.3)
         continue
     s=int(stb[i])+(mhv[i]>0)+(mlv[i]>0)+(rsiv[i]>50)
@@ -52,8 +55,11 @@ for i in range(n):
     else: rv=v; cnt=1
     if cnt>=CONFIRM: cur=rv
     res[i]=cur
-conf=res/20.0
-target=conf[-1]                      # 今日收盘确认的目标敞口 -> 下个交易日执行
+db=int(round(DEADBAND*20)); held=res[0]; ded=np.empty(n,int)
+for i,v in enumerate(res):
+    if abs(v-held)>=db: held=v
+    ded[i]=held
+target=ded[-1]/20.0                  # 今日收盘确认+死区后的目标敞口 -> 下个交易日执行
 
 def comp(e):   # 目标敞口 -> 下单比例
     if e<=1.0: return e,0.0,1-e      # QQQ, QLD, cash
@@ -61,10 +67,11 @@ def comp(e):   # 目标敞口 -> 下单比例
 q,l,cash=comp(target)
 last=px.index[-1].date()
 dec_last=ta.decide_tier(ind.iloc[-1])   # 最新决策档(与回测/报告同一实现)
-print(f"\n===== V4.3 每日检查 · 基于 {last} 收盘 =====")
+print(f"\n===== V4.4 每日检查 · 基于 {last} 收盘 =====")
 print(f"决策档: {ta.DECNAME[dec_last]}   目标净敞口: {target:.2f}x")
 print(f"目标持仓构成: QQQ {q*100:.0f}%   QLD {l*100:.0f}%   现金 {cash*100:.0f}%")
-print(f"指标: 价格 {px.iloc[-1]:.1f} | 250日线 {'上方' if macro[-1] else '下方'} | "
+macro_text='多头' if macro[-1] else ('深空头区' if deep[-1] else '回调观察区')
+print(f"指标: 价格 {px.iloc[-1]:.1f} | 250日状态 {macro_text} | "
       f"Supertrend {'多' if stb[-1] else '空'} | MACD线 {mlv[-1]:+.1f} | RSI {rsiv[-1]:.0f} | 20日波动 {rvol[-1]*100:.0f}%")
 
 if args.current is not None:
