@@ -16,7 +16,7 @@ import argparse, numpy as np, pandas as pd, yfinance as yf
 
 # —— 参数须与 2_backtest.py 的 CONFIG 保持一致 ——
 SMA_LEN=250; VOLT=0.20; VCAP=1.0; MAXE=1.5; ST_P=10; ST_M=3.0; RVOL_WIN=20
-LEV_CEIL=0.40; CONFIRM=3; DEADBAND=0.10
+LEV_CEIL=0.40; CONFIRM=3; DEADBAND=0.15
 
 ap=argparse.ArgumentParser()
 ap.add_argument('--current', type=float, default=None, help='你当前的净敞口(如 0.66)')
