@@ -89,7 +89,7 @@ CONFIRM=3 COST_BPS=5/10000  (报告/日检里 DEADBAND=0.10)
 ## 9. 一致性要求(改代码务必遵守)
 
 - **指标与决策档逻辑已统一到 `indicators.py`**,`2_backtest.py` 和 `daily_check.py` 都 import 它——改指标/决策只需改这一处。但**决策后的敞口映射**(动量分→档位敞口、波动率目标缩放)仍在两文件各自的 `targets()`/主循环里,改这部分仍需两处同步。`opt.py`/`ablation.py` 为扫描参数而各自内联指标,不依赖模块。
-- **档位/决策边界**:`band()`(2_backtest,敞口分档)用 `lo < v <= hi`(上界闭);`daily_check.tier()` 已对齐。曾出过 bug:tier 用 `<` 导致 0.25/0.75 等边界值归档错位。
+- **着色/占比统一按决策档**(B/C/D/E),不再用敞口分档的 `band()`/`tier()`(已随"按决策档着色"删除)。历史教训:曾用敞口区间着色 + `<`/`<=` 边界不一致,导致 0.75 等边界值在回测与日检里归档错位——现改用 `decide_tier` 单一实现后不再有此问题。
 - **决策档定义**必须与 targets() 一致:`decide_tier` 返回 B 仅当 `s>=3 且 lever_ok`,否则 C(与 targets 里 base>1 且 not lever_ok→降 C 一致)。
 - 报告 `STATECOL` 的 key 必须与 `results.json` 的 `dist` key(决策档名)完全一致,否则占比图颜色错。
 - 报告 HTML 是固定页面壳,只能从 CDN 加载 Chart.js;`3_generate_report.py` 不改写 HTML,只把日更数据写入 gitignored 的 `report_data.js`。数据为日线(约6880点,目前约350KB并随区间增长;回撤在前端由 equity 算、敞口图与悬浮共用 state_exp,不存冗余)。
