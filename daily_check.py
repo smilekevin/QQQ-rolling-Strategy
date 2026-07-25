@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-每日盘后检查:算出 V4.6 策略今日的目标净敞口,并给出"持有/调仓"建议。
+每日盘后检查:算出 V1.6 策略今日的目标净敞口,并给出"持有/调仓"建议。
 
 用法:
   python daily_check.py                 # 只看今日目标敞口与持仓构成
@@ -44,11 +44,11 @@ for i in range(n):
     if not macro[i]:
         if deep[i] and mlv[i]<0 and not stb[i]: exp[i]=0.0             # 深度强空头 -> 默认现金
         else:
-            base=RECOVERY_EXPOSURE if stb[i] and mhv[i]>0 else 0.5    # V4.5 反转恢复档 / 温和回调档
+            base=RECOVERY_EXPOSURE if stb[i] and mhv[i]>0 else 0.5    # V1.5 反转恢复档 / 温和回调档
             exp[i]=base
             if rvol[i]>0 and not np.isnan(rvol[i]):
                 exp[i]=max(0.0,min(2.0,base*min(VCAP,VOLT/rvol[i])))
-        if floor_on[i]: exp[i]=max(exp[i],OVERSOLD_FLOOR)              # V4.6 超跌底仓
+        if floor_on[i]: exp[i]=max(exp[i],OVERSOLD_FLOOR)              # V1.6 超跌底仓
         continue
     s=int(stb[i])+(mhv[i]>0)+(mlv[i]>0)+(rsiv[i]>50)
     e=MAXE if s>=3 else 1.0
@@ -75,7 +75,7 @@ def comp(e):   # 目标敞口 -> 下单比例
 q,l,cash=comp(target)
 last=px.index[-1].date()
 dec_last=ta.decide_tier(ind.iloc[-1])   # 最新决策档(与回测/报告同一实现)
-print(f"\n===== V4.6 每日检查 · 基于 {last} 收盘 =====")
+print(f"\n===== V1.6 每日检查 · 基于 {last} 收盘 =====")
 print(f"决策档: {ta.DECNAME[dec_last]}   目标净敞口: {target:.2f}x")
 print(f"目标持仓构成: QQQ {q*100:.0f}%   QLD {l*100:.0f}%   现金 {cash*100:.0f}%")
 macro_text='多头' if macro[-1] else ('深空头区' if deep[-1] else '回调观察区')

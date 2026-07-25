@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>QQQ/QLD 动态滚仓策略回测</title>
+<title>QQQ/QLD 动态滚仓策略回测 V1.6</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
 <script src="report_data.js"></script>
 <style>
@@ -11,6 +11,15 @@ body{background:#f4f1ea;color:#1c2230;font-family:-apple-system,BlinkMacSystemFo
 .eyebrow{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:#9a7b3f;font-weight:700}
 h1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:6px 0 4px}
 .sub{color:#5a6172;font-size:14.5px}
+.versions{margin-top:14px;border-top:1px solid #d9cfb8;border-bottom:1px solid #d9cfb8}
+.versions summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 2px;cursor:pointer;color:#5a6172;font-size:13px;font-weight:700;list-style:none}
+.versions summary::-webkit-details-marker{display:none}
+.versions summary:after{content:"+";font-size:18px;font-weight:500;color:#9a7b3f;line-height:1}
+.versions[open] summary:after{content:"−"}
+.version-list{padding:2px 2px 13px}
+.version-row{display:grid;grid-template-columns:88px minmax(0,1fr);gap:14px;padding:8px 0;border-top:1px dashed #e5ddcb;font-size:12.5px}
+.version-row dt{font-weight:800;color:#1c2230}
+.version-row dd{color:#5a6172}
 .card{background:#fffdf8;border:1px solid #e5ddcb;border-radius:14px;padding:22px 24px;margin-top:var(--section-gap);box-shadow:0 1px 2px rgba(40,30,10,.04)}
 h2{font-size:18px;font-weight:750;margin-bottom:3px;display:flex;align-items:center;gap:9px}
 h2 .n{font-size:11px;background:#1c2230;color:#f4f1ea;width:22px;height:22px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
@@ -62,6 +71,7 @@ tr.hl td{background:#fbf4e3;font-weight:750}
   .wrap{padding:20px 13px 54px}
   h1{font-size:23px}
   .sub{font-size:13.5px}
+  .version-row{grid-template-columns:72px minmax(0,1fr);gap:10px}
   .card{padding:16px 15px;border-radius:12px;margin-top:var(--section-gap)}
   h2{font-size:16px}
   .chartbox{height:300px}
@@ -91,9 +101,23 @@ code{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}
 .kpi .box .s{font-size:11.5px;color:#6a7183}
 </style></head>
 <body><div class="wrap">
-<div class="eyebrow">QQQ · QLD — 技术指标驱动的杠杆滚仓 · V4.6</div>
-<h1>动态滚仓策略回测(V4.6 超跌底仓版)</h1>
-<p class="sub">基于 QQQ 的 <b>MACD / RSI / Supertrend</b> + 250 日趋势闸门决定仓位档位,叠加 <b>20% 波动率目标</b>与<b>强空头清仓</b>两层风控。V4.6 保留 V4.5 的 0.75x 反转恢复档,并在宏观空头期 RSI(14)≤25 后锁定<b>最低 0.15x 无杠杆底仓</b>,直到宏观状态恢复多头,用于持续参与超跌后的修复行情。全周期年化 14.9%、最大回撤 −24.7%、Calmar 0.60、夏普 0.82。净敞口在 <b>0(现金)→ 1.5x(QQQ+QLD)</b> 间连续调节,避险现金赚取短端国债收益。<b>档位持有期内不做再平衡</b>,且设 <b>0.15x 死区</b>。</p>
+<div class="eyebrow">QQQ · QLD — 技术指标驱动的杠杆滚仓 · V1.6</div>
+<h1>动态滚仓策略回测(V1.6)</h1>
+<p class="sub">基于 QQQ 的 <b>MACD / RSI / Supertrend</b> + 250 日趋势闸门决定仓位档位,叠加 <b>20% 波动率目标</b>与<b>强空头清仓</b>两层风控。V1.6 保留 V1.5 的 0.75x 反转恢复档,并在宏观空头期 RSI(14)≤25 后锁定<b>最低 0.15x 无杠杆底仓</b>,直到宏观状态恢复多头,用于持续参与超跌后的修复行情。全周期年化 14.9%、最大回撤 −24.7%、Calmar 0.60、夏普 0.82。净敞口在 <b>0(现金)→ 1.5x(QQQ+QLD)</b> 间连续调节,避险现金赚取短端国债收益。<b>档位持有期内不做再平衡</b>,且设 <b>0.15x 死区</b>。</p>
+
+<details class="versions">
+<summary>版本演进</summary>
+<dl class="version-list">
+  <div class="version-row"><dt>初版</dt><dd>使用日线 Supertrend 直接择时。熊市反弹中频繁重新加杠杆,换手约 33 次/年、最大回撤约 −84%,未达到风险控制目标。</dd></div>
+  <div class="version-row"><dt>基础风控</dt><dd>加入长期均线闸门、波动率目标、强空头清仓与现金生息;随后将波动率缩放上限收紧为 1.0,只允许降仓、不在基础档上额外加杠杆。</dd></div>
+  <div class="version-row"><dt>V1.1</dt><dd>长期趋势闸门由 200 日改为 250 日。250/300 日附近形成参数高原,最大回撤由约 −42% 降至 −32%。</dd></div>
+  <div class="version-row"><dt>V1.2</dt><dd>删除 2.0x QLD 全仓档,把最高净敞口限制为 1.5x。高位过热阶段不再追逐 2.0x,收益基本不受损且换手下降。</dd></div>
+  <div class="version-row"><dt>V1.3</dt><dd>温和回调 D 档由固定 0.5x 改为 0.5x×波动率目标,市场越颠簸仓位越低,最大回撤进一步降至约 −26%。</dd></div>
+  <div class="version-row"><dt>V1.4</dt><dd>为 SMA250 加入非对称滞回:跌破均线退出多头、重新站上 1% 才恢复;只有深破 4% 且空头指标共振才清仓,减少均线附近反复切换。</dd></div>
+  <div class="version-row"><dt>V1.5</dt><dd>新增反转恢复 R 档。宏观状态仍为空头但 Supertrend 与 MACD 柱同时转多时,先恢复 0.75x 基础敞口,降低 V 型反弹中的低仓滞后。</dd></div>
+  <div class="version-row"><dt>V1.6</dt><dd>新增 RSI 超跌底仓锁存。宏观空头期 RSI(14)≤25 后最低保留 0.15x 无杠杆 QQQ,直到宏观状态恢复多头;与 R 档互补。</dd></div>
+</dl>
+</details>
 
 <!-- 当前信号 -->
 <div class="card"><h2><span class="n">◆</span>当前建议仓位</h2>
@@ -187,8 +211,8 @@ code{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}
 </div>
 <ul class="rl">
 <li><b>宏观闸门:</b> 多头跌破 250 日均线即退出;进入空头后,需重新站上均线 1% 才恢复多头。非对称滞回用于过滤均线附近的假突破。</li>
- <li><b>反转恢复(V4.5):</b> 空头状态下先判定强空头条件(E/F);若不成立且 Supertrend 已转多、MACD 柱&gt;0,进入 R 档:基础 0.75x×波动率目标。该档只负责比 D 更早恢复部分仓位,不直接恢复杠杆。</li>
- <li><b>超跌底仓(V4.6):</b> 宏观空头状态下 RSI(14)≤25 即开启锁存,此后最终净敞口不低于 0.15x,直到宏观状态恢复多头。底仓只买 QQQ、不加杠杆;R 与 D 的原有目标若高于 0.15x,仍按原目标执行。</li>
+ <li><b>反转恢复(V1.5):</b> 空头状态下先判定强空头条件(E/F);若不成立且 Supertrend 已转多、MACD 柱&gt;0,进入 R 档:基础 0.75x×波动率目标。该档只负责比 D 更早恢复部分仓位,不直接恢复杠杆。</li>
+ <li><b>超跌底仓(V1.6):</b> 宏观空头状态下 RSI(14)≤25 即开启锁存,此后最终净敞口不低于 0.15x,直到宏观状态恢复多头。底仓只买 QQQ、不加杠杆;R 与 D 的原有目标若高于 0.15x,仍按原目标执行。</li>
  <li><b>动量打分(多头区间):</b> Supertrend 多头 +1、MACD 柱&gt;0 +1、MACD 线&gt;0 +1、RSI&gt;50 +1;0–2 分→QQQ全仓,3–4 分→QQQ+QLD(1.5x 封顶,MAX_EXPOSURE=1.5)。</li>
  <li><b>波动率目标(核心):</b> 最终敞口 = 档位敞口 ×min(1.0, 20%÷近20日年化波动率),当前版本默认 0–1.5x(只降不升)。2000/2008/2020 波动暴涨时自动大幅降杠杆,躲开杠杆 ETF 最致命的深亏。</li>
  <li><b>强空头处理:</b> 只有价格低于 250 日线 4%,且 MACD&lt;0、Supertrend 空头时,才进入 E/F;未开启超跌锁存时为 100% 现金,开启后保留 0.15x 底仓。浅破阶段维持 D/R。</li>
@@ -207,7 +231,7 @@ if(!R){
 }
 const fmtP = x => (x*100).toFixed(1)+'%';
 const fmtP0 = x => (x*100).toFixed(0)+'%';
-const STRATEGY = '策略(V4.6超跌底仓)';
+const STRATEGY = '策略(V1.6超跌底仓)';
 const NAMES = [STRATEGY,'QQQ半仓','QQQ全仓(=买入持有QQQ)','QQQ+QLD(50/50)','QLD全仓(=买入持有QLD)'];
 const COL = {[STRATEGY]:'#1c2230','QQQ半仓':'#c2453b','QQQ全仓(=买入持有QQQ)':'#c99a2e','QQQ+QLD(50/50)':'#3f7fb8','QLD全仓(=买入持有QLD)':'#9a7b3f'};
 const STATECOL = {'趋势向上':'#6a9b3f','中性偏多':'#b8912f','反转恢复':'#3f7fb8','温和回调':'#c2453b','超跌底仓':'#8b6a9e','强空头/现金':'#5a6172'};
@@ -478,7 +502,7 @@ window.addEventListener('resize',()=>{
 document.getElementById('foot').innerHTML=
  '数据:QQQ / QLD / ^NDX / ^IRX(yfinance),区间 '+R.range[0]+' 至 '+R.range[1]+'。QQQ 上市前的 ^NDX OHLC 按 QQQ 首日收盘价缩放,<b>只用于指标暖机,不计入收益</b>。'+
  '2006-06 前 QLD 由「2×QQQ 日收益 − (0.95% 费率 + 短端利率融资成本)/252」合成,与真实 QLD 重叠期日收益相关性 0.996、CAGR 偏乐观约 0.8%/年。'+
- '<br>V4.6 回测含 5bps/边 交易成本;避险现金按 ^IRX 短端国债利率计息;夏普用 rf=0。指标在 QQQ 上计算(仅上市前暖机段使用 ^NDX),信号 T 日收盘生成、T+1 执行。<b>档位持有期内不做再平衡</b>(QQQ/QLD 权重随行情漂移),仅在换档时按实际成交计成本——与实盘一致。'+
+ '<br>V1.6 回测含 5bps/边 交易成本;避险现金按 ^IRX 短端国债利率计息;夏普用 rf=0。指标在 QQQ 上计算(仅上市前暖机段使用 ^NDX),信号 T 日收盘生成、T+1 执行。<b>档位持有期内不做再平衡</b>(QQQ/QLD 权重随行情漂移),仅在换档时按实际成交计成本——与实盘一致。'+
  '<br><b>重要:</b>历史回测不代表未来收益;杠杆 ETF 存在波动损耗与日度重置风险。本页面仅供研究与教育,非投资建议。';
 </script>
 </body></html>

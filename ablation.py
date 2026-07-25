@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-# V4.6 消融实验:在当前策略口径下分别去掉 MACD / RSI / Supertrend。
+# V1.6 消融实验:在当前策略口径下分别去掉 MACD / RSI / Supertrend。
 #
-# 默认逻辑与 2_backtest.py V4.6 对齐:4%/1% 宏观滞回、VOL_CAP=1.0、
+# 默认逻辑与 2_backtest.py V1.6 对齐:4%/1% 宏观滞回、VOL_CAP=1.0、
 # MAX_EXPOSURE=1.5、R=0.75x / D=0.5x * 波动率目标、RSI<=25 后 0.15x 底仓、
 # 0.15x 死区、T+1、不再平衡。
 import os
@@ -146,7 +146,7 @@ def build(use_macd=True, use_rsi=True, use_st=True):
             mx += 1
             pts += int(r['rsi'] > 50)
 
-        # Full V4.6 uses 3 of 4 points for B. In ablations, keep the same
+        # Full V1.6 uses 3 of 4 points for B. In ablations, keep the same
         # "roughly 75% of available momentum checks are bullish" threshold.
         need = int(np.ceil(0.75 * mx)) if mx else 999
         e = MAX_EXPOSURE if pts >= need else 1.0
@@ -229,7 +229,7 @@ def sub(e, s='2006-06-22'):
 
 
 configs = [
-    ('V4.6 完整(3指标)', dict()),
+    ('V1.6 完整(3指标)', dict()),
     ('去掉 MACD', dict(use_macd=False)),
     ('去掉 RSI', dict(use_rsi=False)),
     ('去掉 Supertrend', dict(use_st=False)),
@@ -251,7 +251,7 @@ for name, kw in configs:
     cg, md, cal, sh, tot = sub(e)
     print(f"{name:<20}{cg*100:>6.1f}%{md*100:>8.1f}%{cal:>8.2f}")
 
-base = res['V4.6 完整(3指标)']
+base = res['V1.6 完整(3指标)']
 print("\n相对完整版的变化:")
 for name in ['去掉 MACD', '去掉 RSI', '去掉 Supertrend']:
     cg, md, cal, sh, tot, ae, at = res[name]

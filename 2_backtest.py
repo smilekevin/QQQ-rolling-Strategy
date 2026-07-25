@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-第 2 步:回测 V4.6 动态滚仓策略  ->  results.json
+第 2 步:回测 V1.6 动态滚仓策略  ->  results.json
 
 策略(六个决策状态,连续杠杆;已去掉 QLD全仓2x 档,最高 1.5x):
   · 宏观闸门:多头跌破 250 日均线即退出;熊市后需站上均线 1% 才恢复多头。
@@ -28,9 +28,9 @@ BULL_REENTRY_BUFFER = 0.01 # 熊市后需高于 SMA250 1% 才恢复多头,避免
 VOL_TARGET  = 0.20    # 目标年化波动率(越低越保守;0.14~0.25 结果不敏感)
 VOL_CAP     = 1.0     # 波动目标只降不升(1.0=不在基础档位上再加杠杆);经验证比 1.15 回撤更低、收益持平
 MAX_EXPOSURE= 1.5     # 最高档位上限(1.5=去掉 QLD全仓2x 档;经验证 2x 档不赚风险溢价,砍掉零代价)
-RECOVERY_EXPOSURE = 0.75 # V4.5:空头区短期双反转时的基础敞口(0.70~0.80 为稳健区)
-RSI_OVERSOLD = 25     # V4.6:熊市 RSI 触发底仓锁定的阈值(23~26 为稳健区)
-OVERSOLD_FLOOR = 0.15 # V4.6:触发后最低净敞口,不加杠杆(0.15~0.20 为稳健区)
+RECOVERY_EXPOSURE = 0.75 # V1.5:空头区短期双反转时的基础敞口(0.70~0.80 为稳健区)
+RSI_OVERSOLD = 25     # V1.6:熊市 RSI 触发底仓锁定的阈值(23~26 为稳健区)
+OVERSOLD_FLOOR = 0.15 # V1.6:触发后最低净敞口,不加杠杆(0.15~0.20 为稳健区)
 ST_PERIOD   = 10      # Supertrend ATR 周期
 ST_MULT     = 3.0     # Supertrend 倍数(2~4)
 RVOL_WIN    = 20      # 实际波动率回看窗口(交易日)
@@ -64,13 +64,13 @@ def targets(r):
         if r['deep_bear'] and (r['macd_line']<0) and (not r['st_bull']):
             e=0.0                                      # 强空头默认现金
         else:
-            # V4.5:空头区出现 Supertrend + MACD柱双反转时分阶段恢复,否则维持 D 档。
+            # V1.5:空头区出现 Supertrend + MACD柱双反转时分阶段恢复,否则维持 D 档。
             base=RECOVERY_EXPOSURE if r['st_bull'] and r['macd_hist']>0 else 0.5
             e=base
             if r['rvol']>0 and not np.isnan(r['rvol']):
                 e=max(0.0,min(2.0, base*min(VOL_CAP, VOL_TARGET/r['rvol'])))
         if r['oversold_latch']:
-            e=max(e,OVERSOLD_FLOOR)                    # V4.6:超跌后保留无杠杆底仓
+            e=max(e,OVERSOLD_FLOOR)                    # V1.6:超跌后保留无杠杆底仓
         return (e,0.0,1-e)
     s=int(r['st_bull'])+int(r['macd_hist']>0)+int(r['macd_line']>0)+int(r['rsi']>50)
     exp=MAX_EXPOSURE if s>=3 else 1.0
@@ -140,7 +140,7 @@ def metrics(e):
                 best_yr=yr.max(),worst_yr=yr.min())
 def rebased(s,start): s2=s[s.index>=start]; return s2/s2.iloc[0]
 
-series={'策略(V4.6超跌底仓)':eq,'QQQ半仓':st_half,'QQQ全仓(=买入持有QQQ)':bh_qqq,
+series={'策略(V1.6超跌底仓)':eq,'QQQ半仓':st_half,'QQQ全仓(=买入持有QQQ)':bh_qqq,
         'QQQ+QLD(50/50)':st_blend,'QLD全仓(=买入持有QLD)':bh_qld}
 M ={k:metrics(v)            for k,v in series.items()}
 M2={k:metrics(rebased(v,'2006-06-22')) for k,v in series.items()}
@@ -171,7 +171,7 @@ print(f"\n平均净敞口 {exp.mean():.2f}x  年化换手(单边) {turn.sum()/(l
 # ---------------- 导出 results.json(供报告使用)----------------
 def samp(s): return s.dropna()          # 日线(每个交易日一个点),支持按日缩放
 export={
- 'variant':'V4.6',
+ 'variant':'V1.6',
  'dates':[d.strftime('%Y-%m-%d') for d in samp(eq).index],
  'equity':{'strategy':samp(eq).round(3).tolist(),'qqq':samp(bh_qqq).round(3).tolist(),
            'qld':samp(bh_qld).round(3).tolist(),'blend':samp(st_blend).round(3).tolist(),'half':samp(st_half).round(3).tolist()},
