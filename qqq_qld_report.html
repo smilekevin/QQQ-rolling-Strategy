@@ -2,7 +2,16 @@
 <html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>QQQ/QLD 动态滚仓策略回测 V1.6</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
-<script src="report_data.js"></script>
+<script>
+(()=>{
+ const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23'}).formatToParts().map(({type,value})=>[type,value]));
+ const key=`1.6-${parts.year}-${parts.month}-${parts.day}-${parts.hour}`;
+ const script=document.createElement('script');
+ window.REPORT_DATA_URL=script.src=`report_data.js?v=${key}`;
+ window.REPORT_DATA_READY=new Promise((resolve,reject)=>{script.onload=resolve;script.onerror=()=>reject(new Error('Failed to load '+window.REPORT_DATA_URL));});
+ document.head.appendChild(script);
+})();
+</script>
 <style>
 :root{color-scheme:light;--grid-gap:12px;--section-gap:22px}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -224,6 +233,8 @@ code{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}
 </div>
 
 <script>
+;(async()=>{
+await window.REPORT_DATA_READY.catch(()=>{});
 const R = window.QQQ_REPORT_DATA;
 if(!R){
   document.body.innerHTML='<div style="max-width:760px;margin:56px auto;padding:24px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;line-height:1.6;color:#1c2230"><h1>缺少报告数据</h1><p>请先运行 <code>python 3_generate_report.py</code> 生成 <code>report_data.js</code>,再打开本页面。</p></div>';
@@ -231,7 +242,8 @@ if(!R){
 }
 const fmtP = x => (x*100).toFixed(1)+'%';
 const fmtP0 = x => (x*100).toFixed(0)+'%';
-const STRATEGY = '策略(V1.6超跌底仓)';
+const STRATEGY = Object.keys(R.metrics||{}).find(k=>k.startsWith('策略('));
+if(!STRATEGY){throw new Error('Missing strategy metrics in report_data.js');}
 const NAMES = [STRATEGY,'QQQ半仓','QQQ全仓(=买入持有QQQ)','QQQ+QLD(50/50)','QLD全仓(=买入持有QLD)'];
 const COL = {[STRATEGY]:'#1c2230','QQQ半仓':'#c2453b','QQQ全仓(=买入持有QQQ)':'#c99a2e','QQQ+QLD(50/50)':'#3f7fb8','QLD全仓(=买入持有QLD)':'#9a7b3f'};
 const STATECOL = {'趋势向上':'#6a9b3f','中性偏多':'#b8912f','反转恢复':'#3f7fb8','温和回调':'#c2453b','超跌底仓':'#8b6a9e','强空头/现金':'#5a6172'};
@@ -504,5 +516,6 @@ document.getElementById('foot').innerHTML=
  '2006-06 前 QLD 由「2×QQQ 日收益 − (0.95% 费率 + 短端利率融资成本)/252」合成,与真实 QLD 重叠期日收益相关性 0.996、CAGR 偏乐观约 0.8%/年。'+
  '<br>V1.6 回测含 5bps/边 交易成本;避险现金按 ^IRX 短端国债利率计息;夏普用 rf=0。指标在 QQQ 上计算(仅上市前暖机段使用 ^NDX),信号 T 日收盘生成、T+1 执行。<b>档位持有期内不做再平衡</b>(QQQ/QLD 权重随行情漂移),仅在换档时按实际成交计成本——与实盘一致。'+
  '<br><b>重要:</b>历史回测不代表未来收益;杠杆 ETF 存在波动损耗与日度重置风险。本页面仅供研究与教育,非投资建议。';
+})();
 </script>
 </body></html>

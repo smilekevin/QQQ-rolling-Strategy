@@ -12,6 +12,7 @@
 | `indicators.py` | 共享指标模块(MACD/RSI/Supertrend/闸门 + 决策档),被下面两个脚本复用 | — |
 | `2_backtest.py` | 计算指标、跑 V1.6 策略回测、导出结果 | `results.json` |
 | `3_generate_report.py` | 生成交互式报告数据,供固定 HTML 页面壳读取 | `report_data.js` |
+| `_headers` | Cloudflare Pages 缓存规则,防止页面壳与日更数据版本错配 | — |
 | `daily_check.py` | 盘后算今日目标敞口,给"持有/调仓"建议 | 打印到终端 |
 | `README.md` | 本说明 | — |
 
@@ -32,7 +33,7 @@ python 3_generate_report.py   # 生成 report_data.js(日更数据,不提交)
 open qqq_qld_report.html      # macOS;Windows 直接双击该文件
 ```
 
-数据每天更新:重跑这三步即可刷新到最新交易日。`qqq_qld_report.html` 是固定页面壳,日更数据在 `report_data.js` 中,该文件与 `prices.csv` / `results.json` 一样被 gitignore。
+数据每天更新:重跑这三步即可刷新到最新交易日。`qqq_qld_report.html` 是固定页面壳,日更数据在 `report_data.js` 中,该文件与 `prices.csv` / `results.json` 一样被 gitignore。线上部署时 `_headers` 要与 HTML 一起发布,使浏览器和 Cloudflare 对日更数据重新验证。页面会按上海时区自动生成 `report_data.js?v=1.6-YYYY-MM-DD-HH` 的小时级缓存键;HTML 无需每小时更新,策略版本升级时才需同步修改其中的 `1.6`。
 
 ## 三、策略逻辑(V1.6)
 

@@ -17,6 +17,7 @@ QQQ / QLD **动态滚仓策略**:用 QQQ 的技术指标(MACD / RSI / Supertrend
 | `2_backtest.py` | 指标(import indicators)+ V1.6 策略回测 → `results.json`。**顶部 CONFIG 是唯一调参处** |
 | `3_generate_report.py` | 只更新交互式报告数据 → `report_data.js`,不改写 HTML |
 | `qqq_qld_report.html` | 固定交互式页面壳,从本地 `report_data.js` 读取日更数据 |
+| `_headers` | Cloudflare Pages 的 `report_data.js` 缓存规则,防止页面壳/数据版本错配 |
 | `daily_check.py` | 盘后算目标敞口 + 决策档,给"持有/调仓"建议 |
 | `opt.py` | 参数稳健性 / 样本内外验证(向量化,<1s) |
 | `ablation.py` | 指标消融实验 |
@@ -106,6 +107,7 @@ CONFIRM=3 COST_BPS=5/10000 DEADBAND=0.15  (死区 0.05~0.25 不敏感,取 0.15 �
 - **决策档定义**必须与 targets() 一致:`decide_tier` 返回 B 仅当 `macro_bull 且 s>=3 且 lever_ok`;空头区先判 `deep_bear 且 MACD<0 且 Supertrend空头`,锁存开启时为 F、否则为 E;不满足强空头时再判 `Supertrend多头 且 MACD柱>0` 为 R,其余为 D。**强空头条件的优先级不能被 R 覆盖。**锁存即使在 D/R 状态托高最低敞口,决策名仍保持 D/R。
 - 报告 `STATECOL` 的 key 必须与 `results.json` 的 `dist` key(决策档名)完全一致,否则占比图颜色错。
 - 报告 HTML 是固定页面壳,只能从 CDN 加载 Chart.js;`3_generate_report.py` 不改写 HTML,只把日更数据写入 gitignored 的 `report_data.js`。数据为日线(约6880点,目前约350KB并随区间增长;回撤和年度收益/年内最大回撤均在前端由 equity 算、敞口图与悬浮共用 state_exp,不存冗余年度数据)。年度收益按上一年末至本年末计算;年内最大回撤以上一年末净值作为年初峰值,确保包含一月下跌。
+- **部署缓存一致性**:`_headers` 必须与 HTML 一起部署,使 `report_data.js` 每次重新验证。HTML 按上海时区在浏览器中动态生成 `report_data.js?v=1.6-YYYY-MM-DD-HH` 缓存键,保证即使中间缓存忽略响应头,最多也只会沿用同一小时的数据;HTML 本身不需日更,升级策略版本时必须同步修改缓存键中的 `1.6`。页面必须从 `R.metrics` 自动识别当前策略键,不得再硬编码具体版本名,以容忍 HTML 与日更数据的短暂发布时序差。
 - `results.json` 导出键:dates / equity{strategy,qqq,qld,blend,half} / state_exp / decision(B/C/R/D/F/E,着色用)/ dist(决策档占比)/ metrics(四区间)/ latest。`latest` 含 `sma250` / `macro_bull` / `deep_bear` / `oversold_latch`;曲线着色按 decision,悬浮显示 state_exp(净敞口)。
 
 ## 10. 数据与免责
