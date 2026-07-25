@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-每日盘后检查:算出 V4.4 策略今日的目标净敞口,并给出"持有/调仓"建议。
+每日盘后检查:算出 V4.6 策略今日的目标净敞口,并给出"持有/调仓"建议。
 
 用法:
   python daily_check.py                 # 只看今日目标敞口与持仓构成
@@ -17,7 +17,8 @@ import argparse, numpy as np, pandas as pd, yfinance as yf
 # —— 参数须与 2_backtest.py 的 CONFIG 保持一致 ——
 SMA_LEN=250; VOLT=0.20; VCAP=1.0; MAXE=1.5; ST_P=10; ST_M=3.0; RVOL_WIN=20
 BEAR_EXIT_BUFFER=0.04; BULL_REENTRY_BUFFER=0.01
-LEV_CEIL=0.40; CONFIRM=3; DEADBAND=0.15
+RECOVERY_EXPOSURE=0.75; LEV_CEIL=0.40; CONFIRM=3; DEADBAND=0.15
+RSI_OVERSOLD=25; OVERSOLD_FLOOR=0.15
 
 ap=argparse.ArgumentParser()
 ap.add_argument('--current', type=float, default=None, help='你当前的净敞口(如 0.66)')
@@ -29,9 +30,11 @@ px=px_ohlc['Close'].squeeze(); high=px_ohlc['High'].squeeze(); low=px_ohlc['Low'
 import indicators as ta
 ind=ta.compute(px, high, low, sma_len=SMA_LEN, st_period=ST_P, st_mult=ST_M,
                rvol_win=RVOL_WIN, lever_volceil=LEV_CEIL,
-               bear_exit_buffer=BEAR_EXIT_BUFFER, bull_reentry_buffer=BULL_REENTRY_BUFFER)
+               bear_exit_buffer=BEAR_EXIT_BUFFER, bull_reentry_buffer=BULL_REENTRY_BUFFER,
+               rsi_oversold=RSI_OVERSOLD)
 n=len(px)
 stb=ind['st_bull'].values; macro=ind['macro_bull'].values; deep=ind['deep_bear'].values
+floor_on=ind['oversold_latch'].values
 rising=ind['sma_rising'].values
 rvol=ind['rvol'].values; mlv=ind['macd_line'].values; mhv=ind['macd_hist'].values; rsiv=ind['rsi'].values
 
@@ -39,8 +42,13 @@ rvol=ind['rvol'].values; mlv=ind['macd_line'].values; mhv=ind['macd_hist'].value
 exp=np.empty(n)
 for i in range(n):
     if not macro[i]:
-        if deep[i] and mlv[i]<0 and not stb[i]: exp[i]=0.0             # 深度强空头 -> 现金
-        else: exp[i]=max(0.0,min(2.0,0.5*min(VCAP,VOLT/rvol[i])))      # 温和回调:0.5x×波动率目标(V4.3)
+        if deep[i] and mlv[i]<0 and not stb[i]: exp[i]=0.0             # 深度强空头 -> 默认现金
+        else:
+            base=RECOVERY_EXPOSURE if stb[i] and mhv[i]>0 else 0.5    # V4.5 反转恢复档 / 温和回调档
+            exp[i]=base
+            if rvol[i]>0 and not np.isnan(rvol[i]):
+                exp[i]=max(0.0,min(2.0,base*min(VCAP,VOLT/rvol[i])))
+        if floor_on[i]: exp[i]=max(exp[i],OVERSOLD_FLOOR)              # V4.6 超跌底仓
         continue
     s=int(stb[i])+(mhv[i]>0)+(mlv[i]>0)+(rsiv[i]>50)
     e=MAXE if s>=3 else 1.0
@@ -67,7 +75,7 @@ def comp(e):   # 目标敞口 -> 下单比例
 q,l,cash=comp(target)
 last=px.index[-1].date()
 dec_last=ta.decide_tier(ind.iloc[-1])   # 最新决策档(与回测/报告同一实现)
-print(f"\n===== V4.4 每日检查 · 基于 {last} 收盘 =====")
+print(f"\n===== V4.6 每日检查 · 基于 {last} 收盘 =====")
 print(f"决策档: {ta.DECNAME[dec_last]}   目标净敞口: {target:.2f}x")
 print(f"目标持仓构成: QQQ {q*100:.0f}%   QLD {l*100:.0f}%   现金 {cash*100:.0f}%")
 macro_text='多头' if macro[-1] else ('深空头区' if deep[-1] else '回调观察区')

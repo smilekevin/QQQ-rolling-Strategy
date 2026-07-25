@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-第 2 步:回测 V4.4 动态滚仓策略  ->  results.json
+第 2 步:回测 V4.6 动态滚仓策略  ->  results.json
 
-策略(现金 + 三档,连续杠杆;已去掉 QLD全仓2x 档,最高 1.5x):
+策略(六个决策状态,连续杠杆;已去掉 QLD全仓2x 档,最高 1.5x):
   · 宏观闸门:多头跌破 250 日均线即退出;熊市后需站上均线 1% 才恢复多头。
-  · 空头区:  低于 250 日线 4% 且 MACD<0、Supertrend 空头 -> 100% 现金;
+  · 空头区:  低于 250 日线 4% 且 MACD<0、Supertrend 空头 -> 默认 100% 现金;
+             RSI<=25 后锁定最低 0.15x 底仓,直到宏观状态恢复多头;
+             Supertrend 转多且 MACD 柱转正 -> 反转恢复 0.75x 再套波动率目标;
              否则温和回调 -> 基础 0.5x 再套波动率目标。
   · 多头区:  动量打分 = Supertrend多头 + MACD柱>0 + MACD线>0 + RSI>50 (0~4)
              -> C=QQQ全仓(1x) / 3~4分=QQQ+QLD(1.5x);
@@ -26,6 +28,9 @@ BULL_REENTRY_BUFFER = 0.01 # 熊市后需高于 SMA250 1% 才恢复多头,避免
 VOL_TARGET  = 0.20    # 目标年化波动率(越低越保守;0.14~0.25 结果不敏感)
 VOL_CAP     = 1.0     # 波动目标只降不升(1.0=不在基础档位上再加杠杆);经验证比 1.15 回撤更低、收益持平
 MAX_EXPOSURE= 1.5     # 最高档位上限(1.5=去掉 QLD全仓2x 档;经验证 2x 档不赚风险溢价,砍掉零代价)
+RECOVERY_EXPOSURE = 0.75 # V4.5:空头区短期双反转时的基础敞口(0.70~0.80 为稳健区)
+RSI_OVERSOLD = 25     # V4.6:熊市 RSI 触发底仓锁定的阈值(23~26 为稳健区)
+OVERSOLD_FLOOR = 0.15 # V4.6:触发后最低净敞口,不加杠杆(0.15~0.20 为稳健区)
 ST_PERIOD   = 10      # Supertrend ATR 周期
 ST_MULT     = 3.0     # Supertrend 倍数(2~4)
 RVOL_WIN    = 20      # 实际波动率回看窗口(交易日)
@@ -44,10 +49,11 @@ rq=df['qqq_ret']; rl=df['qld_ret']; rf=(df['irx']/100.0/252.0)   # 现金日利�
 import indicators as ta
 ind=ta.compute(px, high, low, sma_len=SMA_LEN, st_period=ST_PERIOD, st_mult=ST_MULT,
                rvol_win=RVOL_WIN, lever_volceil=LEVER_VOLCEIL,
-               bear_exit_buffer=BEAR_EXIT_BUFFER, bull_reentry_buffer=BULL_REENTRY_BUFFER)
+               bear_exit_buffer=BEAR_EXIT_BUFFER, bull_reentry_buffer=BULL_REENTRY_BUFFER,
+               rsi_oversold=RSI_OVERSOLD)
 macd_line=ind['macd_line']; macd_hist=ind['macd_hist']; rsi=ind['rsi']
 st=ind['st']; st_bull=ind['st_bull']; sma=ind['sma']; macro_bull=ind['macro_bull']
-deep_bear=ind['deep_bear']; rvol=ind['rvol']
+deep_bear=ind['deep_bear']; floor_on=ind['oversold_latch']; rvol=ind['rvol']
 DECNAME=ta.DECNAME
 DEC=ind.apply(ta.decide_tier,axis=1)   # 决策档(基础仓位,着色/占比用)
 DEC_exec=DEC.shift(1).bfill()          # T+1,与执行时间线对齐
@@ -56,11 +62,15 @@ DEC_exec=DEC.shift(1).bfill()          # T+1,与执行时间线对齐
 def targets(r):
     if not r['macro_bull']:
         if r['deep_bear'] and (r['macd_line']<0) and (not r['st_bull']):
-            return (0.0,0.0,1.0)              # 强空头 -> 现金
-        # 温和回调:基础 0.5x 再套波动率目标(只降不升)—— V4.3 起不再固定 0.5
-        e=0.5
-        if r['rvol']>0 and not np.isnan(r['rvol']):
-            e=max(0.0,min(2.0, 0.5*min(VOL_CAP, VOL_TARGET/r['rvol'])))
+            e=0.0                                      # 强空头默认现金
+        else:
+            # V4.5:空头区出现 Supertrend + MACD柱双反转时分阶段恢复,否则维持 D 档。
+            base=RECOVERY_EXPOSURE if r['st_bull'] and r['macd_hist']>0 else 0.5
+            e=base
+            if r['rvol']>0 and not np.isnan(r['rvol']):
+                e=max(0.0,min(2.0, base*min(VOL_CAP, VOL_TARGET/r['rvol'])))
+        if r['oversold_latch']:
+            e=max(e,OVERSOLD_FLOOR)                    # V4.6:超跌后保留无杠杆底仓
         return (e,0.0,1-e)
     s=int(r['st_bull'])+int(r['macd_hist']>0)+int(r['macd_line']>0)+int(r['rsi']>50)
     exp=MAX_EXPOSURE if s>=3 else 1.0
@@ -130,7 +140,7 @@ def metrics(e):
                 best_yr=yr.max(),worst_yr=yr.min())
 def rebased(s,start): s2=s[s.index>=start]; return s2/s2.iloc[0]
 
-series={'策略(V4.4动态滚仓)':eq,'QQQ半仓':st_half,'QQQ全仓(=买入持有QQQ)':bh_qqq,
+series={'策略(V4.6超跌底仓)':eq,'QQQ半仓':st_half,'QQQ全仓(=买入持有QQQ)':bh_qqq,
         'QQQ+QLD(50/50)':st_blend,'QLD全仓(=买入持有QLD)':bh_qld}
 M ={k:metrics(v)            for k,v in series.items()}
 M2={k:metrics(rebased(v,'2006-06-22')) for k,v in series.items()}
@@ -161,17 +171,17 @@ print(f"\n平均净敞口 {exp.mean():.2f}x  年化换手(单边) {turn.sum()/(l
 # ---------------- 导出 results.json(供报告使用)----------------
 def samp(s): return s.dropna()          # 日线(每个交易日一个点),支持按日缩放
 export={
- 'variant':'V4.4',
+ 'variant':'V4.6',
  'dates':[d.strftime('%Y-%m-%d') for d in samp(eq).index],
  'equity':{'strategy':samp(eq).round(3).tolist(),'qqq':samp(bh_qqq).round(3).tolist(),
            'qld':samp(bh_qld).round(3).tolist(),'blend':samp(st_blend).round(3).tolist(),'half':samp(st_half).round(3).tolist()},
  'state_exp':samp(exp).round(2).tolist(),                            # 每日净敞口(敞口图+悬浮共用;回撤在前端由 equity 算)
- 'decision':DEC_exec.reindex(samp(eq).index,method='ffill').tolist(),   # 每日决策档(B/C/D/E),着色用
+ 'decision':DEC_exec.reindex(samp(eq).index,method='ffill').tolist(),   # 每日决策档(B/C/R/D/F/E),着色用
  'metrics':{k:{kk:(None if isinstance(vv,float) and np.isnan(vv) else round(float(vv),4)) for kk,vv in m.items()} for k,m in M.items()},
  'metrics_sub':{k:{kk:(None if isinstance(vv,float) and np.isnan(vv) else round(float(vv),4)) for kk,vv in m.items()} for k,m in M2.items()},
  'metrics_2010':{k:{kk:(None if isinstance(vv,float) and np.isnan(vv) else round(float(vv),4)) for kk,vv in m.items()} for k,m in M2010.items()},
  'metrics_2020':{k:{kk:(None if isinstance(vv,float) and np.isnan(vv) else round(float(vv),4)) for kk,vv in m.items()} for k,m in M2020.items()},
- 'dist':{DECNAME[k]:round(float(dist.get(DECNAME[k],0)),4) for k in ['B','C','D','E']},
+ 'dist':{DECNAME[k]:round(float(dist.get(DECNAME[k],0)),4) for k in ['B','C','R','D','F','E']},
  'switches':int(nsw),'ann_switch':round(nsw/(len(exp)/252),1),'ann_turnover':round(float(turn.sum()/(len(exp)/252)),2),
  'avg_exp':round(float(exp.mean()),2),
  'range':[eq.index[0].strftime('%Y-%m-%d'),eq.index[-1].strftime('%Y-%m-%d')],
@@ -182,7 +192,7 @@ export={
            'rsi':round(float(rsi.iloc[-1]),1),'st_bull':bool(st_bull.iloc[-1]),'price':round(float(px.iloc[-1]),2),
            'st_level':round(float(st.iloc[-1]),2),'rvol':round(float(rvol.iloc[-1]),3),
            'sma250':round(float(sma.iloc[-1]),2),'macro_bull':bool(macro_bull.iloc[-1]),
-           'deep_bear':bool(deep_bear.iloc[-1])},
+           'deep_bear':bool(deep_bear.iloc[-1]),'oversold_latch':bool(floor_on.iloc[-1])},
 }
 json.dump(export,open(OUT+'results.json','w'),ensure_ascii=False)
 print(f"\n已保存 {OUT}results.json")

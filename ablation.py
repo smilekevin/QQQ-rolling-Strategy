@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-# V4.4 消融实验:在当前策略口径下分别去掉 MACD / RSI / Supertrend。
+# V4.6 消融实验:在当前策略口径下分别去掉 MACD / RSI / Supertrend。
 #
-# 默认逻辑与 2_backtest.py V4.4 对齐:4%/1% 宏观滞回、VOL_CAP=1.0、
-# MAX_EXPOSURE=1.5、D=0.5x * 波动率目标、0.15x 死区、T+1、不再平衡。
+# 默认逻辑与 2_backtest.py V4.6 对齐:4%/1% 宏观滞回、VOL_CAP=1.0、
+# MAX_EXPOSURE=1.5、R=0.75x / D=0.5x * 波动率目标、RSI<=25 后 0.15x 底仓、
+# 0.15x 死区、T+1、不再平衡。
 import os
 import sys
 import pandas as pd
@@ -24,6 +25,9 @@ BULL_REENTRY_BUFFER = 0.01
 VOLT = 0.20
 VCAP = 1.0
 MAX_EXPOSURE = 1.5
+RECOVERY_EXPOSURE = 0.75
+RSI_OVERSOLD = 25
+OVERSOLD_FLOOR = 0.15
 LEV_VOLCEIL = 0.40
 CONFIRM = 3
 DEADBAND = 0.15
@@ -77,7 +81,7 @@ rvol = px.pct_change().rolling(20).std() * np.sqrt(252)
 lever_ok = rising & (rvol < LEV_VOLCEIL)
 ind = pd.DataFrame({
     'ml': macd_line, 'mh': macd_hist, 'rsi': rsi, 'stb': st_bull,
-    'macro': macro, 'deep': deep_bear, 'lok': lever_ok, 'rvol': rvol
+    'macro': macro, 'deep': deep_bear, 'sma': sma, 'lok': lever_ok, 'rvol': rvol
 })
 
 
@@ -100,18 +104,33 @@ def confirm(vals, k):
 
 def build(use_macd=True, use_rsi=True, use_st=True):
     exp = []
+    floor_active = False
     for _, r in ind.iterrows():
         valid = r['rvol'] > 0 and not np.isnan(r['rvol'])
         scale = min(VCAP, VOLT / r['rvol']) if valid else VCAP
 
+        if np.isnan(r['sma']) or r['macro']:
+            floor_active = False
+        elif use_rsi and r['rsi'] <= RSI_OVERSOLD:
+            floor_active = True
+
         if not r['macro']:
-            conds = []
+            down_conds = []
             if use_macd:
-                conds.append(r['ml'] < 0)
+                down_conds.append(r['ml'] < 0)
             if use_st:
-                conds.append(not r['stb'])
-            strong_down = bool(r['deep']) and len(conds) > 0 and all(conds)
-            e = 0.0 if strong_down else max(0.0, min(2.0, 0.5 * scale))
+                down_conds.append(not r['stb'])
+            strong_down = bool(r['deep']) and len(down_conds) > 0 and all(down_conds)
+            recovery_conds = []
+            if use_macd:
+                recovery_conds.append(r['mh'] > 0)
+            if use_st:
+                recovery_conds.append(r['stb'])
+            recovery = len(recovery_conds) > 0 and all(recovery_conds)
+            base = RECOVERY_EXPOSURE if recovery else 0.5
+            e = 0.0 if strong_down else max(0.0, min(2.0, base * scale))
+            if floor_active:
+                e = max(e, OVERSOLD_FLOOR)
             exp.append(e)
             continue
 
@@ -127,7 +146,7 @@ def build(use_macd=True, use_rsi=True, use_st=True):
             mx += 1
             pts += int(r['rsi'] > 50)
 
-        # Full V4.4 uses 3 of 4 points for B. In ablations, keep the same
+        # Full V4.6 uses 3 of 4 points for B. In ablations, keep the same
         # "roughly 75% of available momentum checks are bullish" threshold.
         need = int(np.ceil(0.75 * mx)) if mx else 999
         e = MAX_EXPOSURE if pts >= need else 1.0
@@ -210,7 +229,7 @@ def sub(e, s='2006-06-22'):
 
 
 configs = [
-    ('V4.4 完整(3指标)', dict()),
+    ('V4.6 完整(3指标)', dict()),
     ('去掉 MACD', dict(use_macd=False)),
     ('去掉 RSI', dict(use_rsi=False)),
     ('去掉 Supertrend', dict(use_st=False)),
@@ -232,7 +251,7 @@ for name, kw in configs:
     cg, md, cal, sh, tot = sub(e)
     print(f"{name:<20}{cg*100:>6.1f}%{md*100:>8.1f}%{cal:>8.2f}")
 
-base = res['V4.4 完整(3指标)']
+base = res['V4.6 完整(3指标)']
 print("\n相对完整版的变化:")
 for name in ['去掉 MACD', '去掉 RSI', '去掉 Supertrend']:
     cg, md, cal, sh, tot, ae, at = res[name]
