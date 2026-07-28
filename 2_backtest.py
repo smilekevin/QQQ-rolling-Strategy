@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-第 2 步:回测 V1.6 动态滚仓策略  ->  results.json
+第 2 步:回测 V1.6.1 动态滚仓策略  ->  results.json
 
 策略(六个决策状态,连续杠杆;已去掉 QLD全仓2x 档,最高 1.5x):
   · 宏观闸门:多头跌破 250 日均线即退出;熊市后需站上均线 1% 才恢复多头。
@@ -12,7 +12,7 @@
              -> C=QQQ全仓(1x) / 3~4分=QQQ+QLD(1.5x);
              加杠杆还需"250日线上行 且 20日波动率<40%"的熔断许可。
   · 波动率目标:最终净敞口 = 档位敞口 × min(VOL_CAP, VOL_TARGET / 20日年化波动率),默认 0~1.5x。
-  · 抗抖动:  净敞口按 0.05 档、连续 CONFIRM 日确认才切换;信号 T 日生成、T+1 执行(无未来函数)。
+  · 抗抖动:  净敞口按 0.05 档、连续 CONFIRM 日确认才切换;信号 T 日收盘生成、T+1 开盘执行。
   · 现金按 ^IRX 短端国债利率计息;每次调仓计 COST_BPS 单边成本。
 
 运行:  python 2_backtest.py   (需先跑完 1_prepare_data.py 生成 prices.csv)
@@ -20,6 +20,7 @@
 """
 import os
 import pandas as pd, numpy as np, json
+from execution import run_next_open, valid_trade_index
 
 # ============================ CONFIG(可调参数)============================
 SMA_LEN     = 250     # 趋势闸门均线长度(200/250/300;250 为验证后的稳健选择)
@@ -43,7 +44,7 @@ COST_BPS    = 5/10000 # 单边交易成本(5bp)
 OUT = os.path.dirname(os.path.abspath(__file__)) + os.sep
 df = pd.read_csv(OUT+'prices.csv', parse_dates=['Date'], index_col='Date')
 px=df['signal_close']; high=df['signal_high']; low=df['signal_low']
-rq=df['qqq_ret']; rl=df['qld_ret']; rf=(df['irx']/100.0/252.0)   # 现金日利率
+rq=df['qqq_ret']; rl=df['qld_ret']
 
 # ---------------- 指标 + 决策档(共享模块,见 indicators.py)----------------
 import indicators as ta
@@ -82,7 +83,7 @@ def targets(r):
 
 W=pd.DataFrame([targets(r) for _,r in ind.iterrows()],index=ind.index,columns=['q','l','c'])
 
-# ---------------- 确认过滤 + T+1 执行 ----------------
+# ---------------- 确认过滤 + T+1 开盘执行 ----------------
 sig=((W['q']+2*W['l'])*20).round().astype(int)     # 0.05 档的净敞口签名
 def confirm(vals,k):
     cur=vals[0]; run=vals[0]; cnt=0; res=[]
@@ -102,30 +103,13 @@ e_exec=np.array(ded)/20.0                           # 实际执行的目标净�
 q=np.where(e_exec<=1,e_exec,2-e_exec); l=np.where(e_exec<=1,0.0,e_exec-1.0); cash=1.0-q-l
 Wc=pd.DataFrame({'q':q,'l':l,'c':cash},index=W.index).shift(1).bfill()
 
-# ^NDX 仅用于 QQQ 上市前的指标暖机;收益、换手和全部绩效从真实 QQQ 日收益开始。
-trade_index=df.index[df['qqq_ret'].notna() & df['qld_ret'].notna()]
+# ^NDX 仅用于 QQQ 上市前的指标暖机;收益、换手和全部绩效从真实 QQQ 开盘数据有效日开始。
+trade_index=valid_trade_index(df)
 Wc=Wc.loc[trade_index]
-rq=rq.loc[trade_index]; rl=rl.loc[trade_index]; rf=rf.loc[trade_index]
+rq=rq.loc[trade_index]; rl=rl.loc[trade_index]
 
-# ---------------- 回测引擎(档位内不再平衡,仅换档时调仓 + 现金生息)----------------
-# 持有期内任凭 QQQ/QLD 权重随行情漂移(不做日内再平衡),只有当目标档位变化时
-# 才从当前(漂移后)权重成交到新目标,并按实际成交量计交易成本 —— 与实盘一致。
-def run(Wc):
-    val=1.0; wq=wl=wc=0.0; ptq=ptl=None; eq=[]; exps=[]; turns=[]
-    Q=Wc['q'].values; L=Wc['l'].values; C=Wc['c'].values
-    RQ=rq.values; RL=rl.values; RF=rf.values
-    for i in range(len(Wc)):
-        tq,tl,tc=Q[i],L[i],C[i]
-        turn=0.0
-        if ptq is None or abs(tq-ptq)>1e-9 or abs(tl-ptl)>1e-9:   # 目标档位变化才调仓
-            turn=abs(tq-wq)+abs(tl-wl); val*=(1-turn*COST_BPS)
-            wq,wl,wc=tq,tl,tc; ptq,ptl=tq,tl
-        val*=(1+wq*RQ[i]+wl*RL[i]+wc*RF[i])
-        eq.append(val); exps.append(wq+2*wl); turns.append(turn)
-        nq=wq*(1+RQ[i]); nl=wl*(1+RL[i]); ncash=wc*(1+RF[i]); tot=nq+nl+ncash  # 漂移到次日
-        if tot>0: wq,wl,wc=nq/tot,nl/tot,ncash/tot
-    return pd.Series(eq,index=Wc.index),pd.Series(exps,index=Wc.index),pd.Series(turns,index=Wc.index)
-eq,exp,turn=run(Wc)
+# ---------------- T+1 开盘执行(隔夜旧仓位 → 开盘调仓 → 日内新仓位)----------------
+eq,exp,turn=run_next_open(Wc,df,COST_BPS)
 
 # 基准
 bh_qqq=(1+rq).cumprod(); bh_qld=(1+rl).cumprod()
@@ -140,12 +124,14 @@ def metrics(e):
                 best_yr=yr.max(),worst_yr=yr.min())
 def rebased(s,start): s2=s[s.index>=start]; return s2/s2.iloc[0]
 
-series={'策略(V1.6超跌底仓)':eq,'QQQ半仓':st_half,'QQQ全仓(=买入持有QQQ)':bh_qqq,
+series={'策略(V1.6.1超跌底仓)':eq,'QQQ半仓':st_half,'QQQ全仓(=买入持有QQQ)':bh_qqq,
         'QQQ+QLD(50/50)':st_blend,'QLD全仓(=买入持有QLD)':bh_qld}
 M ={k:metrics(v)            for k,v in series.items()}
 M2={k:metrics(rebased(v,'2006-06-22')) for k,v in series.items()}
 M2010={k:metrics(rebased(v,'2010-01-01')) for k,v in series.items()}
 M2020={k:metrics(rebased(v,'2020-01-01')) for k,v in series.items()}
+five_year_start=(eq.index[-1]-pd.DateOffset(years=5)).strftime('%Y-%m-%d')
+M5Y={k:metrics(rebased(v,five_year_start)) for k,v in series.items()}
 
 print(f"{'方案':<22}{'年化':>7}{'总收益':>9}{'波动':>7}{'夏普':>6}{'回撤':>8}{'Calmar':>7}{'最差年':>7}")
 for k,m in M.items():
@@ -159,19 +145,21 @@ dist=DEC_exec.reindex(eq.index).map(DECNAME).value_counts(normalize=True)     # 
 tgt_exp=(Wc['q']+2*Wc['l']).round(2)          # 目标敞口(换档信号),用于统计切换次数
 nsw=(tgt_exp!=tgt_exp.shift()).sum()
 
-# 最近一次调仓:用执行后的目标敞口序列(0.05档+死区)找最后一次变化
+# 最近一次调仓:用已 shift(1) 的开盘执行目标找真实成交日期。
 exec_ser=pd.Series(e_exec,index=W.index).round(2)
-_chg=exec_ser.ne(exec_ser.shift()); _chg.iloc[0]=False
+executed_ser=tgt_exp
+_chg=executed_ser.ne(executed_ser.shift()); _chg.iloc[0]=False
 _ci=np.where(_chg.values)[0]
-if len(_ci): last_reb=exec_ser.index[_ci[-1]]; prev_e=float(exec_ser.iloc[_ci[-1]-1])
-else:        last_reb=exec_ser.index[0];        prev_e=float(exec_ser.iloc[0])
-cur_e=float(exec_ser.iloc[-1]); days_since=int((df.index[-1]-last_reb).days)
+if len(_ci): last_reb=executed_ser.index[_ci[-1]]; prev_e=float(executed_ser.iloc[_ci[-1]-1])
+else:        last_reb=executed_ser.index[0];        prev_e=float(executed_ser.iloc[0])
+executed_e=float(executed_ser.iloc[-1]); cur_e=float(exec_ser.iloc[-1])
+days_since=int((df.index[-1]-last_reb).days)
 print(f"\n平均净敞口 {exp.mean():.2f}x  年化换手(单边) {turn.sum()/(len(exp)/252):.2f}  状态切换 {nsw/(len(exp)/252):.1f} 次/年")
 
 # ---------------- 导出 results.json(供报告使用)----------------
 def samp(s): return s.dropna()          # 日线(每个交易日一个点),支持按日缩放
 export={
- 'variant':'V1.6',
+ 'variant':'V1.6.1',
  'dates':[d.strftime('%Y-%m-%d') for d in samp(eq).index],
  'equity':{'strategy':samp(eq).round(3).tolist(),'qqq':samp(bh_qqq).round(3).tolist(),
            'qld':samp(bh_qld).round(3).tolist(),'blend':samp(st_blend).round(3).tolist(),'half':samp(st_half).round(3).tolist()},
@@ -181,13 +169,14 @@ export={
  'metrics_sub':{k:{kk:(None if isinstance(vv,float) and np.isnan(vv) else round(float(vv),4)) for kk,vv in m.items()} for k,m in M2.items()},
  'metrics_2010':{k:{kk:(None if isinstance(vv,float) and np.isnan(vv) else round(float(vv),4)) for kk,vv in m.items()} for k,m in M2010.items()},
  'metrics_2020':{k:{kk:(None if isinstance(vv,float) and np.isnan(vv) else round(float(vv),4)) for kk,vv in m.items()} for k,m in M2020.items()},
+ 'metrics_5y':{k:{kk:(None if isinstance(vv,float) and np.isnan(vv) else round(float(vv),4)) for kk,vv in m.items()} for k,m in M5Y.items()},
  'dist':{DECNAME[k]:round(float(dist.get(DECNAME[k],0)),4) for k in ['B','C','R','D','F','E']},
  'switches':int(nsw),'ann_switch':round(nsw/(len(exp)/252),1),'ann_turnover':round(float(turn.sum()/(len(exp)/252)),2),
  'avg_exp':round(float(exp.mean()),2),
  'range':[eq.index[0].strftime('%Y-%m-%d'),eq.index[-1].strftime('%Y-%m-%d')],
  'latest':{'date':df.index[-1].strftime('%Y-%m-%d'),'state':DECNAME[DEC.iloc[-1]],'dec':DEC.iloc[-1],'exp':round(cur_e,2),
            'last_reb':last_reb.strftime('%Y-%m-%d'),'days_since':days_since,
-           'prev_exp':round(prev_e,2),
+           'prev_exp':round(prev_e,2),'executed_exp':round(executed_e,2),
            'macd_hist':round(float(macd_hist.iloc[-1]),3),'macd_line':round(float(macd_line.iloc[-1]),3),
            'rsi':round(float(rsi.iloc[-1]),1),'st_bull':bool(st_bull.iloc[-1]),'price':round(float(px.iloc[-1]),2),
            'st_level':round(float(st.iloc[-1]),2),'rvol':round(float(rvol.iloc[-1]),3),

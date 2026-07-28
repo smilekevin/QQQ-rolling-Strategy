@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-每日盘后检查:算出 V1.6 策略今日的目标净敞口,并给出"持有/调仓"建议。
+每日盘后检查:算出 V1.6.1 策略今日的目标净敞口,并给出"持有/调仓"建议。
 
 用法:
   python daily_check.py                 # 只看今日目标敞口与持仓构成
@@ -75,7 +75,7 @@ def comp(e):   # 目标敞口 -> 下单比例
 q,l,cash=comp(target)
 last=px.index[-1].date()
 dec_last=ta.decide_tier(ind.iloc[-1])   # 最新决策档(与回测/报告同一实现)
-print(f"\n===== V1.6 每日检查 · 基于 {last} 收盘 =====")
+print(f"\n===== V1.6.1 每日检查 · 基于 {last} 收盘 / 下个交易日开盘执行 =====")
 print(f"决策档: {ta.DECNAME[dec_last]}   目标净敞口: {target:.2f}x")
 print(f"目标持仓构成: QQQ {q*100:.0f}%   QLD {l*100:.0f}%   现金 {cash*100:.0f}%")
 macro_text='多头' if macro[-1] else ('深空头区' if deep[-1] else '回调观察区')
