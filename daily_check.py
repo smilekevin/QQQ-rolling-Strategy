@@ -26,6 +26,7 @@ args=ap.parse_args()
 
 px_ohlc = yf.download('QQQ', start='2022-06-01', progress=False, auto_adjust=True)
 px=px_ohlc['Close'].squeeze(); high=px_ohlc['High'].squeeze(); low=px_ohlc['Low'].squeeze()
+vix=yf.download('^VIX', start='2022-06-01', progress=False, auto_adjust=True)['Close'].squeeze().reindex(px.index).ffill()
 
 import indicators as ta
 ind=ta.compute(px, high, low, sma_len=SMA_LEN, st_period=ST_P, st_mult=ST_M,
@@ -75,12 +76,14 @@ def comp(e):   # 目标敞口 -> 下单比例
 q,l,cash=comp(target)
 last=px.index[-1].date()
 dec_last=ta.decide_tier(ind.iloc[-1])   # 最新决策档(与回测/报告同一实现)
+panic=bool(ta.extreme_panic(rsiv[-1],vix.iloc[-1]))
 print(f"\n===== V1.6.1 每日检查 · 基于 {last} 收盘 / 下个交易日开盘执行 =====")
 print(f"决策档: {ta.DECNAME[dec_last]}   目标净敞口: {target:.2f}x")
 print(f"目标持仓构成: QQQ {q*100:.0f}%   QLD {l*100:.0f}%   现金 {cash*100:.0f}%")
 macro_text='多头' if macro[-1] else ('深空头区' if deep[-1] else '回调观察区')
 print(f"指标: 价格 {px.iloc[-1]:.1f} | 250日状态 {macro_text} | "
       f"Supertrend {'多' if stb[-1] else '空'} | MACD线 {mlv[-1]:+.1f} | RSI {rsiv[-1]:.0f} | 20日波动 {rvol[-1]*100:.0f}%")
+print(f"恐慌观察:VIX {vix.iloc[-1]:.1f} | {'极端恐慌已触发' if panic else '未触发'}(RSI≤{ta.EXTREME_PANIC_RSI} 且 VIX≥{ta.EXTREME_PANIC_VIX},不影响仓位)")
 
 if args.current is not None:
     cur_e=args.current; diff=target-cur_e

@@ -6,14 +6,14 @@
 
 QQQ / QLD **动态滚仓策略**:用 QQQ 的技术指标(MACD / RSI / Supertrend + 250 日均线)+ 波动率目标,在 **现金 → QQQ → QQQ+QLD(1.5x)** 之间连续调节杠杆敞口。附完整历史回测(1999 至今)与交互式 HTML 报告。QLD 是 2× 做多 QQQ 的杠杆 ETF。
 
-当前版本:**V1.6.1**。
+当前报告版本：**V1.6.1a**；当前策略版本：**V1.6.1**。报告版本只包含展示与观察标记更新,不改变策略规则或回测口径。
 
 ## 2. 文件结构
 
 | 文件 | 作用 |
 |---|---|
-| `1_prepare_data.py` | 下载 ^NDX/QQQ/QLD/^IRX,用 NDX 暖机指标并合成 2006 前 QLD → `prices.csv` |
-| `indicators.py` | **共享指标模块**:ema/macd/rsi/supertrend/compute + decide_tier/DECNAME。被 2/daily_check 复用 |
+| `1_prepare_data.py` | 下载 ^NDX/QQQ/QLD/^IRX/^VIX,用 NDX 暖机指标并合成 2006 前 QLD → `prices.csv` |
+| `indicators.py` | **共享指标模块**:ema/macd/rsi/supertrend/compute + decide_tier/DECNAME + 极端恐慌观察判定。被 2/daily_check 复用 |
 | `execution.py` | **共享执行模块**:旧仓隔夜 → T+1 开盘调仓 → 新仓日内。被 2/opt/ablation 复用 |
 | `2_backtest.py` | 指标(import indicators)+ V1.6.1 策略回测 → `results.json`。**顶部 CONFIG 是唯一调参处** |
 | `3_generate_report.py` | 只更新交互式报告数据 → `report_data.js`,不改写 HTML |
@@ -43,6 +43,8 @@ QQQ / QLD **动态滚仓策略**:用 QQQ 的技术指标(MACD / RSI / Supertrend
 4. **RSI 超跌底仓锁存**:宏观空头期 RSI(14)≤25 后开启,把最终净敞口下限托到 **0.15x**,直到宏观状态恢复多头才解除。它不增加杠杆;若 R/D 原目标高于 0.15x,仍执行原目标。锁存只在 SMA250 有效后才允许触发。
 5. **抗抖动**:宏观状态使用上述 0%/1% 非对称滞回;敞口按 0.05 档、连续 3 日确认才切换;再设 0.15x 死区。
 6. **执行顺序(V1.6.1)**:T 日收盘确认信号;T+1 开盘前旧仓位承担隔夜涨跌和现金利息,随后按开盘价调到新目标,新仓位承担开盘至收盘收益。每次调仓计 5bp 单边成本;**档位持有期内不做再平衡**(权重随行情漂移,仅换档时调仓)。
+
+**极端恐慌观察标记(非策略规则):** `RSI(14)≤25 且 VIX≥30` 时标记当前状态与历史日期。该标记只用于研究观察,不进入决策档、目标敞口、确认、死区或调仓逻辑,因此不改变 V1.6.1 的任何回测收益。
 
 **关键概念:净敞口 = 波动率倍数。** 因 QLD 与 QQQ 相关性 0.998,组合波动率 = 净敞口 × QQQ波动率(1.5x敞口=1.5×波动,实测验证)。所以波动率目标本质是直接控制组合波动。
 
@@ -111,12 +113,13 @@ CONFIRM=3 COST_BPS=5/10000 DEADBAND=0.15  (死区 0.05~0.25 不敏感,取 0.15 �
 - **着色/占比统一按决策档**(B/C/R/D/F/E),不再用敞口分档的 `band()`/`tier()`(已随"按决策档着色"删除)。历史教训:曾用敞口区间着色 + `<`/`<=` 边界不一致,导致 0.75 等边界值在回测与日检里归档错位——现改用 `decide_tier` 单一实现后不再有此问题。
 - **决策档定义**必须与 targets() 一致:`decide_tier` 返回 B 仅当 `macro_bull 且 s>=3 且 lever_ok`;空头区先判 `deep_bear 且 MACD<0 且 Supertrend空头`,锁存开启时为 F、否则为 E;不满足强空头时再判 `Supertrend多头 且 MACD柱>0` 为 R,其余为 D。**强空头条件的优先级不能被 R 覆盖。**锁存即使在 D/R 状态托高最低敞口,决策名仍保持 D/R。
 - 报告 `STATECOL` 的 key 必须与 `results.json` 的 `dist` key(决策档名)完全一致,否则占比图颜色错。
+- **极端恐慌仅作观察:**阈值统一由 `indicators.extreme_panic()` 定义为 `RSI≤25 且 VIX≥30`;`2_backtest.py` 与 `daily_check.py` 必须共用该判定。它只能导出为 `panic_dates` / `latest.extreme_panic`,不得接入 targets、确认、死区或执行引擎。
 - 报告 HTML 是固定页面壳,只能从 CDN 加载 Chart.js;`3_generate_report.py` 不改写 HTML,只把日更数据写入 gitignored 的 `report_data.js`。数据为日线(约6880点,目前约350KB并随区间增长;回撤和年度收益/年内最大回撤均在前端由 equity 算、敞口图与悬浮共用 state_exp,不存冗余年度数据)。年度收益按上一年末至本年末计算;年内最大回撤以上一年末净值作为年初峰值,确保包含一月下跌。
-- **部署缓存一致性**:`_headers` 必须与 HTML 一起部署,使 `report_data.js` 每次重新验证。HTML 按上海时区在浏览器中动态生成 `report_data.js?v=1.6.1-YYYY-MM-DD-HH` 缓存键,保证即使中间缓存忽略响应头,最多也只会沿用同一小时的数据;HTML 本身不需日更,升级策略版本时必须同步修改缓存键中的 `1.6.1`。页面必须从 `R.metrics` 自动识别当前策略键,不得再硬编码具体版本名,以容忍 HTML 与日更数据的短暂发布时序差。
-- `results.json` 导出键:dates / equity{strategy,qqq,qld,blend,half} / state_exp / decision(B/C/R/D/F/E,着色用)/ dist(决策档占比)/ metrics(全区间、2006后、2010后、2020后、近5年)/ latest。`latest` 含 `executed_exp`(当前已执行敞口)、`exp`(下个开盘建议)、`sma250` / `macro_bull` / `deep_bear` / `oversold_latch`;曲线着色按 decision,悬浮显示 state_exp(净敞口)。
+- **部署缓存一致性**:`_headers` 必须与 HTML 一起部署,使 `report_data.js` 每次重新验证。HTML 按上海时区在浏览器中动态生成 `report_data.js?v=1.6.1a-YYYY-MM-DD-HH` 缓存键,保证即使中间缓存忽略响应头,最多也只会沿用同一小时的数据;HTML 本身不需日更,升级策略版本时必须同步修改缓存键中的 `1.6.1a`。页面必须从 `R.metrics` 自动识别当前策略键,不得再硬编码具体版本名,以容忍 HTML 与日更数据的短暂发布时序差。
+- `results.json` 导出键:dates / equity{strategy,qqq,qld,blend,half} / state_exp / decision(B/C/R/D/F/E,着色用)/ panic_dates(极端恐慌观察日)/ dist(决策档占比)/ metrics(全区间、2006后、2010后、2020后、近5年)/ latest。`latest` 含 `executed_exp`(当前已执行敞口)、`exp`(下个开盘建议)、`sma250` / `macro_bull` / `deep_bear` / `oversold_latch` / `vix` / `extreme_panic`;曲线着色按 decision,悬浮显示 state_exp(净敞口)。
 
 ## 10. 数据与免责
 
-- 数据源:yfinance 的 QQQ / QLD / ^NDX / ^IRX。^NDX 仅用于 QQQ 上市前指标暖机,按 QQQ 首日收盘价缩放并在上市后切回真实 QQQ OHLC。QQQ/QLD 均使用复权 Open/Close。**QLD 2006-06 上市**,之前用 `2×QQQ日收益 −(0.95%费率+短端利率)/252` 合成,与真实 QLD 日收益相关性 0.996、CAGR 偏乐观约 0.8%/年。2006 后为真实数据。
+- 数据源:yfinance 的 QQQ / QLD / ^NDX / ^IRX / ^VIX。^NDX 仅用于 QQQ 上市前指标暖机,按 QQQ 首日收盘价缩放并在上市后切回真实 QQQ OHLC;^VIX 仅用于极端恐慌观察标记。QQQ/QLD 均使用复权 Open/Close。**QLD 2006-06 上市**,之前用 `2×QQQ日收益 −(0.95%费率+短端利率)/252` 合成,与真实 QLD 日收益相关性 0.996、CAGR 偏乐观约 0.8%/年。2006 后为真实数据。
 - 夏普 rf=0;Calmar=年化/|最大回撤|。
 - **免责**:仅供研究与教育,非投资建议。历史回测不代表未来。杠杆 ETF 有波动损耗与每日重置风险,长持或震荡市可能显著跑输。实盘还有开盘滑点、税费和流动性等回测未反映的成本。

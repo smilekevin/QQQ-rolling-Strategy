@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>QQQ/QLD 动态滚仓策略回测 V1.6.1</title>
+<title>QQQ/QLD 动态滚仓策略回测 V1.6.1a</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
 <script>
 (()=>{
  const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23'}).formatToParts().map(({type,value})=>[type,value]));
- const key=`1.6.1-${parts.year}-${parts.month}-${parts.day}-${parts.hour}`;
+ const key=`1.6.1a-${parts.year}-${parts.month}-${parts.day}-${parts.hour}`;
  const script=document.createElement('script');
  window.REPORT_DATA_URL=script.src=`report_data.js?v=${key}`;
  window.REPORT_DATA_READY=new Promise((resolve,reject)=>{script.onload=resolve;script.onerror=()=>reject(new Error('Failed to load '+window.REPORT_DATA_URL));});
@@ -56,6 +56,7 @@ tr.hl td{background:#fbf4e3;font-weight:750}
 .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:#5a6172;margin-top:10px}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .dot{width:11px;height:3px;border-radius:2px;display:inline-block}
+.panic-dot{width:8px;height:8px;border-radius:50%;background:#c2453b;display:inline-block}
 .rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:var(--grid-gap);margin-top:4px}
 .rule{border:1px solid #e5ddcb;border-radius:11px;padding:13px 15px;background:#faf6ec}
 .rule .lv{font-size:12px;font-weight:700;letter-spacing:.05em}
@@ -110,8 +111,8 @@ code{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}
 .kpi .box .s{font-size:11.5px;color:#6a7183}
 </style></head>
 <body><div class="wrap">
-<div class="eyebrow">QQQ · QLD — 技术指标驱动的杠杆滚仓 · V1.6.1</div>
-<h1>动态滚仓策略回测(V1.6.1)</h1>
+<div class="eyebrow">QQQ · QLD — 技术指标驱动的杠杆滚仓 · V1.6.1a</div>
+<h1>动态滚仓策略回测(V1.6.1a)</h1>
 <p class="sub">基于 QQQ 的 <b>MACD / RSI / Supertrend</b> + 250 日趋势闸门决定仓位档位,叠加 <b>20% 波动率目标</b>与<b>强空头清仓</b>两层风控。V1.6.1 不改变 V1.6 的信号与仓位参数,只把执行修正为<b>信号 T 日收盘生成、T+1 开盘调仓</b>:旧仓承担隔夜波动,新仓承担日内收益。全周期年化 14.9%、最大回撤 −26.9%、Calmar 0.55、夏普 0.82。净敞口在 <b>0(现金)→ 1.5x(QQQ+QLD)</b> 间连续调节,避险现金赚取短端国债收益。<b>档位持有期内不做再平衡</b>,且设 <b>0.15x 死区</b>。</p>
 
 <details class="versions">
@@ -126,12 +127,13 @@ code{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}
   <div class="version-row"><dt>V1.5</dt><dd>新增反转恢复 R 档。宏观状态仍为空头但 Supertrend 与 MACD 柱同时转多时,先恢复 0.75x 基础敞口,降低 V 型反弹中的低仓滞后。</dd></div>
   <div class="version-row"><dt>V1.6</dt><dd>新增 RSI 超跌底仓锁存。宏观空头期 RSI(14)≤25 后最低保留 0.15x 无杠杆 QQQ,直到宏观状态恢复多头;与 R 档互补。</dd></div>
   <div class="version-row"><dt>V1.6.1</dt><dd>修正 T+1 执行口径。旧仓位承担信号产生后的隔夜涨跌,下一交易日开盘调仓,新仓位只承担日内收益;策略规则和参数不变。</dd></div>
+  <div class="version-row"><dt>V1.6.1a</dt><dd>报告版本更新:增加 VIX 与极端恐慌观察标记;策略规则、参数和回测结果仍为 V1.6.1。</dd></div>
 </dl>
 </details>
 
 <!-- 当前信号 -->
 <div class="card"><h2><span class="n">◆</span>当前建议仓位</h2>
-<div class="note">截至 <b id="ldate"></b> 收盘,依据最新指标状态。仅供研究参考,非投资建议。</div>
+<div class="note">截至 <b id="ldate"></b> 收盘,依据最新指标状态。极端恐慌仅作观察标记,不参与仓位计算。仅供研究参考,非投资建议。</div>
 <div class="signal">
   <div class="signal-summary">
     <div class="bigstate" id="lstate"></div>
@@ -156,7 +158,7 @@ code{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}
 
 <!-- 净值曲线 -->
 <div class="card"><h2><span class="n">2</span>净值增长曲线(对数刻度)</h2>
-<div class="note">起始 = 1.0。<b>策略主线按当时所处仓位分段着色</b>,基准线为灰色参照。可缩放:点选预设区间、<b>手动选起止日期</b>,或在图上<b>拖拽框选</b>放大。</div>
+<div class="note">起始 = 1.0。<b>策略主线按当时所处仓位分段着色</b>,红点标记 RSI≤25 且 VIX≥30 的极端恐慌日,只供观察、不改变策略。可缩放:点选预设区间、<b>手动选起止日期</b>,或在图上<b>拖拽框选</b>放大。</div>
 <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px">
   <div class="toggle" id="rangetog">
     <button data-r="all" class="on">全部</button>
@@ -250,6 +252,7 @@ const NAMES = [STRATEGY,'QQQ半仓','QQQ全仓(=买入持有QQQ)','QQQ+QLD(50/50
 const COL = {[STRATEGY]:'#1c2230','QQQ半仓':'#c2453b','QQQ全仓(=买入持有QQQ)':'#c99a2e','QQQ+QLD(50/50)':'#3f7fb8','QLD全仓(=买入持有QLD)':'#9a7b3f'};
 const STATECOL = {'趋势向上':'#6a9b3f','中性偏多':'#b8912f','反转恢复':'#3f7fb8','温和回调':'#c2453b','超跌底仓':'#8b6a9e','强空头/现金':'#5a6172'};
 const DEC=R.decision;                 // 每日决策档(B/C/R/D/F/E)
+const PANIC=new Set(R.panic_dates||[]); // 观察标记,不参与策略
 const DECCOL={'B':'#6a9b3f','C':'#b8912f','R':'#3f7fb8','D':'#c2453b','F':'#8b6a9e','E':'#5a6172'};
 const DECNM ={'B':'趋势向上','C':'中性偏多','R':'反转恢复','D':'温和回调','F':'超跌底仓','E':'强空头/现金'};
 
@@ -264,10 +267,12 @@ document.getElementById('lreb').innerHTML=
   '上次开盘调仓:<b>'+L.last_reb+'</b>(距今 '+L.days_since+' 天)<br>'+
   '当前已执行:'+executedExp.toFixed(2)+'x  →  下个开盘建议 '+L.exp.toFixed(2)+'x';
 const macroState=L.macro_bull?'多头':(L.deep_bear?'深空头':'回调观察');
+const vixText=Number.isFinite(L.vix)?L.vix.toFixed(1):'--';
 const ind=[['价格',L.price.toFixed(0),''],['SMA250',L.sma250.toFixed(0),''],['250日状态',macroState,L.macro_bull?'up':'dn'],
  ['Supertrend',L.st_level.toFixed(0),L.st_bull?'up':'dn'],
  ['MACD 柱',L.macd_hist.toFixed(2),L.macd_hist>0?'up':'dn'],['MACD 线',L.macd_line.toFixed(2),L.macd_line>0?'up':'dn'],
- ['RSI(14)',L.rsi.toFixed(1),L.rsi>50?'up':'dn'],['超跌底仓锁存',L.oversold_latch?'开启':'关闭',L.oversold_latch?'dn':'up'],
+ ['RSI(14)',L.rsi.toFixed(1),L.rsi>50?'up':'dn'],['VIX',vixText,L.vix>=30?'dn':''],
+ ['极端恐慌',L.extreme_panic?'已触发':'未触发',L.extreme_panic?'dn':''],['超跌底仓锁存',L.oversold_latch?'开启':'关闭',L.oversold_latch?'dn':'up'],
  ['20日波动率',(L.rvol*100).toFixed(0)+'%',L.rvol<0.4?'up':'dn']];
 document.getElementById('lind').innerHTML=ind.map(([k,v,c])=>'<div class="ind"><div class="k">'+k+'</div><div class="v '+c+'">'+v+'</div></div>').join('');
 document.getElementById('turn').textContent=R.ann_switch;
@@ -393,6 +398,10 @@ const stratDS={
   borderColor:'#1c2230',
   segment:{ borderColor: ctx => DECCOL[DEC[ctx.p1DataIndex]]||'#1c2230' }
 };
+const panicDS={
+  label:'极端恐慌观察',data:R.equity.strategy.map((value,index)=>PANIC.has(D[index])?value:null),
+  showLine:false,pointRadius:4,pointHoverRadius:6,pointBackgroundColor:'#c2453b',pointBorderColor:'#fffdf8',pointBorderWidth:1.5,panic:true
+};
 function refline(name,arr){return {label:name,data:arr,borderColor:'#c9c0ac',backgroundColor:'#c9c0ac',borderWidth:1,pointRadius:0,tension:.05,borderDash: name.includes('QLD全仓')?[5,3]:(name.includes('QQQ全仓')?[]:[2,3])};}
 const eqChart=new Chart(document.getElementById('eqchart'),{type:'line',
  data:{labels:D,datasets:[
@@ -400,18 +409,20 @@ const eqChart=new Chart(document.getElementById('eqchart'),{type:'line',
    refline('QLD全仓(=买入持有QLD)',R.equity.qld),
    refline('QQQ半仓',R.equity.half),
    stratDS,
+   panicDS,
  ]},
  options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
    plugins:{legend:{display:false},tooltip:{callbacks:{
-      title:items=>{const i=items[0].dataIndex;return D[i]+'  ·  决策 '+(DECNM[DEC[i]]||'')+' · 净敞口 '+SE[i].toFixed(2)+'x';},
-      label:c=>c.dataset.label+': '+c.parsed.y.toFixed(3)+'x'}}},
+      title:items=>{const i=items[0].dataIndex;return D[i]+'  ·  决策 '+(DECNM[DEC[i]]||'')+' · 净敞口 '+SE[i].toFixed(2)+'x'+(PANIC.has(D[i])?' · 极端恐慌':'');},
+      label:c=>c.dataset.panic?'极端恐慌观察(RSI≤25、VIX≥30)':c.dataset.label+': '+c.parsed.y.toFixed(3)+'x'}}},
    scales:{x:{type:'category',min:0,max:D.length-1,ticks:{maxTicksLimit:10,color:'#8a8570'},grid:{display:false}},
      y:{type:'logarithmic',ticks:{color:'#8a8570',callback:v=>[1,3,10,30,100,300].includes(v)?v+'x':''},grid:{color:'#eee4d2'}}}}
 });
 // state legend — 按决策档着色(具体净敞口见悬浮提示)
 document.getElementById('statelegend').innerHTML='<b style="color:#5a6172">策略主线配色(按<b>决策档</b>,净敞口见悬浮):</b>'+
   [['#6a9b3f','趋势向上(基础1.5x)'],['#b8912f','中性偏多(基础1.0x)'],['#3f7fb8','反转恢复(基础0.75x)'],['#c2453b','温和回调(基础0.5x)'],['#8b6a9e','超跌底仓(最低0.15x)'],['#5a6172','强空头/现金(默认0x)']]
-  .map(([c,t])=>'<span><i class="dot" style="background:'+c+'"></i>'+t+'</span>').join('');
+  .map(([c,t])=>'<span><i class="dot" style="background:'+c+'"></i>'+t+'</span>').join('')+
+  '<span><i class="panic-dot"></i>极端恐慌观察(不影响策略)</span>';
 document.getElementById('eqlegend').innerHTML='<b style="color:#5a6172">灰色参照:</b>'+
   '<span><i class="dot" style="background:#c9c0ac"></i>QQQ 买入持有</span>'+
   '<span><i class="dot" style="background:#c9c0ac;border-top:1px dashed #888"></i>QLD 买入持有(虚线)</span>'+
@@ -517,9 +528,10 @@ window.addEventListener('resize',()=>{
 });
 
 document.getElementById('foot').innerHTML=
- '数据:QQQ / QLD / ^NDX / ^IRX(yfinance),区间 '+R.range[0]+' 至 '+R.range[1]+'。QQQ 上市前的 ^NDX OHLC 按 QQQ 首日收盘价缩放,<b>只用于指标暖机,不计入收益</b>。'+
+ '数据:QQQ / QLD / ^NDX / ^IRX / ^VIX(yfinance),区间 '+R.range[0]+' 至 '+R.range[1]+'。QQQ 上市前的 ^NDX OHLC 按 QQQ 首日收盘价缩放,<b>只用于指标暖机,不计入收益</b>。'+
  '2006-06 前 QLD 由「2×QQQ 日收益 − (0.95% 费率 + 短端利率融资成本)/252」合成,与真实 QLD 重叠期日收益相关性 0.996、CAGR 偏乐观约 0.8%/年。'+
  '<br>V1.6.1 回测含 5bps/边 交易成本;避险现金按 ^IRX 短端国债利率计息;夏普用 rf=0。指标在 QQQ 上计算(仅上市前暖机段使用 ^NDX),信号 T 日收盘生成;旧仓承担隔夜涨跌,T+1 开盘调仓,新仓承担日内收益。<b>档位持有期内不做再平衡</b>(QQQ/QLD 权重随行情漂移),仅在换档时按实际成交计成本。'+
+ '<br>极端恐慌观察标记定义为 <b>RSI(14)≤25 且 VIX≥30</b>,仅用于标记历史与当前市场情绪,<b>不参与任何仓位、确认、死区或调仓计算</b>。'+
  '<br><b>重要:</b>历史回测不代表未来收益;杠杆 ETF 存在波动损耗与日度重置风险。本页面仅供研究与教育,非投资建议。';
 })();
 </script>

@@ -3,14 +3,14 @@
 第 1 步:下载并准备价格数据  ->  prices.csv
 
 做四件事:
-  1) 用 yfinance 下载 QQQ(含开/高/低/收)、QLD、^IRX(13周美债收益率,作杠杆融资成本代理)。
+  1) 用 yfinance 下载 QQQ(含开/高/低/收)、QLD、^IRX(13周美债收益率)与 ^VIX(恐慌观察标记)。
   2) 用 QQQ 跟踪的 ^NDX 指数补足上市前历史,只用于 250 日均线等指标暖机;
      回测收益仍从 QQQ 上市后开始,不使用 ^NDX 收益。
   3) 合成 2006-06(QLD 上市)之前的 QLD:  qld_ret = 2*qqq_ret - (0.95%费率 + 短端利率)/252
      —— 因为 QLD 是 2 倍做多 QQQ 的杠杆 ETF,持有它相当于借 1 倍资金,要付融资成本。
   4) 把"真实 QLD(2006 起)+ 合成 QLD(之前)"拼接成完整隔夜/日内收益序列,供 T+1 开盘执行。
 
-输出 prices.csv 列:signal_close/high/low, QQQ/QLD 开收盘价与隔夜/日内收益,irx
+输出 prices.csv 列:signal_close/high/low, QQQ/QLD 开收盘价与隔夜/日内收益,irx,vix
 运行:  python 1_prepare_data.py
 依赖:  pip install yfinance pandas numpy
 """
@@ -23,7 +23,7 @@ EXPENSE_RATIO = 0.0095    # QLD 年管理费率 0.95%
 WARMUP_START = '1997-01-01'
 
 # ---- 下载 ----
-print("下载 ^NDX / QQQ / QLD / ^IRX ...")
+print("下载 ^NDX / QQQ / QLD / ^IRX / ^VIX ...")
 ndx_ohlc = yf.download('^NDX', start=WARMUP_START, progress=False, auto_adjust=True)
 qqq_ohlc = yf.download('QQQ', start='1999-01-01', progress=False, auto_adjust=True)
 ndx  = ndx_ohlc['Close'].squeeze()
@@ -37,6 +37,7 @@ qld_ohlc = yf.download('QLD', start='2006-01-01', progress=False, auto_adjust=Tr
 qld_real = qld_ohlc['Close'].squeeze()
 qld_open_real = qld_ohlc['Open'].squeeze()
 irx  = yf.download('^IRX', start=WARMUP_START, progress=False, auto_adjust=True)['Close'].squeeze()
+vix  = yf.download('^VIX', start=WARMUP_START, progress=False, auto_adjust=True)['Close'].squeeze()
 
 # ---- 指标暖机序列:^NDX 缩放到 QQQ 上市首日价格,上市后切换为真实 QQQ OHLC ----
 qqq_start = qqq.first_valid_index()
@@ -57,6 +58,7 @@ df['qlow'] = qlow.reindex(df.index)
 df['qld_real'] = qld_real.reindex(df.index)
 df['qld_open_real'] = qld_open_real.reindex(df.index)
 df['irx']      = irx.reindex(df.index).ffill().fillna(4.0)   # 百分数
+df['vix']      = vix.reindex(df.index).ffill()
 df['qqq_ret']      = qqq.pct_change().reindex(df.index)
 df['qld_real_ret'] = df['qld_real'].pct_change()
 df['qqq_overnight_ret'] = df['qopen'] / df['qqq'].shift(1) - 1
@@ -111,7 +113,7 @@ for ticker in ['qqq', 'qld']:
 
 cols=['signal_close','signal_high','signal_low','qqq','qopen','qhigh','qlow','qld','qld_open',
       'qqq_ret','qld_ret','qqq_overnight_ret','qqq_intraday_ret',
-      'qld_overnight_ret','qld_intraday_ret','irx']
+      'qld_overnight_ret','qld_intraday_ret','irx','vix']
 df[cols].to_csv(OUT+'prices.csv')
 print(f"指标暖机:使用缩放后的 ^NDX {df.index[0].date()} ~ {qqq_start.date()};回测收益从 {first_trade.date()} 开始")
 print(f"已保存 {OUT}prices.csv  共 {len(df)} 行,{df.index[0].date()} ~ {df.index[-1].date()}")

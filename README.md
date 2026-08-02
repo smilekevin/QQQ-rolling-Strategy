@@ -2,14 +2,16 @@
 
 基于技术指标(MACD / RSI / Supertrend + 250 日趋势闸门)在 **现金 → 低仓 QQQ → QQQ全仓 → QQQ+QLD(最高 1.5x)** 之间自动滚动切换仓位的策略,附完整历史回测与交互式 HTML 报告。
 
+当前报告版本：**V1.6.1a**；当前策略版本：**V1.6.1**。报告版本只包含展示与观察标记更新,不改变策略规则或回测口径。
+
 ---
 
 ## 一、文件清单
 
 | 文件 | 作用 | 产物 |
 |---|---|---|
-| `1_prepare_data.py` | 下载 ^NDX/QQQ/QLD/^IRX,用 NDX 暖机指标并合成 2006 前 QLD | `prices.csv` |
-| `indicators.py` | 共享指标模块(MACD/RSI/Supertrend/闸门 + 决策档),被下面两个脚本复用 | — |
+| `1_prepare_data.py` | 下载 ^NDX/QQQ/QLD/^IRX/^VIX,用 NDX 暖机指标并合成 2006 前 QLD | `prices.csv` |
+| `indicators.py` | 共享指标模块(MACD/RSI/Supertrend/闸门 + 决策档 + 恐慌观察标记),被下面两个脚本复用 | — |
 | `execution.py` | 共享 T+1 开盘执行引擎,被回测/优化/消融复用 | — |
 | `2_backtest.py` | 计算指标、跑 V1.6.1 策略回测、导出结果 | `results.json` |
 | `3_generate_report.py` | 生成交互式报告数据,供固定 HTML 页面壳读取 | `report_data.js` |
@@ -34,11 +36,13 @@ python 3_generate_report.py   # 生成 report_data.js(日更数据,不提交)
 open qqq_qld_report.html      # macOS;Windows 直接双击该文件
 ```
 
-数据每天更新:重跑这三步即可刷新到最新交易日。`qqq_qld_report.html` 是固定页面壳,日更数据在 `report_data.js` 中,该文件与 `prices.csv` / `results.json` 一样被 gitignore。线上部署时 `_headers` 要与 HTML 一起发布,使浏览器和 Cloudflare 对日更数据重新验证。页面会按上海时区自动生成 `report_data.js?v=1.6.1-YYYY-MM-DD-HH` 的小时级缓存键;HTML 无需每小时更新,策略版本升级时才需同步修改其中的 `1.6.1`。
+数据每天更新:重跑这三步即可刷新到最新交易日。`qqq_qld_report.html` 是固定页面壳,日更数据在 `report_data.js` 中,该文件与 `prices.csv` / `results.json` 一样被 gitignore。线上部署时 `_headers` 要与 HTML 一起发布,使浏览器和 Cloudflare 对日更数据重新验证。页面会按上海时区自动生成 `report_data.js?v=1.6.1a-YYYY-MM-DD-HH` 的小时级缓存键;HTML 无需每小时更新,策略版本升级时才需同步修改其中的 `1.6.1a`。
 
 ## 三、策略逻辑(V1.6.1)
 
 决策链,**信号在 T 日收盘生成、T+1 开盘执行(无未来函数)**。旧仓位先承担隔夜涨跌,开盘按新目标调仓,新仓位再获得当日日内收益:
+
+报告另以 **RSI(14)≤25 且 VIX≥30** 标记“极端恐慌”,只用于观察当前与历史市场情绪,不参与任何仓位、确认、死区或调仓计算。
 
 1. **带滞回的宏观闸门** —— 多头状态下跌破 **250 日均线**即退出;进入空头状态后,需重新站上均线 **1%** 才恢复多头,过滤均线附近的假突破。
 2. **空头区**
@@ -104,7 +108,7 @@ python daily_check.py --current 0.66  # 传入当前净敞口,输出 持有 / �
 
 ## 六、数据与方法说明
 
-- **数据源**:yfinance 的 QQQ / QLD / ^NDX / ^IRX。QQQ/QLD 使用复权开收盘价执行回测,QQQ 高低价用于 Supertrend;^NDX 只补 QQQ 上市前的指标暖机历史,不参与收益。
+- **数据源**:yfinance 的 QQQ / QLD / ^NDX / ^IRX / ^VIX。QQQ/QLD 使用复权开收盘价执行回测,QQQ 高低价用于 Supertrend;^NDX 只补 QQQ 上市前的指标暖机历史,不参与收益;^VIX 只用于极端恐慌观察标记。
 - **合成 QLD**:QLD 2006-06 上市,之前用 `2×QQQ日收益 − (0.95%费率 + 短端利率)/252` 合成;隔夜段按 `2×QQQ隔夜收益`,日内段反推以严格复原合成日收益。与真实 QLD 重叠期日收益相关性 **0.996**,CAGR 偏乐观约 **0.8%/年**。2006 年后全部为真实开收盘数据。
 - **无风险利率**:^IRX(13 周美债),既作 QLD 融资成本代理,也作现金收益。
 - **夏普**用 rf=0 计算;Calmar = 年化收益 / |最大回撤|。

@@ -55,6 +55,7 @@ ind=ta.compute(px, high, low, sma_len=SMA_LEN, st_period=ST_PERIOD, st_mult=ST_M
 macd_line=ind['macd_line']; macd_hist=ind['macd_hist']; rsi=ind['rsi']
 st=ind['st']; st_bull=ind['st_bull']; sma=ind['sma']; macro_bull=ind['macro_bull']
 deep_bear=ind['deep_bear']; floor_on=ind['oversold_latch']; rvol=ind['rvol']
+vix=df['vix']; panic=ta.extreme_panic(rsi,vix).fillna(False)
 DECNAME=ta.DECNAME
 DEC=ind.apply(ta.decide_tier,axis=1)   # 决策档(基础仓位,着色/占比用)
 DEC_exec=DEC.shift(1).bfill()          # T+1,与执行时间线对齐
@@ -165,6 +166,7 @@ export={
            'qld':samp(bh_qld).round(3).tolist(),'blend':samp(st_blend).round(3).tolist(),'half':samp(st_half).round(3).tolist()},
  'state_exp':samp(exp).round(2).tolist(),                            # 每日净敞口(敞口图+悬浮共用;回撤在前端由 equity 算)
  'decision':DEC_exec.reindex(samp(eq).index,method='ffill').tolist(),   # 每日决策档(B/C/R/D/F/E),着色用
+ 'panic_dates':[d.strftime('%Y-%m-%d') for d in panic.reindex(samp(eq).index).fillna(False).loc[lambda s:s].index],
  'metrics':{k:{kk:(None if isinstance(vv,float) and np.isnan(vv) else round(float(vv),4)) for kk,vv in m.items()} for k,m in M.items()},
  'metrics_sub':{k:{kk:(None if isinstance(vv,float) and np.isnan(vv) else round(float(vv),4)) for kk,vv in m.items()} for k,m in M2.items()},
  'metrics_2010':{k:{kk:(None if isinstance(vv,float) and np.isnan(vv) else round(float(vv),4)) for kk,vv in m.items()} for k,m in M2010.items()},
@@ -180,6 +182,7 @@ export={
            'macd_hist':round(float(macd_hist.iloc[-1]),3),'macd_line':round(float(macd_line.iloc[-1]),3),
            'rsi':round(float(rsi.iloc[-1]),1),'st_bull':bool(st_bull.iloc[-1]),'price':round(float(px.iloc[-1]),2),
            'st_level':round(float(st.iloc[-1]),2),'rvol':round(float(rvol.iloc[-1]),3),
+           'vix':round(float(vix.iloc[-1]),1),'extreme_panic':bool(panic.iloc[-1]),
            'sma250':round(float(sma.iloc[-1]),2),'macro_bull':bool(macro_bull.iloc[-1]),
            'deep_bear':bool(deep_bear.iloc[-1]),'oversold_latch':bool(floor_on.iloc[-1])},
 }

@@ -10,6 +10,13 @@
 """
 import numpy as np, pandas as pd
 
+EXTREME_PANIC_RSI = 25
+EXTREME_PANIC_VIX = 30
+
+def extreme_panic(rsi_values, vix_values):
+    """观察标记:RSI<=25 且 VIX>=30,不参与策略决策。"""
+    return (rsi_values<=EXTREME_PANIC_RSI)&(vix_values>=EXTREME_PANIC_VIX)
+
 def ema(s, n): return s.ewm(span=n, adjust=False).mean()
 
 def macd(px):
