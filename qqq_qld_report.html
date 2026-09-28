@@ -185,7 +185,26 @@ code{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}
 <div class="two">
 <!-- 回撤 -->
 <div class="card"><h2><span class="n">3</span>回撤对比</h2>
-<div class="note">策略把 QLD 买入持有 -99% 的回撤压缩到显著更浅。</div>
+<div class="note">可独立选择预设或自定义区间。回撤按<b>所选区间内的历史最高净值</b>计算,首个交易日从 0% 开始,不延续区间前的回撤。起始日期顺延、结束日期回溯至有数据的交易日。</div>
+<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px">
+  <div class="toggle" id="ddrangetog">
+    <button data-r="all" class="on">全部</button>
+    <button data-r="2008">2008后</button>
+    <button data-r="2015">2015后</button>
+    <button data-r="2020">2020后</button>
+    <button data-r="2022">2022后</button>
+  </div>
+  <button id="ddreset" style="border:1px solid #d9cfb8;background:#fffdf8;border-radius:8px;padding:6px 13px;font-size:12.5px;font-weight:650;color:#6a7183;cursor:pointer;font-family:inherit">↺ 全部区间</button>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px">
+  <span style="font-size:12.5px;color:#6a7183;font-weight:650">自定义区间</span>
+  <input type="date" id="ddstart" aria-label="回撤起始日期" style="border:1px solid #d9cfb8;background:#fffdf8;border-radius:7px;padding:5px 9px;font-size:12.5px;color:#1c2230;font-family:inherit">
+  <span style="color:#8a8570">→</span>
+  <input type="date" id="ddend" aria-label="回撤结束日期" style="border:1px solid #d9cfb8;background:#fffdf8;border-radius:7px;padding:5px 9px;font-size:12.5px;color:#1c2230;font-family:inherit">
+  <button id="ddapply" style="border:0;background:#1c2230;color:#f4f1ea;border-radius:7px;padding:6px 14px;font-size:12.5px;font-weight:650;cursor:pointer;font-family:inherit">应用</button>
+  <span style="font-size:12px;color:#8a8570" id="ddrangelabel"></span>
+</div>
+
 <div class="chartbox sm"><canvas id="ddchart"></canvas></div>
 </div>
 <!-- 年度收益与回撤 -->
@@ -506,6 +525,41 @@ const ddChart = new Chart(document.getElementById('ddchart'),{type:'line',
    plugins:{legend:{labels:{boxWidth:12,font:{size:11}}},tooltip:{mode:'index',intersect:false,callbacks:{label:c=>c.dataset.label+': '+(c.parsed.y*100).toFixed(0)+'%'}}},
    scales:{x:{ticks:{maxTicksLimit:8,color:'#8a8570'},grid:{display:false}},y:{ticks:{color:'#8a8570',callback:v=>(v*100).toFixed(0)+'%'},grid:{color:'#eee4d2'}}}}
 });
+
+// 回撤区间独立于净值图;截取原始净值后重新计算峰值。
+const ddStart=document.getElementById('ddstart'), ddEnd=document.getElementById('ddend');
+const ddLabel=document.getElementById('ddrangelabel');
+const ddSources=[R.equity.strategy,R.equity.qqq,R.equity.qld];
+ddStart.min=ddEnd.min=D[0];
+ddStart.max=ddEnd.max=D[D.length-1];
+function setDrawdownRange(a,b,preset=null){
+  ddChart.data.labels=D.slice(a,b+1);
+  ddChart.data.datasets.forEach((dataset,index)=>{
+    dataset.data=ddown(ddSources[index].slice(a,b+1));
+  });
+  ddChart.update('none');
+  ddStart.value=D[a]; ddEnd.value=D[b];
+  ddLabel.textContent=D[a]+' → '+D[b]+' · 起点 = 0%';
+  document.querySelectorAll('#ddrangetog button').forEach(button=>{
+    button.classList.toggle('on',button.dataset.r===preset);
+  });
+}
+function applyDrawdownDates(start,end,preset=null){
+  if(!start||!end){ ddLabel.textContent='请选择起止日期。'; return; }
+  if(start>end) [start,end]=[end,start];
+  const a=D.findIndex(date=>date>=start);
+  let b=D.length-1;
+  while(b>=0&&D[b]>end) b--;
+  if(a<0||b<a){ ddLabel.textContent='所选区间内没有交易数据,请调整日期。'; return; }
+  setDrawdownRange(a,b,preset);
+}
+document.querySelectorAll('#ddrangetog button').forEach(button=>button.onclick=()=>{
+  const preset=button.dataset.r;
+  applyDrawdownDates(preset==='all'?D[0]:preset+'-01-01',D[D.length-1],preset);
+});
+document.getElementById('ddapply').onclick=()=>applyDrawdownDates(ddStart.value,ddEnd.value);
+document.getElementById('ddreset').onclick=()=>setDrawdownRange(0,D.length-1,'all');
+setDrawdownRange(0,D.length-1,'all');
 
 // ---- distribution bars ----
 // 只保留占比 > 0 的决策档。

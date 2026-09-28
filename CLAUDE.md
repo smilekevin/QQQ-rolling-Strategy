@@ -115,6 +115,7 @@ CONFIRM=3 COST_BPS=5/10000 DEADBAND=0.15  (死区 0.05~0.25 不敏感,取 0.15 �
 - 报告 `STATECOL` 的 key 必须与 `results.json` 的 `dist` key(决策档名)完全一致,否则占比图颜色错。
 - **极端恐慌仅作观察:**阈值统一由 `indicators.extreme_panic()` 定义为 `RSI≤25 且 VIX≥30`;`2_backtest.py` 与 `daily_check.py` 必须共用该判定。它只能导出为 `panic_dates` / `latest.extreme_panic`,不得接入 targets、确认、死区或执行引擎。
 - 报告 HTML 是固定页面壳,只能从 CDN 加载 Chart.js;`3_generate_report.py` 不改写 HTML,只把日更数据写入 gitignored 的 `report_data.js`。数据为日线(约6880点,目前约350KB并随区间增长;回撤和年度收益/年内最大回撤均在前端由 equity 算、敞口图与悬浮共用 state_exp,不存冗余年度数据)。年度收益按上一年末至本年末计算;年内最大回撤以上一年末净值作为年初峰值,确保包含一月下跌。
+- **回撤图区间口径:**支持独立的全部/2008后/2015后/2020后/2022后和自定义日期;先截取所选区间净值,再按区间内运行峰值计算回撤,首日为 0%,不继承区间前峰值。起日取首个不早于指定日期的交易日,止日取末个不晚于指定日期的交易日;无交易数据时保留原图并提示。
 - **部署缓存一致性**:`_headers` 必须与 HTML 一起部署,使 `report_data.js` 每次重新验证。HTML 按上海时区在浏览器中动态生成 `report_data.js?v=1.6.1a-YYYY-MM-DD-HH` 缓存键,保证即使中间缓存忽略响应头,最多也只会沿用同一小时的数据;HTML 本身不需日更,升级策略版本时必须同步修改缓存键中的 `1.6.1a`。页面必须从 `R.metrics` 自动识别当前策略键,不得再硬编码具体版本名,以容忍 HTML 与日更数据的短暂发布时序差。
 - `results.json` 导出键:dates / equity{strategy,qqq,qld,blend,half} / state_exp / decision(B/C/R/D/F/E,着色用)/ panic_dates(极端恐慌观察日)/ dist(决策档占比)/ metrics(全区间、2006后、2010后、2020后、近5年)/ latest。`latest` 含 `executed_exp`(当前已执行敞口)、`exp`(下个开盘建议)、`sma250` / `macro_bull` / `deep_bear` / `oversold_latch` / `vix` / `extreme_panic`;曲线着色按 decision,悬浮显示 state_exp(净敞口)。
 
