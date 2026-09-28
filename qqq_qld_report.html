@@ -158,7 +158,7 @@ code{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}
 
 <!-- 净值曲线 -->
 <div class="card"><h2><span class="n">2</span>净值增长曲线(对数刻度)</h2>
-<div class="note">起始 = 1.0。<b>策略主线按当时所处仓位分段着色</b>,红点标记 RSI≤25 且 VIX≥30 的极端恐慌日,只供观察、不改变策略。可缩放:点选预设区间、<b>手动选起止日期</b>,或在图上<b>拖拽框选</b>放大。</div>
+<div class="note">所有曲线以所选区间首个交易日归一为 <b>1x(累计收益 0%)</b>,非交易日顺延至下一个有数据的交易日。<b>策略主线按决策档分段着色</b>,红点标记 RSI≤25 且 VIX≥30 的极端恐慌日,只供观察、不改变策略。可缩放:点选预设区间、<b>手动选起止日期</b>,或在图上<b>拖拽框选</b>放大。</div>
 <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px">
   <div class="toggle" id="rangetog">
     <button data-r="all" class="on">全部</button>
@@ -416,7 +416,7 @@ const eqChart=new Chart(document.getElementById('eqchart'),{type:'line',
       title:items=>{const i=items[0].dataIndex;return D[i]+'  ·  决策 '+(DECNM[DEC[i]]||'')+' · 净敞口 '+SE[i].toFixed(2)+'x'+(PANIC.has(D[i])?' · 极端恐慌':'');},
       label:c=>c.dataset.panic?'极端恐慌观察(RSI≤25、VIX≥30)':c.dataset.label+': '+c.parsed.y.toFixed(3)+'x'}}},
    scales:{x:{type:'category',min:0,max:D.length-1,ticks:{maxTicksLimit:10,color:'#8a8570'},grid:{display:false}},
-     y:{type:'logarithmic',ticks:{color:'#8a8570',callback:v=>[1,3,10,30,100,300].includes(v)?v+'x':''},grid:{color:'#eee4d2'}}}}
+     y:{type:'logarithmic',ticks:{color:'#8a8570',callback:v=>Number(v.toPrecision(3))+'x'},grid:{color:'#eee4d2'}}}}
 });
 // state legend — 按决策档着色(具体净敞口见悬浮提示)
 document.getElementById('statelegend').innerHTML='<b style="color:#5a6172">策略主线配色(按<b>决策档</b>,净敞口见悬浮):</b>'+
@@ -437,16 +437,24 @@ function idxFromStr(str,isEnd){
 }
 const dStart=document.getElementById('dstart'), dEnd=document.getElementById('dend');
 function setRange(a,b){
-  a=Math.max(0,Math.round(a)); b=Math.min(D.length-1,Math.round(b));
+  a=Math.max(0,Math.min(D.length-1,Math.round(a))); b=Math.max(0,Math.min(D.length-1,Math.round(b)));
   if(b<a){ const t=a;a=b;b=t; }                  // 顺序颠倒则交换
   if(b-a<1) b=Math.min(D.length-1,a+1);            // 至少 2 个点即可(不再强制 ≥3)
+  // 保留全局日期索引供决策着色/悬浮使用;区间外置空,让纵轴只按可见净值缩放。
+  // 每次从原始净值重算,避免连续缩放累计误差或改动其他统计的口径。
+  const sources=[R.equity.qqq,R.equity.qld,R.equity.half,R.equity.strategy,R.equity.strategy];
+  eqChart.data.datasets.forEach((dataset,index)=>{
+    const source=sources[index], base=source[a];
+    dataset.data=source.map((value,i)=>i<a||i>b||(dataset.panic&&!PANIC.has(D[i]))?null:value/base);
+  });
   eqChart.options.scales.x.min=a; eqChart.options.scales.x.max=b; eqChart.update('none');
-  document.getElementById('rangelabel').textContent=D[a]+' → '+D[b];
+  document.getElementById('rangelabel').textContent=D[a]+' → '+D[b]+' · 起点 = 1x';
   dStart.value=D[a]; dEnd.value=D[b];            // 同步到日期选择器
 }
 // 初始化日期选择器的可选范围与默认值
 dStart.min=dEnd.min=D[0]; dStart.max=dEnd.max=D[D.length-1];
 dStart.value=D[0]; dEnd.value=D[D.length-1];
+setRange(0,D.length-1);
 document.querySelectorAll('#rangetog button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('#rangetog button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
   const r=b.dataset.r;
