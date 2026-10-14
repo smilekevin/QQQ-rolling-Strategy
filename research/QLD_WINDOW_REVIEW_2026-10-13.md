@@ -1,137 +1,137 @@
-# 缩短QLD敞口窗口的研究
+# Shorter QLD Exposure Window Study
 
-研究日期：2026-10-13。策略：V1.6.1。行情截止：2026-09-25。
+Study date: 2026-10-13. Strategy: V1.6.1. Price cutoff: 2026-09-25.
 
-## 判断
+## Assessment
 
-本次围绕“减少QLD持仓窗口、降低回撤、尽量保留收益”研究，不再增加杠杆。尚未找到跨年代及近五年均能做到收益几乎不降、回撤明显下降的单项规则。
+This study aims to shorten QLD holding windows, reduce drawdowns and preserve as much return as possible, without increasing leverage. No single rule has yet shown materially lower drawdown with almost unchanged returns across both eras and the last five years.
 
-较清晰的取舍候选是：**一个原策略连续杠杆窗口最多持有20个交易日；期间QQQ从窗口内运行收盘峰值回撤5%时提前退出QLD；QLD换成QQQ，直到原策略确认目标回到不超过1x才允许开始新窗口。**
+The clearest tradeoff candidate is: **hold QLD for at most 20 trading days within an original continuous leverage window; exit early when QQQ falls 5% from its running closing peak within that window; replace QLD with QQQ until the original confirmed target returns to ≤1x, allowing a new window.**
 
-- 近五年：年化17.92%→17.17%，最大回撤−21.84%→−19.60%，QLD持仓日占比44.1%→23.9%。
-- 2010年以来：年化18.79%→17.77%，最大回撤−26.91%→−24.87%。
-- 成本加倍、所有方案额外晚一天执行时，近期的收益让步和回撤改善方向仍保留。
-- 这组组合是观察单项规则后提出的探索性对照，不能当成预注册的独立验证；没有继续寻找最优天数或止损比例。
+- Last five years: CAGR 17.92%→17.17%, maximum drawdown −21.84%→−19.60%, QLD holding-day share 44.1%→23.9%.
+- Since 2010: CAGR 18.79%→17.77%, maximum drawdown −26.91%→−24.87%.
+- With doubled costs or one extra execution day for every strategy, the recent direction of lower returns and shallower drawdown persists.
+- This exploratory combination followed observation of individual rules, not preregistered independent validation. No further search for optimal days or stops was performed.
 
-若可接受约0.75–1.0个百分点/年的收益让步来降低约2个百分点的历史最大回撤，这个候选值得前瞻观察。若要求收益完全保留，目前证据不足。生产规则未改。
+If giving up about 0.75–1.0 percentage points/year to reduce historical maximum drawdown by about 2 points is acceptable, the candidate merits forward observation. Evidence is insufficient for retaining all returns. Production rules are unchanged.
 
-## 为什么不只按持有天数退出
+## Why not exit only by holding days?
 
-QLD目标是纳指100的每日2倍收益，多日收益受路径、波动、基金费用和融资影响。持有时间增加会扩大复利偏离，但不意味着超过某个天数就必然净亏损；低波动持续上涨与高波动震荡的结果不同。[ProShares官方说明](https://www.proshares.com/our-etfs/leveraged-and-inverse/qld)
+QLD targets twice the Nasdaq-100’s daily return. Multiday returns depend on path, volatility, fees and financing. Longer holding increases compounding divergence but does not imply inevitable losses beyond a particular day count; steady low-volatility gains differ from volatile sideways markets. [ProShares description](https://www.proshares.com/our-etfs/leveraged-and-inverse/qld)
 
-仅使用真实QLD上市后开始且已关闭的原策略连续窗口，观察结果如下。QQQ/QLD区间收益从实际进入日开盘到退出日开盘计算，采用复权价，未另扣这张描述性表的交易成本；基金费用已体现在真实价格中。
+Use only completed original-strategy windows that began after actual QLD launched. QQQ/QLD window returns run from the actual entry open to exit open using adjusted prices. This descriptive table does not separately deduct trading costs; actual prices already reflect fund fees.
 
-| 事后完整窗口长度 | 窗口数 | QQQ平均区间收益 | QLD平均区间收益 | QLD正收益窗口比例 |
+| Final window length, known afterward | Windows | Average QQQ return | Average QLD return | QLD positive-return share |
 |---|---:|---:|---:|---:|
-| 1–20交易日 | 37 | -2.13% | -4.37% | 8.1% |
-| 21–60交易日 | 38 | +3.65% | +6.75% | 71.1% |
-| 超过60交易日 | 9 | +11.02% | +21.79% | 100.0% |
+| 1–20 trading days | 37 | -2.13% | -4.37% | 8.1% |
+| 21–60 trading days | 38 | +3.65% | +6.75% | 71.1% |
+| Over 60 trading days | 9 | +11.02% | +21.79% | 100.0% |
 
-短窗口多数亏损，是因为趋势失败后原策略结束了窗口；长窗口是在上涨中存活下来的窗口。**最终持有长度只能事后知道，不能用这张表预测一个新窗口是否会成功，也不能把长持本身解释成收益原因。**
+Most short windows lose because trend failure ended them; long windows survived rising markets. **Final duration is known only afterward. This table cannot predict a new window’s success, and long holding itself cannot be treated as the cause of gains.**
 
-2020年暴跌前，原策略QLD窗口为2020-02-07开盘至2020-02-27开盘，共13个持仓交易日；QQQ区间约−7.97%，QLD约−15.68%。20日上限尚未触发，故不能保护这种新窗口快速失败。窗口内价格回撤退出机制才可能处理这个问题，且仍承受退出开盘前的隔夜跳空。
+Before the 2020 crash, the original QLD window ran from the 2020-02-07 open to the 2020-02-27 open, only 13 trading days. QQQ returned about −7.97% and QLD −15.68%. A 20-day cap had not triggered and cannot protect rapid failure in a new window. A within-window drawdown exit may address it, while still absorbing gaps before the exit open.
 
-## 近五年回撤的主要来源
+## Main sources of recent drawdown
 
-基线最大回撤发生于2021-11-19至2022-12-20，约−21.84%。两日期之间272个交易日中，开盘调仓后持有QLD的只有9日；旧仓QLD还可能承担退出日开盘前的隔夜收益。完全不用QLD、把原有杠杆目标截为1x的对照，同一日期区间仍亏约19.60%，其近五年最大回撤也是约−19.60%。
+Baseline maximum drawdown is about −21.84%, from 2021-11-19 to 2022-12-20. Of 272 trading days between those dates, only 9 held QLD after opening rebalancing; old QLD holdings may still absorb the overnight return before exit. Capping original leveraged targets at 1x with no QLD still loses about 19.60% over those dates and has a last-five-year maximum drawdown around −19.60%.
 
-因此，QLD放大了损失，但核心股票仓位仍保留显著风险。仅减少QLD窗口能改善一部分回撤，不能把QQQ自身的下跌风险一并消除。完全不用QLD也不是所有其他过滤规则的数学回撤下限。
+QLD amplifies losses, but core equity exposure retains substantial risk. Shorter QLD windows can reduce some drawdown without removing QQQ’s own decline risk. No QLD is not a mathematical drawdown lower bound for all other possible filters.
 
-## 统一执行与候选定义
+## Common execution and candidate definitions
 
-所有候选先复原原策略完整的宏观状态、超跌锁存、波动缩放、0.05档三日确认和0.15死区，再在**确认后的盘后目标**上叠加QLD限制。原策略所有不超过1x的盘后目标保持完全一致；限制触发时把超过1x的目标降为1x，持有QQQ而非清仓。1.25x对照仅截断确认后目标，不等同于将基础B档改为1.25x后重新波动缩放。
+First reconstruct the original macro state, oversold latch, volatility scaling, three-day 0.05-increment confirmation and 0.15 deadband. Overlay QLD restrictions on **confirmed post-close targets**. Every original target ≤1x stays exactly unchanged. Restrictions reduce targets above 1x to 1x, retaining QQQ rather than exiting to cash. The 1.25x comparison caps confirmed targets; it is not equivalent to lowering base B to 1.25x before recalculating volatility scaling.
 
-信号当日收盘确定、下一交易日开盘成交，沿用共享引擎：旧仓隔夜及现金利息→开盘调仓扣成本→新仓日内收益。档位内不再平衡，实际敞口会漂移，表中目标上限不是盘中实际敞口硬上限。QLD真实价格已包含基金费用，不重复收费。
+Signals are fixed at the close and filled at the next trading open using the shared engine: old holdings overnight/cash interest → opening rebalance/costs → new holdings intraday. No within-tier rebalancing; exposure drifts. Target caps are not intraday hard caps. Actual QLD prices already contain fund fees; do not charge them twice.
 
-预设的单项对照为：不用QLD、目标封顶1.25x、20/60日持有上限、当前B状态过滤、仅4分动量、EMA20/EMA50价格过滤、5日年化波动率20%门槛、窗口内QQQ回撤5%退出。20日约一个交易月，60日约一个季度；波动率参考沿用原策略20%，没有网格寻优。
+Predefined individual comparisons: no QLD, 1.25x target cap, 20/60-day caps, current-B filter, momentum score 4 only, EMA20/EMA50 price filters, 5-day annualized volatility ≤20%, and 5% within-window QQQ drawdown exit. 20 days approximates a trading month, 60 a quarter; the volatility reference keeps the existing 20%, without grid search.
 
-- 当前B、4分动量、EMA和波动率过滤：条件不成立时，下一开盘立即取消QLD；恢复需条件连续成立3个收盘，且原策略确认目标仍允许杠杆。
-- 20/60日上限：从原策略杠杆窗口首次开盘持有QLD起计数。达到上限后，下一开盘换回QQQ；原策略确认目标不超过1x前不重新开启。价格过滤导致的退出不用于重置这个时钟。
-- 回撤5%退出：QQQ峰值从原策略进入杠杆窗口的信号日收盘开始递推，按收盘判断，下一开盘执行。退出后锁定至原策略确认目标不超过1x。它是QQQ价格条件，不是QLD亏损5%，也不是组合回撤5%。
-- 20日+5%组合：取两项限制中更低的目标。这是后续探索性组合，其他参数不变。
+- Current-B, score-4, EMA and volatility filters: remove QLD at the next open when the condition fails. Restoration requires 3 consecutive closes satisfying it and original confirmed targets still permitting leverage.
+- 20/60-day caps: count from the original leverage window’s first opening QLD holding. At the limit, switch to QQQ at the next open; do not restart until the original confirmed target is ≤1x. Price-filter exits do not reset the clock.
+- 5% drawdown exit: track QQQ’s closing peak from the signal close that starts the original leverage window; evaluate at the close and execute next open. Latch the exit until the original confirmed target is ≤1x. This is a QQQ price condition, not a 5% QLD loss or 5% portfolio drawdown.
+- 20-day + 5% combination: take the lower target from both restrictions. This later exploratory combination leaves other parameters unchanged.
 
-QLD持仓日占比统计开盘调仓后实际净敞口超过1x的交易日，包含1.05x至1.5x等不同敞口，不是仅统计恰好1.5x的日数。窗口在所选统计区间边界可能被截断。
+QLD holding-day share counts days with actual post-opening-rebalance net exposure above 1x, including 1.05x–1.5x, rather than only exactly 1.5x. Windows may be truncated by reporting-period boundaries.
 
-## 完整对照
+## Full comparisons
 
-近五年为2021-09-27至2026-09-25。子区间保留完整历史的指标、持仓及成本状态，计算区间首日收益时使用上一交易日收盘净值；回撤包含区间初始本金，采用每日收盘口径。
+Last five years: 2021-09-27 to 2026-09-25. Subperiods preserve full-history indicators, holdings and cost state. First-day returns use the previous trading close; daily closing drawdowns include period starting capital.
 
-| 方案 | 2010年以来：年化 / 回撤 | 近五年：年化 / 回撤 | 近五年QLD持仓日占比 |
+| Candidate | Since 2010: CAGR / drawdown | Last five years: CAGR / drawdown | Recent QLD holding-day share |
 |---|---:|---:|---:|
-| V1.6.1基线 | 18.79% / -26.91% | 17.92% / -21.84% | 44.1% |
-| 完全不用QLD | 15.96% / -22.44% | 15.95% / -19.60% | 0.0% |
-| 确认后目标封顶1.25x | 17.59% / -24.69% | 17.18% / -20.74% | 44.1% |
-| 每个窗口最多20日 | 17.61% / -26.91% | 17.17% / -19.60% | 23.9% |
-| 每个窗口最多60日 | 18.97% / -26.91% | 17.92% / -21.84% | 44.1% |
-| 当前非B立即退出QLD | 17.54% / -24.87% | 17.49% / -21.59% | 37.8% |
-| 仅动量4分允许QLD | 16.58% / -25.18% | 16.36% / -20.59% | 20.2% |
-| 跌破EMA20退出QLD | 17.18% / -24.87% | 17.67% / -20.51% | 35.5% |
-| 跌破EMA50退出QLD | 17.70% / -25.99% | 17.77% / -21.84% | 41.8% |
-| 5日波动率超过20%退出QLD | 17.93% / -24.85% | 17.09% / -20.24% | 33.9% |
-| 窗口内QQQ回撤5%退出QLD | 18.77% / -24.87% | 17.66% / -21.84% | 43.4% |
-| 20日上限+窗口内QQQ回撤5%退出 | 17.77% / -24.87% | 17.17% / -19.60% | 23.9% |
+| V1.6.1 baseline | 18.79% / -26.91% | 17.92% / -21.84% | 44.1% |
+| No QLD | 15.96% / -22.44% | 15.95% / -19.60% | 0.0% |
+| Confirmed target capped at 1.25x | 17.59% / -24.69% | 17.18% / -20.74% | 44.1% |
+| Maximum 20 days per window | 17.61% / -26.91% | 17.17% / -19.60% | 23.9% |
+| Maximum 60 days per window | 18.97% / -26.91% | 17.92% / -21.84% | 44.1% |
+| Exit QLD immediately when current tier is not B | 17.54% / -24.87% | 17.49% / -21.59% | 37.8% |
+| QLD only at momentum score 4 | 16.58% / -25.18% | 16.36% / -20.59% | 20.2% |
+| Exit QLD below EMA20 | 17.18% / -24.87% | 17.67% / -20.51% | 35.5% |
+| Exit QLD below EMA50 | 17.70% / -25.99% | 17.77% / -21.84% | 41.8% |
+| Exit QLD above 20% five-day volatility | 17.93% / -24.85% | 17.09% / -20.24% | 33.9% |
+| Exit QLD at 5% within-window QQQ drawdown | 18.77% / -24.87% | 17.66% / -21.84% | 43.4% |
+| 20-day cap + 5% within-window QQQ drawdown exit | 17.77% / -24.87% | 17.17% / -19.60% | 23.9% |
 
-### 较长历史参考
+### Longer-history reference
 
-每格为“年化收益 / 最大回撤”。1999起包含2006年前的项目合成QLD，真实QLD区间从2006-06-22开始。
+Cells are CAGR / maximum drawdown. Since-1999 results include pre-2006 synthetic QLD. Actual QLD starts 2006-06-22.
 
-| 方案 | 全区间（1999起） | 真实QLD区间（2006起） |
+| Candidate | Full period (since 1999) | Actual QLD (since 2006) |
 |---|---:|---:|
-| V1.6.1基线 | 15.21% / -26.91% | 17.65% / -26.91% |
-| 完全不用QLD | 13.78% / -22.44% | 15.38% / -22.44% |
-| 每个窗口最多20日 | 14.99% / -26.91% | 16.77% / -26.91% |
-| 窗口内QQQ回撤5%退出QLD | 15.16% / -25.31% | 17.64% / -25.31% |
-| 20日上限+窗口内QQQ回撤5%退出 | 15.10% / -24.87% | 16.90% / -24.87% |
-| 跌破EMA20退出QLD | 14.13% / -24.87% | 16.21% / -24.87% |
+| V1.6.1 baseline | 15.21% / -26.91% | 17.65% / -26.91% |
+| No QLD | 13.78% / -22.44% | 15.38% / -22.44% |
+| Maximum 20 days per window | 14.99% / -26.91% | 16.77% / -26.91% |
+| Exit QLD at 5% within-window QQQ drawdown | 15.16% / -25.31% | 17.64% / -25.31% |
+| 20-day cap + 5% within-window QQQ drawdown exit | 15.10% / -24.87% | 16.90% / -24.87% |
+| Exit QLD below EMA20 | 14.13% / -24.87% | 16.21% / -24.87% |
 
-### 单项机制的取舍
+### Individual mechanisms and tradeoffs
 
-- **20日上限**将近五年QLD时间近乎减半，以约0.75个百分点年化让步换取2.24个百分点回撤改善。单独使用却无法改善2020年的最大回撤，且2010年以来约78%的重叠滚动三年窗口年化低于基线。这一比例是描述性统计，窗口并不独立。
-- **60日上限**在近五年没有改变任何窗口，该区间基线最长窗口恰好60日。它对较早历史有影响，不能因为近期相同就断言长期无效。
-- **5%窗口回撤退出**较好保留了长期收益，2010年以来只少约0.02个百分点年化，回撤改善约2.04个百分点；但近五年最大回撤不变，不足以单独满足本轮目标。
-- **EMA20过滤**近五年收益让步较小，但真实QLD长区间及2011–2018收益损失更明显，新增换手也更多。不能只根据近期挑选它。
-- **仅4分动量**明显减少QLD窗口，却牺牲较多收益；更强指标共振没有验证为更好的加杠杆条件。
-- **5日波动率门槛**可以提前响应波动，但换手增加，近期收益降低；不能把反应更快直接视为改进。
+- **20-day cap:** roughly halves recent QLD time, trading about 0.75 CAGR points for 2.24 drawdown points. Alone, it does not improve 2020 maximum drawdown. Since 2010, about 78% of overlapping rolling three-year windows have lower CAGR than baseline. This is descriptive; windows are not independent.
+- **60-day cap:** changes no recent window because the baseline’s longest recent window is exactly 60 days. It affects earlier history; recent equality does not establish long-term ineffectiveness.
+- **5% window drawdown exit:** preserves long-term returns reasonably, giving up about 0.02 CAGR points since 2010 and improving drawdown about 2.04 points. Recent maximum drawdown is unchanged, so it does not meet this study’s goal alone.
+- **EMA20 filter:** small recent return sacrifice, but larger losses in the long actual-QLD period and 2011–2018, with more turnover. Do not select it solely from recent results.
+- **Score 4 only:** substantially reduces QLD windows but sacrifices more return; stronger indicator agreement is not validated as better leverage eligibility.
+- **Five-day volatility gate:** responds earlier to volatility but increases turnover and lowers recent returns. Faster response is not automatically an improvement.
 
-## 成本与执行延迟检查
+## Costs and execution delays
 
-下表为近五年，“年化 / 最大回撤”。额外一天延迟应用于基线和候选全部信号，分别与同样延迟的基线比较，不使用未延迟基线来夸大候选优势。
+Cells show recent CAGR / maximum drawdown. Apply one extra day to all baseline/candidate signals and compare with the equally delayed baseline, not the undelayed one.
 
-| 方案 | 5bp成本 | 10bp成本 | 额外晚一天执行、5bp |
+| Candidate | 5bp cost | 10bp cost | One extra execution day, 5bp |
 |---|---:|---:|---:|
-| V1.6.1基线 | 17.92% / -21.84% | 17.36% / -22.07% | 20.14% / -19.92% |
-| 20日上限+窗口内QQQ回撤5%退出 | 17.17% / -19.60% | 16.61% / -19.79% | 19.40% / -18.34% |
-| 窗口内QQQ回撤5%退出QLD | 17.66% / -21.84% | 17.09% / -22.07% | 19.86% / -19.92% |
-| 跌破EMA20退出QLD | 17.67% / -20.51% | 16.85% / -20.74% | 20.61% / -18.32% |
+| V1.6.1 baseline | 17.92% / -21.84% | 17.36% / -22.07% | 20.14% / -19.92% |
+| 20-day cap + 5% within-window QQQ drawdown exit | 17.17% / -19.60% | 16.61% / -19.79% | 19.40% / -18.34% |
+| Exit QLD at 5% within-window QQQ drawdown | 17.66% / -21.84% | 17.09% / -22.07% | 19.86% / -19.92% |
+| Exit QLD below EMA20 | 17.67% / -20.51% | 16.85% / -20.74% | 20.61% / -18.32% |
 
-20日+5%组合在正常执行下，近五年换手约9.66x/年，基线约9.54x；不会明显增加换手。EMA20为约14.00x，所以单边成本从5bp增加至10bp后，近期收益让步从约0.25个百分点扩大至约0.51个百分点。
+Under normal execution, recent turnover for the 20-day+5% combination is about 9.66x/year versus baseline 9.54x, without a material increase. EMA20 is about 14.00x; increasing per-side costs from 5bp to 10bp expands its recent CAGR sacrifice from about 0.25 to 0.51 points.
 
-延迟有时提高回测收益，反映交易时点敏感性，并不意味着应在实盘主动拖延。20日+5%组合在成本加倍、额外延迟后仍表现为收益略低、回撤较浅，而非免费收益提升。
+Delays sometimes improve backtest returns, reflecting timing sensitivity rather than justifying intentional delay. With doubled costs and extra delay, the 20-day+5% combination remains a lower-return/shallower-drawdown tradeoff, not a free return improvement.
 
-## 不同年代
+## Different eras
 
-| 区间 | 基线年化 / 回撤 | 20日+5%组合年化 / 回撤 |
+| Period | Baseline CAGR / drawdown | 20-day+5% CAGR / drawdown |
 |---|---:|---:|
 | 2007–2010 | 13.75% / -25.46% | 13.77% / -21.77% |
 | 2011–2014 | 20.49% / -19.63% | 19.45% / -18.47% |
 | 2015–2018 | 9.54% / -17.35% | 8.71% / -17.35% |
 | 2019–2022 | 15.90% / -26.91% | 15.61% / -24.87% |
-| 2023至截止日 | 29.12% / -19.19% | 27.25% / -18.01% |
+| 2023 to cutoff | 29.12% / -19.19% | 27.25% / -18.01% |
 
-组合在2015–2018回撤没有改善，却损失约0.83个百分点年化；2023至今也放弃了约1.87个百分点年化。这些是降低杠杆参与度的真实代价，不能只看最终Calmar变好。
+In 2015–2018, drawdown is unchanged while CAGR loses about 0.83 points; since 2023, about 1.87 points are sacrificed. These are real costs of less leverage participation, not obscured by a higher final Calmar.
 
-## 后续决定
+## Next decision
 
-本次不直接加入正式策略，不根据本轮历史结果继续把20日调成某个峰值、或把5%调成某个事后最佳阈值。可以冻结“20日+5%退出”作为一个研究候选，在后续未参与开发的数据上记录信号、QLD持仓日、交易成本、收益与回撤。
+Do not add the combination to production or retune the 20 days/5% to hindsight peaks. Freeze the 20-day+5% exit as a research candidate and record signals, QLD days, trading costs, returns and drawdowns on future data not used in development.
 
-如果目标是把近五年这一类回撤进一步压到15%左右，就需要另行研究QQQ核心仓位、宏观退出或组合风险预算。仅靠缩短QLD窗口，本次没有验证出这种幅度的稳定改善。
+To reduce drawdowns of the recent type toward 15%, separately study core QQQ exposure, macro exits or portfolio risk budgets. Shorter QLD windows alone did not establish stable improvements of that size.
 
-全部历史已参与策略研究，尤其组合是在看到单项结果后提出；这些均不是未触碰的最终样本外证明。历史最大回撤不是未来上限，未计个人税费、所有实际开盘滑点和盘中回撤。
+All history has participated in strategy research, and the combination followed single-rule results. These are not untouched final out-of-sample proofs. Historical maximum drawdown is not a future cap; personal taxes, all actual opening slippage and intraday drawdowns are excluded.
 
-## 复现与核验
+## Reproduction and validation
 
-运行 `.venv/bin/python qld_window_research.py`，无需下载新行情。研究输出在 `/private/tmp/qqq_qld_windows_20261013`，包括所有候选的净值、敞口和换手CSV、完整信号目标、基线QLD窗口记录及结果JSON。临时文件可被系统删除，使用相同输入可以重建；重新更新行情后结果会改变。
+Run `.venv/bin/python qld_window_research.py` without new downloads. Output at `/private/tmp/qqq_qld_windows_20261013` includes candidate equity/exposure/turnover CSVs, full signal targets, baseline QLD windows and results JSON. The system may delete temporary files; identical inputs can rebuild them. Updating prices changes results.
 
-已核验：基线权重和净值精确复原；原策略所有≤1x盘后目标完全不变；候选不会提高任何目标敞口；权重非负且和为1；20日计数不使用NDX暖机持仓；时间上限、止损锁存及三日恢复在历史前缀上不受后续数据影响；使用共享次日开盘执行和真实交易日边界。
+Verified: exact baseline weights/equity; every original post-close target ≤1x unchanged; no candidate raises targets; nonnegative weights summing to 1; 20-day counting excludes NDX warm-up holdings; time caps, stop latches and three-day restoration are invariant on historical prefixes; shared next-open execution and actual trading-day boundaries.
 
-价格SHA256：`7f053199ab5ba1a10606ecbe0d65ba6028ebf336e7c608807efd3a0ec8a6092d`。程序依赖及自身的SHA256记录在结果JSON中。生产回测、每日检查、Pine及页面数据均未改写。
+Price SHA256: `7f053199ab5ba1a10606ecbe0d65ba6028ebf336e7c608807efd3a0ec8a6092d`. Dependency/script hashes are in results JSON. Production backtest, daily check, Pine and page data were not rewritten by this study.

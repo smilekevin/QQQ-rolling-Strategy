@@ -1,57 +1,57 @@
-# 跨资产配置评估
+# Cross-Asset Allocation Review
 
-评估日期：2026-09-08。策略版本：V1.6.1。统一行情截止：2026-07-30。
+Review date: 2026-09-08. Strategy: V1.6.1. Common market-data cutoff: 2026-07-30.
 
-## 判断
+## Assessment
 
-黄金近五年的强势不能直接作为未来收益假设。持有20%黄金在近五年同时改善了原策略的收益和回撤，但2006年以来的长期结果是牺牲部分收益、降低回撤。在2012-2018年黄金疲弱阶段，20%黄金配置的收益和回撤都不如相同现金比例。
+Gold’s strong last-five-year performance cannot be assumed for future returns. A 20% gold allocation improved both returns and drawdown recently, but since 2006 the tradeoff was lower returns for lower drawdown. During weak gold markets in 2012-2018, 20% gold produced worse returns and drawdown than the same allocation to cash.
 
-若希望减少对黄金继续上涨的依赖，优先比较以下三个方案：
+To reduce dependence on further gold appreciation, compare these three research allocations first:
 
-- 80%原策略 + 20% SGOV：最容易理解的降风险对照，减少策略资金占比，外部现金通过真实超短债ETF投资。
-- 80%原策略 + 10% DBMF + 10% SGOV：不含黄金，增加管理期货作为互补收益来源，但DBMF实盘历史较短，仍需观察。
-- 80%原策略 + 10% GLD + 10% SGOV：保留较小黄金配置，接受黄金走弱时收益可能落后于现金配置。
+- 80% original strategy + 20% SGOV: the simplest lower-risk comparison, reducing strategy capital and investing external cash in an actual ultra-short Treasury ETF.
+- 80% original strategy + 10% DBMF + 10% SGOV: no gold, with managed futures as a complementary return source; DBMF has a short live history and requires continued observation.
+- 80% original strategy + 10% GLD + 10% SGOV: retain a smaller gold allocation while accepting possible underperformance versus cash when gold weakens.
 
-以上都是研究配置，不是最优权重，也未修改正式策略。
+These are research allocations, not optimal weights, and do not change production.
 
-## 计算口径
+## Methodology
 
-- 美元名义收益，使用Yahoo Finance经分红、拆股调整的开盘价和收盘价。基金费用已反映在价格中，不再重复扣费，不包含个人税费、换汇成本。
-- 长区间为2006-06-22至2026-07-30，避开合成QLD时期；近五年为2021-07-30至2026-07-30。
-- 每个区间从现金重新建仓，首个交易日开盘买入；所有策略指标及确认状态均由完整历史暖机。首个交易日前的账户现金按现有IRX模型计息。
-- 策略信号在前一交易日收盘确定，下一开盘成交。原策略内部只在目标改变时调仓，持有期间权重漂移。
-- 外层资产配置按每月首个交易日开盘再平衡。给策略增减资金时，保留其内部漂移后的资产比例，除非同时触发策略换档。
-- 股票和ETF每交易1美元计5bp成本；同一时点交易合并计费。现金余额变动本身不收费。成本按现有引擎的近似方式分摊。
-- 组合最大回撤从逐日合并净值计算，包含初始本金，不是单资产最大回撤的加权平均。所有回撤为每日收盘口径，不能代表盘中最深回撤。
-- 年化按252个交易日折算。与之前直接截取长期持仓净值的子区间结果略有差异，主要来自开盘新建仓与区间首日收益。
-- 原策略自身已含现金生息；SGOV是额外分配出去的资金，不能把已有现金利息再次当成新增收益。
-- DBMF从2019年、SGOV从2020年才有实际行情，不拼接虚构长期历史。
+- Nominal USD returns using Yahoo Finance opening/closing prices adjusted for dividends and splits. Fund fees are already reflected in prices and are not deducted again. Personal taxes and currency-conversion costs are excluded.
+- Long period: 2006-06-22 to 2026-07-30, excluding synthetic QLD. Last five years: 2021-07-30 to 2026-07-30.
+- Each period starts anew in cash, buying at its first trading open. Indicators and confirmation state warm up on full history. Cash before that open earns interest under the existing IRX model.
+- Strategy signals are fixed at the prior close and filled at the next open. Internal rebalancing occurs only when targets change; weights drift while held.
+- Outer asset allocations rebalance at the first trading open of each month. Capital added to or removed from the strategy retains its internally drifted asset proportions unless a strategy transition also occurs.
+- Equity/ETF trades cost 5bp per dollar traded. Simultaneous trades are netted; cash-balance changes alone incur no cost. Costs follow the existing engine’s approximation.
+- Portfolio drawdown comes from the combined daily equity series, including initial capital, not weighted averages of individual drawdowns. Closing drawdowns do not describe the deepest intraday losses.
+- Annualization uses 252 trading days. Results differ slightly from earlier slices of a long-held equity curve, mainly because of opening entry and first-day returns.
+- The original strategy already earns interest on cash. SGOV is an additional external allocation; existing cash interest cannot be counted again as incremental income.
+- DBMF has actual data only from 2019 and SGOV from 2020; no invented long history is spliced in.
 
-## 单资产表现
+## Individual assets
 
-下表每格为“年化收益 / 最大回撤”，均为买入持有。首笔交易成本会影响SGOV这类低波动资产的极小回撤数字。
+Each cell is CAGR / maximum drawdown for buy and hold. Initial trading costs affect very small drawdown figures for low-volatility assets such as SGOV.
 
-| 资产 | 作用 | 2006年以来 | 近五年 | 近五年累计收益 |
+| Asset | Role | Since 2006 | Last five years | Five-year total return |
 |---|---|---:|---:|---:|
-| QQQ | 纳指股票基准 | 16.30% / -53.40% | 14.26% / -35.12% | +94.23% |
-| GLD | 黄金 | 9.76% / -45.56% | 17.24% / -26.40% | +120.81% |
-| SHY | 1-3年美国国债 | 1.99% / -5.71% | 1.78% / -5.71% | +9.18% |
-| IEF | 7-10年美国国债 | 3.42% / -23.92% | -1.75% / -21.40% | -8.39% |
-| TLT | 20年以上美国国债 | 3.15% / -48.35% | -8.05% / -43.70% | -34.16% |
-| DBC | 广泛商品期货 | 2.09% / -76.36% | 11.55% / -27.34% | +72.36% |
-| DBMF | 管理期货 | 历史不足 | 8.26% / -20.39% | +48.49% |
-| SGOV | 0-3个月美国国债 | 历史不足 | 3.66% / -0.06% | +19.60% |
+| QQQ | Nasdaq equity benchmark | 16.30% / -53.40% | 14.26% / -35.12% | +94.23% |
+| GLD | Gold | 9.76% / -45.56% | 17.24% / -26.40% | +120.81% |
+| SHY | 1-3-year US Treasuries | 1.99% / -5.71% | 1.78% / -5.71% | +9.18% |
+| IEF | 7-10-year US Treasuries | 3.42% / -23.92% | -1.75% / -21.40% | -8.39% |
+| TLT | US Treasuries over 20 years | 3.15% / -48.35% | -8.05% / -43.70% | -34.16% |
+| DBC | Broad commodity futures | 2.09% / -76.36% | 11.55% / -27.34% | +72.36% |
+| DBMF | Managed futures | Insufficient history | 8.26% / -20.39% | +48.49% |
+| SGOV | 0-3-month US Treasuries | Insufficient history | 3.66% / -0.06% | +19.60% |
 
-SGOV侧重短期资金管理，收益率会随市场利率变化。SHY、IEF、TLT的期限依次增加，对利率变动更加敏感。TLT不能被视为低风险现金替代品。DBC的长期收益还受期货展期影响，近五年表现不代表长期配置收益。
+SGOV is for short-term cash management; yields vary with market rates. SHY, IEF and TLT have progressively longer durations and more interest-rate sensitivity. TLT is not a low-risk cash substitute. Futures roll effects also shape DBC’s long-term returns; recent performance is not a long-term allocation assumption.
 
-## 固定配置后的结果
+## Fixed allocations
 
-S表示原V1.6.1策略。每格为“年化收益 / 最大回撤”；累计收益另列。
+S denotes the original V1.6.1 strategy. Cells are CAGR / maximum drawdown; total returns are separate.
 
-| 配置 | 2006年以来 | 近五年 | 近五年累计收益 |
+| Allocation | Since 2006 | Last five years | Five-year total return |
 |---|---:|---:|---:|
 | 100% S | 17.35% / -26.91% | 16.93% / -21.84% | +117.87% |
-| 80% S + 20%现金模型 | 14.34% / -22.06% | 14.50% / -17.50% | +96.29% |
+| 80% S + 20% cash model | 14.34% / -22.06% | 14.50% / -17.50% | +96.29% |
 | 90% S + 10% GLD | 16.91% / -25.06% | 17.31% / -20.06% | +121.46% |
 | 80% S + 20% GLD | 16.39% / -23.18% | 17.62% / -18.80% | +124.37% |
 | 70% S + 30% GLD | 15.80% / -21.26% | 17.85% / -17.95% | +126.55% |
@@ -61,49 +61,49 @@ S表示原V1.6.1策略。每格为“年化收益 / 最大回撤”；累计收�
 | 80% S + 20% DBC | 14.63% / -26.60% | 16.54% / -16.91% | +114.35% |
 | 70% S + 20% GLD + 10% IEF | 15.05% / -20.16% | 15.69% / -18.36% | +106.63% |
 | 70% S + 20% GLD + 10% SHY | 14.87% / -20.53% | 16.10% / -17.32% | +110.35% |
-| 80% S + 20% SGOV | 历史不足 | 14.49% / -17.58% | +96.18% |
-| 80% S + 20% DBMF | 历史不足 | 15.64% / -16.66% | +106.23% |
-| 80% S + 10% GLD + 10% SGOV | 历史不足 | 16.06% / -18.00% | +109.95% |
-| 80% S + 10% DBMF + 10% SGOV | 历史不足 | 15.07% / -16.06% | +101.23% |
-| 70% S + 15% GLD + 15% DBMF | 历史不足 | 16.43% / -13.74% | +113.28% |
+| 80% S + 20% SGOV | Insufficient history | 14.49% / -17.58% | +96.18% |
+| 80% S + 20% DBMF | Insufficient history | 15.64% / -16.66% | +106.23% |
+| 80% S + 10% GLD + 10% SGOV | Insufficient history | 16.06% / -18.00% | +109.95% |
+| 80% S + 10% DBMF + 10% SGOV | Insufficient history | 15.07% / -16.06% | +101.23% |
+| 70% S + 15% GLD + 15% DBMF | Insufficient history | 16.43% / -13.74% | +113.28% |
 
-GLD的增益集中在近期，不能根据近五年结果把30%黄金认定为最优。DBMF组合在这个区间中很有研究价值，但缺少2008年的真实基金表现，2022年的强势也可能显著影响评价。
+GLD’s gains are concentrated recently; five-year results do not establish 30% gold as optimal. DBMF portfolios are interesting in this period, but lack actual fund performance in 2008, and strong 2022 results may materially influence the assessment.
 
-## 黄金表现疲弱时
+## When gold was weak
 
-2012-2018年是选取的历史情景，属于事后压力检查，不是未参与研究的样本外验证。
+2012-2018 is a selected historical scenario: a hindsight stress check, not untouched out-of-sample validation.
 
-| 配置 | 年化收益 | 最大回撤 |
+| Allocation | CAGR | Maximum drawdown |
 |---|---:|---:|
-| GLD单独持有 | -3.44% | -42.11% |
-| 原策略 | 18.40% | -17.35% |
-| 90%原策略 + 10% GLD | 16.28% | -15.71% |
-| 80%原策略 + 20% GLD | 14.13% | -14.76% |
-| 80%原策略 + 20%现金模型 | 14.83% | -13.90% |
+| GLD alone | -3.44% | -42.11% |
+| Original strategy | 18.40% | -17.35% |
+| 90% original strategy + 10% GLD | 16.28% | -15.71% |
+| 80% original strategy + 20% GLD | 14.13% | -14.76% |
+| 80% original strategy + 20% cash model | 14.83% | -13.90% |
 
-同样把股票策略降低到80%，这段历史中黄金组合的收益低于现金组合，回撤也更深。黄金可以贡献分散效果，但分散价值不等于任何时期都值得持有大比例。
+At the same 80% strategy allocation, gold delivered lower returns and deeper drawdown than cash in this period. Diversification value does not justify a large allocation in every regime.
 
-## 黄金收益下调的假设压力测试
+## Hypothetical lower-gold-return stress tests
 
-保留近五年原策略和其他资产的实际收益路径，对黄金每天的日内对数收益减去一个固定值，使其未扣交易成本的年化收益分别达到5%、0%、-5%。黄金每日对数收益的波动率保持不变，仍有涨跌，不是把每天价格改成不动。首个开盘建仓前的现金收益也计入校准。
+Keep the actual five-year paths of the strategy and other assets. Subtract a constant from gold’s daily intraday log return to reach pre-trading-cost CAGR of 5%, 0% or -5%. Daily log-return volatility is unchanged: gold still moves, rather than becoming flat. Cash interest before the first opening purchase is included in calibration.
 
-这些是固定历史路径下的敏感性计算，不是未来五年预测。真实收益变化也可能伴随波动率及资产相关性变化，因此表中回撤不是未来风险上限。
+These are sensitivities on fixed historical paths, not five-year forecasts. Real return changes can also alter volatility and asset correlations, so the drawdowns are not future risk caps.
 
-| 黄金年化情景 | 90% S + 10% GLD：年化 / 回撤 | 80% S + 20% GLD：年化 / 回撤 | 80% S + 10% GLD + 10% SGOV：年化 / 回撤 |
+| Gold CAGR scenario | 90% S + 10% GLD: CAGR / drawdown | 80% S + 20% GLD: CAGR / drawdown | 80% S + 10% GLD + 10% SGOV: CAGR / drawdown |
 |---|---:|---:|---:|
-| 实际历史约17.24% | 17.31% / -20.06% | 17.62% / -18.80% | 16.06% / -18.00% |
-| 假设5% | 16.03% / -21.02% | 15.06% / -20.30% | 14.79% / -18.90% |
-| 假设0% | 15.47% / -21.43% | 13.95% / -21.06% | 14.23% / -19.32% |
-| 假设-5% | 14.88% / -21.86% | 12.80% / -21.92% | 13.65% / -19.77% |
+| Actual history about 17.24% | 17.31% / -20.06% | 17.62% / -18.80% | 16.06% / -18.00% |
+| Hypothetical 5% | 16.03% / -21.02% | 15.06% / -20.30% | 14.79% / -18.90% |
+| Hypothetical 0% | 15.47% / -21.43% | 13.95% / -21.06% | 14.23% / -19.32% |
+| Hypothetical -5% | 14.88% / -21.86% | 12.80% / -21.92% | 13.65% / -19.77% |
 
-同一区间原策略为16.93% / -21.84%，80%原策略 + 20%现金模型为14.50% / -17.50%。黄金年化为0%的假设下，配置20%黄金的收益和最大回撤都不如现金对照。
+The original strategy is 16.93% / -21.84% over the same period; 80% strategy + 20% cash is 14.50% / -17.50%. At hypothetical 0% gold CAGR, 20% gold loses to cash on both returns and maximum drawdown.
 
-## 2022年检查
+## 2022 check
 
-| 配置或资产 | 2022年收益 |
+| Allocation or asset | 2022 return |
 |---|---:|
 | QQQ | -32.58% |
-| 原策略 | -17.72% |
+| Original strategy | -17.72% |
 | GLD | -0.77% |
 | IEF | -15.16% |
 | TLT | -31.23% |
@@ -115,13 +115,13 @@ GLD的增益集中在近期，不能根据近五年结果把30%黄金认定为�
 | 80% S + 20% DBMF | -10.60% |
 | 80% S + 20% TLT | -20.47% |
 
-长期国债在2022年加重了组合损失，管理期货与商品当年则提供了缓冲。不能只按资产名称判断能否对冲股票。
+Long Treasuries worsened losses in 2022, while managed futures and commodities buffered them. Asset names alone do not establish equity-hedging behavior.
 
-## 数据和验证
+## Data and validation
 
-- 数据由yfinance读取Yahoo Finance公开行情，截止日与现有策略价格文件保持一致。全部7只ETF下载成功，分红通过复权价体现。
-- 参考行情入口：[GLD](https://finance.yahoo.com/quote/GLD/history/)、[SHY](https://finance.yahoo.com/quote/SHY/history/)、[IEF](https://finance.yahoo.com/quote/IEF/history/)、[TLT](https://finance.yahoo.com/quote/TLT/history/)、[DBC](https://finance.yahoo.com/quote/DBC/history/)、[DBMF](https://finance.yahoo.com/quote/DBMF/history/)、[SGOV](https://finance.yahoo.com/quote/SGOV/history/)。
-- 研究程序为`cross_asset_research.py`。默认将原始ETF价格及完整JSON结果写入系统临时目录下的`qqq_cross_asset_research`，不提交每日价格数据。
-- 已验证100%原策略与共享执行引擎净值、换手一致；无波动市场无成本时净值不变；现金复利及ETF买入持有重建正确；隔夜与日内收益能够复原总日收益。
-- 黄金假设路径经校验达到指定收益率、保持每日对数收益波动率。未对权重进行网格寻优。
-- 原始策略价格文件SHA256：`43c1bb379086e57db7271fe3a3c2abc24e37fa5363d8968f2b9229ad3dd2aa21`。下载ETF数据的SHA256记录在结果JSON中。
+- yfinance reads public Yahoo Finance prices, with a cutoff matching the existing strategy price file. All 7 ETFs downloaded successfully; adjusted prices incorporate dividends.
+- Reference prices: [GLD](https://finance.yahoo.com/quote/GLD/history/), [SHY](https://finance.yahoo.com/quote/SHY/history/), [IEF](https://finance.yahoo.com/quote/IEF/history/), [TLT](https://finance.yahoo.com/quote/TLT/history/), [DBC](https://finance.yahoo.com/quote/DBC/history/), [DBMF](https://finance.yahoo.com/quote/DBMF/history/), [SGOV](https://finance.yahoo.com/quote/SGOV/history/).
+- Research script: `cross_asset_research.py`. Raw ETF prices and full JSON results default to `qqq_cross_asset_research` in the system temporary directory; daily prices are not committed.
+- Verified: 100% strategy equity and turnover match the shared engine; no-cost flat markets preserve equity; cash compounding and ETF buy-and-hold reconstruction are correct; overnight/intraday returns reconstruct total daily returns.
+- Gold scenarios reach their specified returns while retaining daily log-return volatility. Allocation weights were not grid-optimized.
+- Original strategy price-file SHA256: `43c1bb379086e57db7271fe3a3c2abc24e37fa5363d8968f2b9229ad3dd2aa21`. Downloaded ETF hashes are recorded in results JSON.

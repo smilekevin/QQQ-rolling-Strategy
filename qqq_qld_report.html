@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>QQQ/QLD 动态滚仓策略回测 V1.6.1a</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="0">QQQ/QLD Dynamic Allocation Backtest V1.6.1a</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
 <script>
 (()=>{
@@ -31,7 +31,7 @@ h1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:6px 0 4px}
 .version-row dd{color:#5a6172}
 .card{background:#fffdf8;border:1px solid #e5ddcb;border-radius:14px;padding:22px 24px;margin-top:var(--section-gap);box-shadow:0 1px 2px rgba(40,30,10,.04)}
 h2{font-size:18px;font-weight:750;margin-bottom:3px;display:flex;align-items:center;gap:9px}
-h2 .n{font-size:11px;background:#1c2230;color:#f4f1ea;width:22px;height:22px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
+h2 .n{flex-shrink:0;font-size:11px;background:#1c2230;color:#f4f1ea;width:22px;height:22px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
 .note{color:#6a7183;font-size:13px;margin-bottom:14px}
 .signal{display:grid;grid-template-columns:1fr;gap:var(--grid-gap)}
 .signal-summary{min-width:0}
@@ -48,7 +48,7 @@ th:first-child,td:first-child{text-align:left}
 thead th{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:#8a8570;border-bottom:1.5px solid #d9cfb8}
 tr.hl td{background:#fbf4e3;font-weight:750}
 .best{color:#2f8f5b;font-weight:750}
-.toggle{display:inline-flex;background:#efe8d7;border-radius:9px;padding:3px;gap:2px;margin-bottom:12px}
+.toggle{display:inline-flex;flex-wrap:wrap;max-width:100%;background:#efe8d7;border-radius:9px;padding:3px;gap:2px;margin-bottom:12px}
 .toggle button{border:0;background:transparent;padding:6px 15px;border-radius:7px;font-size:13px;font-weight:650;color:#6a7183;cursor:pointer;font-family:inherit}
 .toggle button.on{background:#1c2230;color:#f4f1ea}
 .chartbox{position:relative;height:380px;margin-top:6px}
@@ -109,31 +109,38 @@ code{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}
 .kpi .box .k{font-size:11px;color:#8a8570;text-transform:uppercase;letter-spacing:.07em}
 .kpi .box .v{font-size:24px;font-weight:800;margin-top:2px;letter-spacing:-.02em}
 .kpi .box .s{font-size:11.5px;color:#6a7183}
+
+.header-tools{display:flex;justify-content:flex-end;margin-bottom:12px;gap:9px;align-items:center;font-size:12px;color:#6a7183}
+.language-switch{display:inline-flex;gap:2px;padding:3px;border:1px solid #d9cfb8;background:#efe8d7;border-radius:999px;cursor:pointer;font:inherit;color:#6a7183}
+.language-switch span{padding:5px 10px;border-radius:999px}
+html[lang=en] .language-switch [lang=en],html[lang=zh] .language-switch [lang=zh]{background:#1c2230;color:#fffdf8}
+.language-switch:focus-visible{outline:2px solid #3f7fb8;outline-offset:3px}
 </style></head>
 <body><div class="wrap">
-<div class="eyebrow">QQQ · QLD — 技术指标驱动的杠杆滚仓 · V1.6.1a</div>
-<h1>动态滚仓策略回测(V1.6.1a)</h1>
-<p class="sub">基于 QQQ 的 <b>MACD / RSI / Supertrend</b> + 250 日趋势闸门决定仓位档位,叠加 <b>20% 波动率目标</b>与<b>强空头清仓</b>两层风控。V1.6.1 不改变 V1.6 的信号与仓位参数,只把执行修正为<b>信号 T 日收盘生成、T+1 开盘调仓</b>:旧仓承担隔夜波动,新仓承担日内收益。全周期年化 14.9%、最大回撤 −26.9%、Calmar 0.55、夏普 0.82。净敞口在 <b>0(现金)→ 1.5x(QQQ+QLD)</b> 间连续调节,避险现金赚取短端国债收益。<b>档位持有期内不做再平衡</b>,且设 <b>0.15x 死区</b>。</p>
+<div class="header-tools"><span data-i18n="140">Language</span><button id="language-switch" class="language-switch" type="button" role="switch" aria-checked="false" aria-label="Display in Chinese"><span lang="en">EN</span><span lang="zh">中文</span></button></div>
+<div class="eyebrow"><span data-i18n="1">QQQ · QLD — Indicator-driven leveraged allocation · V1.6.1a</span></div>
+<h1><span data-i18n="2">Dynamic Allocation Backtest (V1.6.1a)</span></h1>
+<p class="sub"><span data-i18n="3">QQQ’s </span><b>MACD / RSI / Supertrend</b><span data-i18n="4"> + a 250-day trend gate determine the allocation tier, with two risk controls: a </span><b><span data-i18n="5">20% volatility target</span></b><span data-i18n="6"> and </span><b><span data-i18n="7">deep-bear cash exit</span></b><span data-i18n="8">. V1.6.1 keeps the V1.6 signals and allocation parameters, but corrects execution to </span><b><span data-i18n="9">signals at the close of day T, rebalancing at the T+1 open</span></b><span data-i18n="10">: existing holdings absorb overnight moves, and new holdings earn intraday returns. Full-period CAGR 14.9%, maximum drawdown −26.9%, Calmar 0.55, Sharpe 0.82. Net exposure varies continuously from </span><b><span data-i18n="11">0 (cash) → 1.5x (QQQ+QLD)</span></b><span data-i18n="12">, with defensive cash earning short-term Treasury interest. </span><b><span data-i18n="13">No rebalancing while the allocation tier is held</span></b><span data-i18n="14">, with a </span><b><span data-i18n="15">0.15x deadband</span></b><span data-i18n="141">.</span></p>
 
 <details class="versions">
-<summary>版本演进</summary>
+<summary><span data-i18n="16">Version history</span></summary>
 <dl class="version-list">
-  <div class="version-row"><dt>初版</dt><dd>使用日线 Supertrend 直接择时。熊市反弹中频繁重新加杠杆,换手约 33 次/年、最大回撤约 −84%,未达到风险控制目标。</dd></div>
-  <div class="version-row"><dt>基础风控</dt><dd>加入长期均线闸门、波动率目标、强空头清仓与现金生息;随后将波动率缩放上限收紧为 1.0,只允许降仓、不在基础档上额外加杠杆。</dd></div>
-  <div class="version-row"><dt>V1.1</dt><dd>长期趋势闸门由 200 日改为 250 日。250/300 日附近形成参数高原,最大回撤由约 −42% 降至 −32%。</dd></div>
-  <div class="version-row"><dt>V1.2</dt><dd>删除 2.0x QLD 全仓档,把最高净敞口限制为 1.5x。高位过热阶段不再追逐 2.0x,收益基本不受损且换手下降。</dd></div>
-  <div class="version-row"><dt>V1.3</dt><dd>温和回调 D 档由固定 0.5x 改为 0.5x×波动率目标,市场越颠簸仓位越低,最大回撤进一步降至约 −26%。</dd></div>
-  <div class="version-row"><dt>V1.4</dt><dd>为 SMA250 加入非对称滞回:跌破均线退出多头、重新站上 1% 才恢复;只有深破 4% 且空头指标共振才清仓,减少均线附近反复切换。</dd></div>
-  <div class="version-row"><dt>V1.5</dt><dd>新增反转恢复 R 档。宏观状态仍为空头但 Supertrend 与 MACD 柱同时转多时,先恢复 0.75x 基础敞口,降低 V 型反弹中的低仓滞后。</dd></div>
-  <div class="version-row"><dt>V1.6</dt><dd>新增 RSI 超跌底仓锁存。宏观空头期 RSI(14)≤25 后最低保留 0.15x 无杠杆 QQQ,直到宏观状态恢复多头;与 R 档互补。</dd></div>
-  <div class="version-row"><dt>V1.6.1</dt><dd>修正 T+1 执行口径。旧仓位承担信号产生后的隔夜涨跌,下一交易日开盘调仓,新仓位只承担日内收益;策略规则和参数不变。</dd></div>
-  <div class="version-row"><dt>V1.6.1a</dt><dd>报告版本更新:增加 VIX 与极端恐慌观察标记;策略规则、参数和回测结果仍为 V1.6.1。</dd></div>
+  <div class="version-row"><dt><span data-i18n="17">Initial</span></dt><dd><span data-i18n="18">Daily Supertrend alone timed entries. Frequent leverage re-entry during bear-market rallies produced about 33 switches/year and a maximum drawdown near −84%, missing the risk-control goal.</span></dd></div>
+  <div class="version-row"><dt><span data-i18n="19">Risk controls</span></dt><dd><span data-i18n="20">Added a long-term moving-average gate, volatility targeting, deep-bear cash exits and interest on cash. The volatility-scaling cap was then reduced to 1.0: exposure can only be reduced from its base tier, never increased.</span></dd></div>
+  <div class="version-row"><dt>V1.1</dt><dd><span data-i18n="21">Changed the long-term trend gate from 200 to 250 days. A parameter plateau around 250/300 days reduced maximum drawdown from about −42% to −32%.</span></dd></div>
+  <div class="version-row"><dt>V1.2</dt><dd><span data-i18n="22">Removed the 2.0x all-QLD tier and capped target net exposure at 1.5x. Avoiding 2.0x exposure during overheated markets preserved returns and reduced turnover.</span></dd></div>
+  <div class="version-row"><dt>V1.3</dt><dd><span data-i18n="23">Changed the mild-pullback D tier from fixed 0.5x to 0.5x × volatility scaling. More turbulent markets receive less exposure; maximum drawdown fell further to about −26%.</span></dd></div>
+  <div class="version-row"><dt>V1.4</dt><dd><span data-i18n="24">Added asymmetric SMA250 hysteresis: exit the bullish regime below the average, re-enter only 1% above it. Cash exits require a 4% breach and bearish indicator agreement, reducing repeated switching near the average.</span></dd></div>
+  <div class="version-row"><dt>V1.5</dt><dd><span data-i18n="25">Added the reversal-recovery R tier. While the macro regime remains bearish, bullish Supertrend and MACD histogram signals restore 0.75x base exposure earlier, reducing underexposure during V-shaped rebounds.</span></dd></div>
+  <div class="version-row"><dt>V1.6</dt><dd><span data-i18n="26">Added an oversold RSI floor latch. After RSI(14)≤25 in a bearish macro regime, retain at least 0.15x unleveraged QQQ until the macro regime turns bullish. This complements the R tier.</span></dd></div>
+  <div class="version-row"><dt>V1.6.1</dt><dd><span data-i18n="27">Corrected T+1 execution. Existing holdings absorb overnight moves after the signal, rebalancing occurs at the next trading open, and new holdings earn only intraday returns. Strategy rules and parameters are unchanged.</span></dd></div>
+  <div class="version-row"><dt>V1.6.1a</dt><dd><span data-i18n="28">Report update: added VIX and extreme-panic observation markers. Strategy rules, parameters and backtest results remain V1.6.1.</span></dd></div>
 </dl>
 </details>
 
 <!-- 当前信号 -->
-<div class="card"><h2><span class="n">◆</span>当前建议仓位</h2>
-<div class="note">截至 <b id="ldate"></b> 收盘,依据最新指标状态。极端恐慌仅作观察标记,不参与仓位计算。仅供研究参考,非投资建议。</div>
+<div class="card"><h2><span class="n">◆</span><span data-i18n="29">Current target allocation</span></h2>
+<div class="note"><span data-i18n="30">At the close on </span><b id="ldate"></b><span data-i18n="31">, based on the latest indicators. Extreme panic is an observation marker only and does not affect allocation. For research only; not investment advice.</span></div>
 <div class="signal">
   <div class="signal-summary">
     <div class="bigstate" id="lstate"></div>
@@ -144,37 +151,37 @@ code{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}
 </div></div>
 
 <!-- 关键结论 -->
-<div class="card"><h2><span class="n">1</span>核心结论</h2>
+<div class="card"><h2><span class="n">1</span><span data-i18n="32">Key results</span></h2>
 <div class="toggle" id="kpitog">
-  <button data-p="p5y">最近5年</button>
-  <button data-p="sub" class="on">2006至今(真实QLD)</button>
-  <button data-p="p2010">2010至今</button>
-  <button data-p="p2020">2020至今</button>
-  <button data-p="full">1999至今(全区间)</button>
+  <button data-p="p5y"><span data-i18n="33">Last 5 years</span></button>
+  <button data-p="sub" class="on"><span data-i18n="34">Since 2006 (actual QLD)</span></button>
+  <button data-p="p2010"><span data-i18n="35">Since 2010</span></button>
+  <button data-p="p2020"><span data-i18n="36">Since 2020</span></button>
+  <button data-p="full"><span data-i18n="37">Since 1999 (full period)</span></button>
 </div>
 <div class="kpi" id="kpi"></div>
 <p class="note" style="margin-top:14px" id="kpinote"></p>
 </div>
 
 <!-- 净值曲线 -->
-<div class="card"><h2><span class="n">2</span>净值增长曲线(对数刻度)</h2>
-<div class="note">所有曲线以所选区间首个交易日归一为 <b>1x(累计收益 0%)</b>,非交易日顺延至下一个有数据的交易日。<b>策略主线按决策档分段着色</b>,红点标记 RSI≤25 且 VIX≥30 的极端恐慌日,只供观察、不改变策略。可缩放:点选预设区间、<b>手动选起止日期</b>,或在图上<b>拖拽框选</b>放大。</div>
+<div class="card"><h2><span class="n">2</span><span data-i18n="38">Equity growth (log scale)</span></h2>
+<div class="note"><span data-i18n="39">All series are normalized on the first trading day in the selected range to </span><b><span data-i18n="40">1x (0% cumulative return)</span></b><span data-i18n="41">. Non-trading start dates advance to the next available trading day. </span><b><span data-i18n="42">The strategy line is colored by decision tier</span></b><span data-i18n="43">. Red dots mark extreme-panic days with RSI≤25 and VIX≥30, for observation only. Zoom using preset ranges, </span><b><span data-i18n="44">custom start/end dates</span></b><span data-i18n="45">, or </span><b><span data-i18n="46">drag a selection</span></b><span data-i18n="47"> on the chart.</span></div>
 <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px">
   <div class="toggle" id="rangetog">
-    <button data-r="all" class="on">全部</button>
-    <button data-r="2008">2008后</button>
-    <button data-r="2015">2015后</button>
-    <button data-r="2020">2020后</button>
-    <button data-r="2022">2022后</button>
+    <button data-r="all" class="on"><span data-i18n="48">All</span></button>
+    <button data-r="2008"><span data-i18n="49">Since 2008</span></button>
+    <button data-r="2015"><span data-i18n="50">Since 2015</span></button>
+    <button data-r="2020"><span data-i18n="51">Since 2020</span></button>
+    <button data-r="2022"><span data-i18n="52">Since 2022</span></button>
   </div>
-  <button id="zreset" style="border:1px solid #d9cfb8;background:#fffdf8;border-radius:8px;padding:6px 13px;font-size:12.5px;font-weight:650;color:#6a7183;cursor:pointer;font-family:inherit">↺ 复位缩放</button>
+  <button id="zreset" style="border:1px solid #d9cfb8;background:#fffdf8;border-radius:8px;padding:6px 13px;font-size:12.5px;font-weight:650;color:#6a7183;cursor:pointer;font-family:inherit"><span data-i18n="53">↺ Reset zoom</span></button>
 </div>
 <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px">
-  <span style="font-size:12.5px;color:#6a7183;font-weight:650">自定义区间</span>
+  <span style="font-size:12.5px;color:#6a7183;font-weight:650"><span data-i18n="54">Custom range</span></span>
   <input type="date" id="dstart" style="border:1px solid #d9cfb8;background:#fffdf8;border-radius:7px;padding:5px 9px;font-size:12.5px;color:#1c2230;font-family:inherit">
   <span style="color:#8a8570">→</span>
   <input type="date" id="dend" style="border:1px solid #d9cfb8;background:#fffdf8;border-radius:7px;padding:5px 9px;font-size:12.5px;color:#1c2230;font-family:inherit">
-  <button id="dapply" style="border:0;background:#1c2230;color:#f4f1ea;border-radius:7px;padding:6px 14px;font-size:12.5px;font-weight:650;cursor:pointer;font-family:inherit">应用</button>
+  <button id="dapply" style="border:0;background:#1c2230;color:#f4f1ea;border-radius:7px;padding:6px 14px;font-size:12.5px;font-weight:650;cursor:pointer;font-family:inherit"><span data-i18n="55">Apply</span></button>
   <span style="font-size:12px;color:#8a8570" id="rangelabel"></span>
 </div>
 <div class="chartbox" id="eqbox"><canvas id="eqchart"></canvas></div>
@@ -184,71 +191,71 @@ code{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}
 
 <div class="two">
 <!-- 回撤 -->
-<div class="card"><h2><span class="n">3</span>回撤对比</h2>
-<div class="note">可独立选择预设或自定义区间。回撤按<b>所选区间内的历史最高净值</b>计算,首个交易日从 0% 开始,不延续区间前的回撤。起始日期顺延、结束日期回溯至有数据的交易日。</div>
+<div class="card"><h2><span class="n">3</span><span data-i18n="56">Drawdown comparison</span></h2>
+<div class="note"><span data-i18n="57">Select a preset or custom range independently. Drawdown is measured against </span><b><span data-i18n="58">the running peak within the selected range</span></b><span data-i18n="59">, starting at 0% on its first trading day, without carrying in earlier drawdowns. Start dates advance and end dates retreat to available trading days.</span></div>
 <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px">
   <div class="toggle" id="ddrangetog">
-    <button data-r="all" class="on">全部</button>
-    <button data-r="2008">2008后</button>
-    <button data-r="2015">2015后</button>
-    <button data-r="2020">2020后</button>
-    <button data-r="2022">2022后</button>
+    <button data-r="all" class="on"><span data-i18n="60">All</span></button>
+    <button data-r="2008"><span data-i18n="61">Since 2008</span></button>
+    <button data-r="2015"><span data-i18n="62">Since 2015</span></button>
+    <button data-r="2020"><span data-i18n="63">Since 2020</span></button>
+    <button data-r="2022"><span data-i18n="64">Since 2022</span></button>
   </div>
-  <button id="ddreset" style="border:1px solid #d9cfb8;background:#fffdf8;border-radius:8px;padding:6px 13px;font-size:12.5px;font-weight:650;color:#6a7183;cursor:pointer;font-family:inherit">↺ 全部区间</button>
+  <button id="ddreset" style="border:1px solid #d9cfb8;background:#fffdf8;border-radius:8px;padding:6px 13px;font-size:12.5px;font-weight:650;color:#6a7183;cursor:pointer;font-family:inherit"><span data-i18n="65">↺ Full range</span></button>
 </div>
 <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px">
-  <span style="font-size:12.5px;color:#6a7183;font-weight:650">自定义区间</span>
+  <span style="font-size:12.5px;color:#6a7183;font-weight:650"><span data-i18n="66">Custom range</span></span>
   <input type="date" id="ddstart" aria-label="回撤起始日期" style="border:1px solid #d9cfb8;background:#fffdf8;border-radius:7px;padding:5px 9px;font-size:12.5px;color:#1c2230;font-family:inherit">
   <span style="color:#8a8570">→</span>
   <input type="date" id="ddend" aria-label="回撤结束日期" style="border:1px solid #d9cfb8;background:#fffdf8;border-radius:7px;padding:5px 9px;font-size:12.5px;color:#1c2230;font-family:inherit">
-  <button id="ddapply" style="border:0;background:#1c2230;color:#f4f1ea;border-radius:7px;padding:6px 14px;font-size:12.5px;font-weight:650;cursor:pointer;font-family:inherit">应用</button>
+  <button id="ddapply" style="border:0;background:#1c2230;color:#f4f1ea;border-radius:7px;padding:6px 14px;font-size:12.5px;font-weight:650;cursor:pointer;font-family:inherit"><span data-i18n="67">Apply</span></button>
   <span style="font-size:12px;color:#8a8570" id="ddrangelabel"></span>
 </div>
 
 <div class="chartbox sm"><canvas id="ddchart"></canvas></div>
 </div>
 <!-- 年度收益与回撤 -->
-<div class="card"><h2><span class="n">4</span>年度收益与回撤</h2>
+<div class="card"><h2><span class="n">4</span><span data-i18n="68">Annual returns and drawdowns</span></h2>
 <div class="note" id="annualnote"></div>
 <div class="toggle" id="annualtog">
-  <button data-m="return" class="on">年度收益</button>
-  <button data-m="drawdown">年内最大回撤</button>
+  <button data-m="return" class="on"><span data-i18n="69">Annual return</span></button>
+  <button data-m="drawdown"><span data-i18n="70">Calendar-year maximum drawdown</span></button>
 </div>
 <div class="annual-wrap"><table class="annual-table" id="annualtable"></table></div>
 </div>
 <!-- 仓位分布 -->
-<div class="card"><h2><span class="n">5</span>各决策档时间占比</h2>
-<div class="note">按决策档统计。趋势向上约 45%、中性偏多约 30%、反转恢复约 6%、温和回调约 7%、超跌底仓约 5%、强空头/现金约 7%。</div>
+<div class="card"><h2><span class="n">5</span><span data-i18n="71">Time by decision tier</span></h2>
+<div class="note"><span data-i18n="72">Measured by decision tier: uptrend about 45%, neutral bullish 30%, reversal recovery 6%, mild pullback 7%, oversold floor 5%, deep bear/cash 7%.</span></div>
 <div class="chartbox sm"><canvas id="distchart"></canvas></div>
 </div>
 </div>
 
 <!-- 杠杆暴露 -->
-<div class="card"><h2><span class="n">6</span>净杠杆暴露随时间变化</h2>
-<div class="note">数值 = 组合对 QQQ 的等效敞口(0x 现金 → 最高 1.5x),经波动率目标连续调节。可见熊市(2000、2008、2020、2022)自动降到现金或低敞口。</div>
+<div class="card"><h2><span class="n">6</span><span data-i18n="73">Net exposure over time</span></h2>
+<div class="note"><span data-i18n="74">Exposure is the portfolio’s QQQ equivalent (0x cash → maximum target 1.5x), adjusted continuously by volatility targeting. Bear markets (2000, 2008, 2020, 2022) automatically reduce exposure to cash or low allocations.</span></div>
 <div class="chartbox sm"><canvas id="expchart"></canvas></div>
 </div>
 
 <!-- 策略规则 -->
-<div class="card"><h2><span class="n">7</span>切换规则</h2>
-<div class="note">决策链:①用带滞回的 250 日均线判断多空状态 → ②多头区间用 Supertrend/MACD/RSI 打分(0–4)定<b>基础档</b> → ③空头区间按深空头、双反转和普通回调分 E/R/D → ④宏观空头期 RSI≤25 后锁定 0.15x 最低底仓 → ⑤用 20% 波动率目标把基础档<b>连续缩放</b>成最终敞口。避险现金买短端国债生息。<b>最高 1.5x。</b><br><span style="color:#b06a2e">⚠ B/C/R/D/F/E 是"决策档";<b>净值曲线按决策档着色</b>,而<b>实际净敞口</b>(经波动率目标、底仓、确认与死区处理后连续变化)见悬浮提示。F 只表示深空头时超跌底仓锁存已开启,固定最低 0.15x、不使用杠杆。</span></div>
+<div class="card"><h2><span class="n">7</span><span data-i18n="75">Allocation rules</span></h2>
+<div class="note"><span data-i18n="76">Decision chain: ① a 250-day moving average with hysteresis sets the macro regime → ② in bullish regimes, Supertrend/MACD/RSI scores (0–4) select the </span><b><span data-i18n="77">base tier</span></b><span data-i18n="78"> → ③ bearish regimes select E/R/D for deep bear, dual reversal or ordinary pullback → ④ RSI≤25 in a bearish macro regime latches a minimum 0.15x floor → ⑤ the 20% volatility target </span><b><span data-i18n="79">continuously scales</span></b><span data-i18n="80"> the base tier into final exposure. Defensive cash earns short-term Treasury interest. </span><b><span data-i18n="81">Maximum target 1.5x.</span></b><br><span style="color:#b06a2e"><span data-i18n="82">⚠ B/C/R/D/F/E are decision tiers; </span><b><span data-i18n="83">the equity curve is colored by decision tier</span></b><span data-i18n="84">, while </span><b><span data-i18n="85">actual net exposure</span></b><span data-i18n="86"> (after volatility scaling, the floor, confirmation and deadband) is shown in tooltips. F means the oversold floor latch is active in a deep-bear state, retaining at least 0.15x without leverage.</span></span></div>
 <div class="rules">
- <div class="rule"><div class="lv" style="color:#6a9b3f">B · 趋势向上(最高档)</div><div class="ex">实际 0.75–1.5x</div><div class="ds">基础 1.5x(QQQ+QLD),经波动率目标后<b>实际 0.75–1.5x,中位 1.5x</b>。需 SMA250 上行 + 波动率&lt;40% 熔断许可。</div></div>
- <div class="rule"><div class="lv" style="color:#b8912f">C · 中性偏多</div><div class="ex">实际 0.2–1.0x</div><div class="ds">基础 1.0x(QQQ全仓),经波动率目标后<b>实际 0.22–1.0x,中位 1.0x</b>——高波动时缩得最狠。价在 SMA250 上方、动量一般(0–2 分)或熔断触发。</div></div>
- <div class="rule"><div class="lv" style="color:#3f7fb8">R · 反转恢复</div><div class="ex">实际约 0.2–0.75x</div><div class="ds">仍在 SMA250 空头状态、且不满足强空头条件,但 <b>Supertrend 转多且 MACD 柱转正</b>。基础 0.75x 再套波动率目标,在不取消长期闸门的前提下分阶段参与 V 型反弹。</div></div>
- <div class="rule"><div class="lv" style="color:#c2453b">D · 温和回调</div><div class="ex">实际 0.15–0.5x</div><div class="ds">跌破 250 日线后退出多头,但尚未深破 4% 或空头指标未共振。基础 0.5x(QQQ+现金)<b>再套波动率目标</b>——颠簸越剧烈越接近清仓。</div></div>
- <div class="rule"><div class="lv" style="color:#8b6a9e">F · 超跌底仓</div><div class="ex">最低 0.15x · 不加杠杆</div><div class="ds">宏观空头期 RSI(14)≤25 后锁存;当深空头条件本应进入 E 时,保留 0.15x QQQ 底仓。锁存持续到宏观状态恢复多头,不因 RSI 短期反弹提前解除。</div></div>
- <div class="rule"><div class="lv" style="color:#5a6172">E · 强空头/现金</div><div class="ex">默认 0x · 现金</div><div class="ds">价格低于 250 日线 4%,且 MACD&lt;0、Supertrend 空头 → 默认清仓避险;若超跌底仓锁存已开启则显示 F 并保留 0.15x,其余现金买国债。</div></div>
- <div class="rule" style="background:#eef4ee;border-color:#c9e0c9"><div class="lv" style="color:#2f6f4f">★ 波动率目标</div><div class="ex">×min(1.0, 20%÷实际波动)</div><div class="ds">把基础档连续缩放:波动飙升自动砍杠杆(只降不升)。所以最终敞口是连续值、落在哪个色带都可能。</div></div>
+ <div class="rule"><div class="lv" style="color:#6a9b3f"><span data-i18n="87">B · Uptrend (highest tier)</span></div><div class="ex"><span data-i18n="88">Actual 0.75–1.5x</span></div><div class="ds"><span data-i18n="89">Base 1.5x (QQQ+QLD); after volatility scaling, </span><b><span data-i18n="90">actual 0.75–1.5x, median 1.5x</span></b><span data-i18n="91">. Requires rising SMA250 and volatility </span>&lt;<span data-i18n="92">40% for leverage eligibility.</span></div></div>
+ <div class="rule"><div class="lv" style="color:#b8912f"><span data-i18n="93">C · Neutral bullish</span></div><div class="ex"><span data-i18n="94">Actual 0.2–1.0x</span></div><div class="ds"><span data-i18n="95">Base 1.0x (all QQQ); after volatility scaling, </span><b><span data-i18n="96">actual 0.22–1.0x, median 1.0x</span></b><span data-i18n="97">. High volatility causes the largest cuts. Price is above SMA250 with modest momentum (0–2 points), or leverage eligibility is blocked.</span></div></div>
+ <div class="rule"><div class="lv" style="color:#3f7fb8"><span data-i18n="98">R · Reversal recovery</span></div><div class="ex"><span data-i18n="99">Actual about 0.2–0.75x</span></div><div class="ds"><span data-i18n="100">The SMA250 macro regime is still bearish and deep-bear conditions are absent, but </span><b><span data-i18n="101">Supertrend is bullish and the MACD histogram is positive</span></b><span data-i18n="102">. Scale the 0.75x base by volatility targeting to participate gradually in V-shaped rebounds while retaining the long-term gate.</span></div></div>
+ <div class="rule"><div class="lv" style="color:#c2453b"><span data-i18n="103">D · Mild pullback</span></div><div class="ex"><span data-i18n="104">Actual 0.15–0.5x</span></div><div class="ds"><span data-i18n="105">Price has exited the bullish regime below the 250-day average, but the 4% deep-bear breach or bearish indicator agreement is absent. Base 0.5x (QQQ+cash) </span><b><span data-i18n="106">is further scaled by volatility targeting</span></b><span data-i18n="107">; greater turbulence brings exposure closer to cash.</span></div></div>
+ <div class="rule"><div class="lv" style="color:#8b6a9e"><span data-i18n="108">F · Oversold floor</span></div><div class="ex"><span data-i18n="109">Minimum 0.15x · Unleveraged</span></div><div class="ds"><span data-i18n="110">RSI(14)≤25 in a bearish macro regime activates the latch. When deep-bear conditions would otherwise select E, retain a 0.15x QQQ floor. The latch stays active until the macro regime turns bullish; short RSI rebounds do not release it.</span></div></div>
+ <div class="rule"><div class="lv" style="color:#5a6172"><span data-i18n="111">E · Deep bear / cash</span></div><div class="ex"><span data-i18n="112">Default 0x · Cash</span></div><div class="ds"><span data-i18n="113">Price is 4% below the 250-day average, with MACD </span>&lt;<span data-i18n="114">0 and bearish Supertrend → default cash exit. If the oversold floor latch is active, use F and retain 0.15x; remaining cash earns Treasury interest.</span></div></div>
+ <div class="rule" style="background:#eef4ee;border-color:#c9e0c9"><div class="lv" style="color:#2f6f4f"><span data-i18n="115">★ Volatility targeting</span></div><div class="ex"><span data-i18n="116">×min(1.0, 20%÷realized vol)</span></div><div class="ds"><span data-i18n="117">Continuously scales the base tier. Volatility spikes cut leverage; scaling never increases it. Final exposure is continuous and can fall within any tier’s visual band.</span></div></div>
 </div>
 <ul class="rl">
-<li><b>宏观闸门:</b> 多头跌破 250 日均线即退出;进入空头后,需重新站上均线 1% 才恢复多头。非对称滞回用于过滤均线附近的假突破。</li>
- <li><b>反转恢复(V1.5):</b> 空头状态下先判定强空头条件(E/F);若不成立且 Supertrend 已转多、MACD 柱&gt;0,进入 R 档:基础 0.75x×波动率目标。该档只负责比 D 更早恢复部分仓位,不直接恢复杠杆。</li>
- <li><b>超跌底仓(V1.6):</b> 宏观空头状态下 RSI(14)≤25 即开启锁存,此后最终净敞口不低于 0.15x,直到宏观状态恢复多头。底仓只买 QQQ、不加杠杆;R 与 D 的原有目标若高于 0.15x,仍按原目标执行。</li>
- <li><b>动量打分(多头区间):</b> Supertrend 多头 +1、MACD 柱&gt;0 +1、MACD 线&gt;0 +1、RSI&gt;50 +1;0–2 分→QQQ全仓,3–4 分→QQQ+QLD(1.5x 封顶,MAX_EXPOSURE=1.5)。</li>
- <li><b>波动率目标(核心):</b> 最终敞口 = 档位敞口 ×min(1.0, 20%÷近20日年化波动率),当前版本默认 0–1.5x(只降不升)。2000/2008/2020 波动暴涨时自动大幅降杠杆,躲开杠杆 ETF 最致命的深亏。</li>
- <li><b>强空头处理:</b> 只有价格低于 250 日线 4%,且 MACD&lt;0、Supertrend 空头时,才进入 E/F;未开启超跌锁存时为 100% 现金,开启后保留 0.15x 底仓。浅破阶段维持 D/R。</li>
- <li><b>抗抖动与执行:</b> 敞口按 0.05 档、连续 <code>3</code> 日确认;再设 <code>0.15x</code> 死区(目标偏离当前持仓 &lt;0.15x 则不动)。信号 T 日收盘生成;旧仓先承担隔夜涨跌,T+1 开盘调仓,新仓承担日内收益。全周期换手约 <span id="turn"></span> 次/年,平均净敞口 <span id="avgexp"></span>x。</li>
+<li><b><span data-i18n="118">Macro gate:</span></b><span data-i18n="119"> Exit the bullish regime below the 250-day average; re-enter only 1% above it. Asymmetric hysteresis filters false breakouts near the average.</span></li>
+ <li><b><span data-i18n="120">Reversal recovery (V1.5):</span></b><span data-i18n="121"> In a bearish regime, check deep-bear conditions (E/F) first. Otherwise, if Supertrend is bullish and the MACD histogram is </span>&gt;<span data-i18n="122">0, select R: base 0.75x × volatility scaling. This restores some exposure earlier than D, without restoring leverage.</span></li>
+ <li><b><span data-i18n="123">Oversold floor (V1.6):</span></b><span data-i18n="124"> RSI(14)≤25 in a bearish macro regime activates a latch, keeping final net exposure at least 0.15x until the macro regime turns bullish. The floor buys only unleveraged QQQ; R/D targets above 0.15x remain unchanged.</span></li>
+ <li><b><span data-i18n="125">Momentum score (bullish regime):</span></b><span data-i18n="126"> Bullish Supertrend +1, MACD histogram </span>&gt;<span data-i18n="127">0 +1, MACD line </span>&gt;<span data-i18n="142">0 +1, RSI</span>&gt;<span data-i18n="128">50 +1; 0–2 points → all QQQ, 3–4 → QQQ+QLD (1.5x cap, MAX_EXPOSURE=1.5).</span></li>
+ <li><b><span data-i18n="129">Volatility targeting (core):</span></b><span data-i18n="130"> Final exposure = tier exposure ×min(1.0, 20%÷20-day annualized volatility), with a default target range of 0–1.5x (only scaled down). Volatility spikes in 2000/2008/2020 sharply reduced leverage and exposure to severe leveraged-ETF losses.</span></li>
+ <li><b><span data-i18n="131">Deep-bear handling:</span></b><span data-i18n="132"> E/F requires price 4% below the 250-day average, MACD </span>&lt;<span data-i18n="133">0 and bearish Supertrend. Without the oversold latch, hold 100% cash; with it, retain a 0.15x floor. Shallow breaches remain D/R.</span></li>
+ <li><b><span data-i18n="134">Confirmation and execution:</span></b><span data-i18n="135"> Round exposure to 0.05 increments and require </span><code>3</code><span data-i18n="136"> consecutive days of confirmation, then apply a </span><code>0.15x</code><span data-i18n="137"> deadband (no change if target differs from current holdings by </span>&lt;<span data-i18n="138">0.15x). Generate the signal at the close of T; existing holdings absorb overnight moves, rebalance at the T+1 open, and new holdings earn intraday returns. Full-period switching is about </span><span id="turn"></span><span data-i18n="139"> times/year, with average net exposure </span><span id="avgexp"></span><span data-i18n="143">x.</span></li>
 </ul>
 </div>
 
@@ -256,12 +263,634 @@ code{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}
 </div>
 
 <script>
+// Language preferences affect presentation only; report-data keys stay unchanged.
+const REPORT_TRANSLATIONS = [
+  {
+    "en": "QQQ/QLD Dynamic Allocation Backtest V1.6.1a",
+    "zh": "QQQ/QLD 动态滚仓策略回测 V1.6.1a"
+  },
+  {
+    "en": "QQQ · QLD — Indicator-driven leveraged allocation · V1.6.1a",
+    "zh": "QQQ · QLD — 技术指标驱动的杠杆滚仓 · V1.6.1a"
+  },
+  {
+    "en": "Dynamic Allocation Backtest (V1.6.1a)",
+    "zh": "动态滚仓策略回测(V1.6.1a)"
+  },
+  {
+    "en": "QQQ’s ",
+    "zh": "基于 QQQ 的 "
+  },
+  {
+    "en": " + a 250-day trend gate determine the allocation tier, with two risk controls: a ",
+    "zh": " + 250 日趋势闸门决定仓位档位,叠加 "
+  },
+  {
+    "en": "20% volatility target",
+    "zh": "20% 波动率目标"
+  },
+  {
+    "en": " and ",
+    "zh": "与"
+  },
+  {
+    "en": "deep-bear cash exit",
+    "zh": "强空头清仓"
+  },
+  {
+    "en": ". V1.6.1 keeps the V1.6 signals and allocation parameters, but corrects execution to ",
+    "zh": "两层风控。V1.6.1 不改变 V1.6 的信号与仓位参数,只把执行修正为"
+  },
+  {
+    "en": "signals at the close of day T, rebalancing at the T+1 open",
+    "zh": "信号 T 日收盘生成、T+1 开盘调仓"
+  },
+  {
+    "en": ": existing holdings absorb overnight moves, and new holdings earn intraday returns. Full-period CAGR 14.9%, maximum drawdown −26.9%, Calmar 0.55, Sharpe 0.82. Net exposure varies continuously from ",
+    "zh": ":旧仓承担隔夜波动,新仓承担日内收益。全周期年化 14.9%、最大回撤 −26.9%、Calmar 0.55、夏普 0.82。净敞口在 "
+  },
+  {
+    "en": "0 (cash) → 1.5x (QQQ+QLD)",
+    "zh": "0(现金)→ 1.5x(QQQ+QLD)"
+  },
+  {
+    "en": ", with defensive cash earning short-term Treasury interest. ",
+    "zh": " 间连续调节,避险现金赚取短端国债收益。"
+  },
+  {
+    "en": "No rebalancing while the allocation tier is held",
+    "zh": "档位持有期内不做再平衡"
+  },
+  {
+    "en": ", with a ",
+    "zh": ",且设 "
+  },
+  {
+    "en": "0.15x deadband",
+    "zh": "0.15x 死区"
+  },
+  {
+    "en": "Version history",
+    "zh": "版本演进"
+  },
+  {
+    "en": "Initial",
+    "zh": "初版"
+  },
+  {
+    "en": "Daily Supertrend alone timed entries. Frequent leverage re-entry during bear-market rallies produced about 33 switches/year and a maximum drawdown near −84%, missing the risk-control goal.",
+    "zh": "使用日线 Supertrend 直接择时。熊市反弹中频繁重新加杠杆,换手约 33 次/年、最大回撤约 −84%,未达到风险控制目标。"
+  },
+  {
+    "en": "Risk controls",
+    "zh": "基础风控"
+  },
+  {
+    "en": "Added a long-term moving-average gate, volatility targeting, deep-bear cash exits and interest on cash. The volatility-scaling cap was then reduced to 1.0: exposure can only be reduced from its base tier, never increased.",
+    "zh": "加入长期均线闸门、波动率目标、强空头清仓与现金生息;随后将波动率缩放上限收紧为 1.0,只允许降仓、不在基础档上额外加杠杆。"
+  },
+  {
+    "en": "Changed the long-term trend gate from 200 to 250 days. A parameter plateau around 250/300 days reduced maximum drawdown from about −42% to −32%.",
+    "zh": "长期趋势闸门由 200 日改为 250 日。250/300 日附近形成参数高原,最大回撤由约 −42% 降至 −32%。"
+  },
+  {
+    "en": "Removed the 2.0x all-QLD tier and capped target net exposure at 1.5x. Avoiding 2.0x exposure during overheated markets preserved returns and reduced turnover.",
+    "zh": "删除 2.0x QLD 全仓档,把最高净敞口限制为 1.5x。高位过热阶段不再追逐 2.0x,收益基本不受损且换手下降。"
+  },
+  {
+    "en": "Changed the mild-pullback D tier from fixed 0.5x to 0.5x × volatility scaling. More turbulent markets receive less exposure; maximum drawdown fell further to about −26%.",
+    "zh": "温和回调 D 档由固定 0.5x 改为 0.5x×波动率目标,市场越颠簸仓位越低,最大回撤进一步降至约 −26%。"
+  },
+  {
+    "en": "Added asymmetric SMA250 hysteresis: exit the bullish regime below the average, re-enter only 1% above it. Cash exits require a 4% breach and bearish indicator agreement, reducing repeated switching near the average.",
+    "zh": "为 SMA250 加入非对称滞回:跌破均线退出多头、重新站上 1% 才恢复;只有深破 4% 且空头指标共振才清仓,减少均线附近反复切换。"
+  },
+  {
+    "en": "Added the reversal-recovery R tier. While the macro regime remains bearish, bullish Supertrend and MACD histogram signals restore 0.75x base exposure earlier, reducing underexposure during V-shaped rebounds.",
+    "zh": "新增反转恢复 R 档。宏观状态仍为空头但 Supertrend 与 MACD 柱同时转多时,先恢复 0.75x 基础敞口,降低 V 型反弹中的低仓滞后。"
+  },
+  {
+    "en": "Added an oversold RSI floor latch. After RSI(14)≤25 in a bearish macro regime, retain at least 0.15x unleveraged QQQ until the macro regime turns bullish. This complements the R tier.",
+    "zh": "新增 RSI 超跌底仓锁存。宏观空头期 RSI(14)≤25 后最低保留 0.15x 无杠杆 QQQ,直到宏观状态恢复多头;与 R 档互补。"
+  },
+  {
+    "en": "Corrected T+1 execution. Existing holdings absorb overnight moves after the signal, rebalancing occurs at the next trading open, and new holdings earn only intraday returns. Strategy rules and parameters are unchanged.",
+    "zh": "修正 T+1 执行口径。旧仓位承担信号产生后的隔夜涨跌,下一交易日开盘调仓,新仓位只承担日内收益;策略规则和参数不变。"
+  },
+  {
+    "en": "Report update: added VIX and extreme-panic observation markers. Strategy rules, parameters and backtest results remain V1.6.1.",
+    "zh": "报告版本更新:增加 VIX 与极端恐慌观察标记;策略规则、参数和回测结果仍为 V1.6.1。"
+  },
+  {
+    "en": "Current target allocation",
+    "zh": "当前建议仓位"
+  },
+  {
+    "en": "At the close on ",
+    "zh": "截至 "
+  },
+  {
+    "en": ", based on the latest indicators. Extreme panic is an observation marker only and does not affect allocation. For research only; not investment advice.",
+    "zh": " 收盘,依据最新指标状态。极端恐慌仅作观察标记,不参与仓位计算。仅供研究参考,非投资建议。"
+  },
+  {
+    "en": "Key results",
+    "zh": "核心结论"
+  },
+  {
+    "en": "Last 5 years",
+    "zh": "最近5年"
+  },
+  {
+    "en": "Since 2006 (actual QLD)",
+    "zh": "2006至今(真实QLD)"
+  },
+  {
+    "en": "Since 2010",
+    "zh": "2010至今"
+  },
+  {
+    "en": "Since 2020",
+    "zh": "2020至今"
+  },
+  {
+    "en": "Since 1999 (full period)",
+    "zh": "1999至今(全区间)"
+  },
+  {
+    "en": "Equity growth (log scale)",
+    "zh": "净值增长曲线(对数刻度)"
+  },
+  {
+    "en": "All series are normalized on the first trading day in the selected range to ",
+    "zh": "所有曲线以所选区间首个交易日归一为 "
+  },
+  {
+    "en": "1x (0% cumulative return)",
+    "zh": "1x(累计收益 0%)"
+  },
+  {
+    "en": ". Non-trading start dates advance to the next available trading day. ",
+    "zh": ",非交易日顺延至下一个有数据的交易日。"
+  },
+  {
+    "en": "The strategy line is colored by decision tier",
+    "zh": "策略主线按决策档分段着色"
+  },
+  {
+    "en": ". Red dots mark extreme-panic days with RSI≤25 and VIX≥30, for observation only. Zoom using preset ranges, ",
+    "zh": ",红点标记 RSI≤25 且 VIX≥30 的极端恐慌日,只供观察、不改变策略。可缩放:点选预设区间、"
+  },
+  {
+    "en": "custom start/end dates",
+    "zh": "手动选起止日期"
+  },
+  {
+    "en": ", or ",
+    "zh": ",或在图上"
+  },
+  {
+    "en": "drag a selection",
+    "zh": "拖拽框选"
+  },
+  {
+    "en": " on the chart.",
+    "zh": "放大。"
+  },
+  {
+    "en": "All",
+    "zh": "全部"
+  },
+  {
+    "en": "Since 2008",
+    "zh": "2008后"
+  },
+  {
+    "en": "Since 2015",
+    "zh": "2015后"
+  },
+  {
+    "en": "Since 2020",
+    "zh": "2020后"
+  },
+  {
+    "en": "Since 2022",
+    "zh": "2022后"
+  },
+  {
+    "en": "↺ Reset zoom",
+    "zh": "↺ 复位缩放"
+  },
+  {
+    "en": "Custom range",
+    "zh": "自定义区间"
+  },
+  {
+    "en": "Apply",
+    "zh": "应用"
+  },
+  {
+    "en": "Drawdown comparison",
+    "zh": "回撤对比"
+  },
+  {
+    "en": "Select a preset or custom range independently. Drawdown is measured against ",
+    "zh": "可独立选择预设或自定义区间。回撤按"
+  },
+  {
+    "en": "the running peak within the selected range",
+    "zh": "所选区间内的历史最高净值"
+  },
+  {
+    "en": ", starting at 0% on its first trading day, without carrying in earlier drawdowns. Start dates advance and end dates retreat to available trading days.",
+    "zh": "计算,首个交易日从 0% 开始,不延续区间前的回撤。起始日期顺延、结束日期回溯至有数据的交易日。"
+  },
+  {
+    "en": "All",
+    "zh": "全部"
+  },
+  {
+    "en": "Since 2008",
+    "zh": "2008后"
+  },
+  {
+    "en": "Since 2015",
+    "zh": "2015后"
+  },
+  {
+    "en": "Since 2020",
+    "zh": "2020后"
+  },
+  {
+    "en": "Since 2022",
+    "zh": "2022后"
+  },
+  {
+    "en": "↺ Full range",
+    "zh": "↺ 全部区间"
+  },
+  {
+    "en": "Custom range",
+    "zh": "自定义区间"
+  },
+  {
+    "en": "Apply",
+    "zh": "应用"
+  },
+  {
+    "en": "Annual returns and drawdowns",
+    "zh": "年度收益与回撤"
+  },
+  {
+    "en": "Annual return",
+    "zh": "年度收益"
+  },
+  {
+    "en": "Calendar-year maximum drawdown",
+    "zh": "年内最大回撤"
+  },
+  {
+    "en": "Time by decision tier",
+    "zh": "各决策档时间占比"
+  },
+  {
+    "en": "Measured by decision tier: uptrend about 45%, neutral bullish 30%, reversal recovery 6%, mild pullback 7%, oversold floor 5%, deep bear/cash 7%.",
+    "zh": "按决策档统计。趋势向上约 45%、中性偏多约 30%、反转恢复约 6%、温和回调约 7%、超跌底仓约 5%、强空头/现金约 7%。"
+  },
+  {
+    "en": "Net exposure over time",
+    "zh": "净杠杆暴露随时间变化"
+  },
+  {
+    "en": "Exposure is the portfolio’s QQQ equivalent (0x cash → maximum target 1.5x), adjusted continuously by volatility targeting. Bear markets (2000, 2008, 2020, 2022) automatically reduce exposure to cash or low allocations.",
+    "zh": "数值 = 组合对 QQQ 的等效敞口(0x 现金 → 最高 1.5x),经波动率目标连续调节。可见熊市(2000、2008、2020、2022)自动降到现金或低敞口。"
+  },
+  {
+    "en": "Allocation rules",
+    "zh": "切换规则"
+  },
+  {
+    "en": "Decision chain: ① a 250-day moving average with hysteresis sets the macro regime → ② in bullish regimes, Supertrend/MACD/RSI scores (0–4) select the ",
+    "zh": "决策链:①用带滞回的 250 日均线判断多空状态 → ②多头区间用 Supertrend/MACD/RSI 打分(0–4)定"
+  },
+  {
+    "en": "base tier",
+    "zh": "基础档"
+  },
+  {
+    "en": " → ③ bearish regimes select E/R/D for deep bear, dual reversal or ordinary pullback → ④ RSI≤25 in a bearish macro regime latches a minimum 0.15x floor → ⑤ the 20% volatility target ",
+    "zh": " → ③空头区间按深空头、双反转和普通回调分 E/R/D → ④宏观空头期 RSI≤25 后锁定 0.15x 最低底仓 → ⑤用 20% 波动率目标把基础档"
+  },
+  {
+    "en": "continuously scales",
+    "zh": "连续缩放"
+  },
+  {
+    "en": " the base tier into final exposure. Defensive cash earns short-term Treasury interest. ",
+    "zh": "成最终敞口。避险现金买短端国债生息。"
+  },
+  {
+    "en": "Maximum target 1.5x.",
+    "zh": "最高 1.5x。"
+  },
+  {
+    "en": "⚠ B/C/R/D/F/E are decision tiers; ",
+    "zh": "⚠ B/C/R/D/F/E 是\"决策档\";"
+  },
+  {
+    "en": "the equity curve is colored by decision tier",
+    "zh": "净值曲线按决策档着色"
+  },
+  {
+    "en": ", while ",
+    "zh": ",而"
+  },
+  {
+    "en": "actual net exposure",
+    "zh": "实际净敞口"
+  },
+  {
+    "en": " (after volatility scaling, the floor, confirmation and deadband) is shown in tooltips. F means the oversold floor latch is active in a deep-bear state, retaining at least 0.15x without leverage.",
+    "zh": "(经波动率目标、底仓、确认与死区处理后连续变化)见悬浮提示。F 只表示深空头时超跌底仓锁存已开启,固定最低 0.15x、不使用杠杆。"
+  },
+  {
+    "en": "B · Uptrend (highest tier)",
+    "zh": "B · 趋势向上(最高档)"
+  },
+  {
+    "en": "Actual 0.75–1.5x",
+    "zh": "实际 0.75–1.5x"
+  },
+  {
+    "en": "Base 1.5x (QQQ+QLD); after volatility scaling, ",
+    "zh": "基础 1.5x(QQQ+QLD),经波动率目标后"
+  },
+  {
+    "en": "actual 0.75–1.5x, median 1.5x",
+    "zh": "实际 0.75–1.5x,中位 1.5x"
+  },
+  {
+    "en": ". Requires rising SMA250 and volatility ",
+    "zh": "。需 SMA250 上行 + 波动率"
+  },
+  {
+    "en": "40% for leverage eligibility.",
+    "zh": "40% 熔断许可。"
+  },
+  {
+    "en": "C · Neutral bullish",
+    "zh": "C · 中性偏多"
+  },
+  {
+    "en": "Actual 0.2–1.0x",
+    "zh": "实际 0.2–1.0x"
+  },
+  {
+    "en": "Base 1.0x (all QQQ); after volatility scaling, ",
+    "zh": "基础 1.0x(QQQ全仓),经波动率目标后"
+  },
+  {
+    "en": "actual 0.22–1.0x, median 1.0x",
+    "zh": "实际 0.22–1.0x,中位 1.0x"
+  },
+  {
+    "en": ". High volatility causes the largest cuts. Price is above SMA250 with modest momentum (0–2 points), or leverage eligibility is blocked.",
+    "zh": "——高波动时缩得最狠。价在 SMA250 上方、动量一般(0–2 分)或熔断触发。"
+  },
+  {
+    "en": "R · Reversal recovery",
+    "zh": "R · 反转恢复"
+  },
+  {
+    "en": "Actual about 0.2–0.75x",
+    "zh": "实际约 0.2–0.75x"
+  },
+  {
+    "en": "The SMA250 macro regime is still bearish and deep-bear conditions are absent, but ",
+    "zh": "仍在 SMA250 空头状态、且不满足强空头条件,但 "
+  },
+  {
+    "en": "Supertrend is bullish and the MACD histogram is positive",
+    "zh": "Supertrend 转多且 MACD 柱转正"
+  },
+  {
+    "en": ". Scale the 0.75x base by volatility targeting to participate gradually in V-shaped rebounds while retaining the long-term gate.",
+    "zh": "。基础 0.75x 再套波动率目标,在不取消长期闸门的前提下分阶段参与 V 型反弹。"
+  },
+  {
+    "en": "D · Mild pullback",
+    "zh": "D · 温和回调"
+  },
+  {
+    "en": "Actual 0.15–0.5x",
+    "zh": "实际 0.15–0.5x"
+  },
+  {
+    "en": "Price has exited the bullish regime below the 250-day average, but the 4% deep-bear breach or bearish indicator agreement is absent. Base 0.5x (QQQ+cash) ",
+    "zh": "跌破 250 日线后退出多头,但尚未深破 4% 或空头指标未共振。基础 0.5x(QQQ+现金)"
+  },
+  {
+    "en": "is further scaled by volatility targeting",
+    "zh": "再套波动率目标"
+  },
+  {
+    "en": "; greater turbulence brings exposure closer to cash.",
+    "zh": "——颠簸越剧烈越接近清仓。"
+  },
+  {
+    "en": "F · Oversold floor",
+    "zh": "F · 超跌底仓"
+  },
+  {
+    "en": "Minimum 0.15x · Unleveraged",
+    "zh": "最低 0.15x · 不加杠杆"
+  },
+  {
+    "en": "RSI(14)≤25 in a bearish macro regime activates the latch. When deep-bear conditions would otherwise select E, retain a 0.15x QQQ floor. The latch stays active until the macro regime turns bullish; short RSI rebounds do not release it.",
+    "zh": "宏观空头期 RSI(14)≤25 后锁存;当深空头条件本应进入 E 时,保留 0.15x QQQ 底仓。锁存持续到宏观状态恢复多头,不因 RSI 短期反弹提前解除。"
+  },
+  {
+    "en": "E · Deep bear / cash",
+    "zh": "E · 强空头/现金"
+  },
+  {
+    "en": "Default 0x · Cash",
+    "zh": "默认 0x · 现金"
+  },
+  {
+    "en": "Price is 4% below the 250-day average, with MACD ",
+    "zh": "价格低于 250 日线 4%,且 MACD"
+  },
+  {
+    "en": "0 and bearish Supertrend → default cash exit. If the oversold floor latch is active, use F and retain 0.15x; remaining cash earns Treasury interest.",
+    "zh": "0、Supertrend 空头 → 默认清仓避险;若超跌底仓锁存已开启则显示 F 并保留 0.15x,其余现金买国债。"
+  },
+  {
+    "en": "★ Volatility targeting",
+    "zh": "★ 波动率目标"
+  },
+  {
+    "en": "×min(1.0, 20%÷realized vol)",
+    "zh": "×min(1.0, 20%÷实际波动)"
+  },
+  {
+    "en": "Continuously scales the base tier. Volatility spikes cut leverage; scaling never increases it. Final exposure is continuous and can fall within any tier’s visual band.",
+    "zh": "把基础档连续缩放:波动飙升自动砍杠杆(只降不升)。所以最终敞口是连续值、落在哪个色带都可能。"
+  },
+  {
+    "en": "Macro gate:",
+    "zh": "宏观闸门:"
+  },
+  {
+    "en": " Exit the bullish regime below the 250-day average; re-enter only 1% above it. Asymmetric hysteresis filters false breakouts near the average.",
+    "zh": " 多头跌破 250 日均线即退出;进入空头后,需重新站上均线 1% 才恢复多头。非对称滞回用于过滤均线附近的假突破。"
+  },
+  {
+    "en": "Reversal recovery (V1.5):",
+    "zh": "反转恢复(V1.5):"
+  },
+  {
+    "en": " In a bearish regime, check deep-bear conditions (E/F) first. Otherwise, if Supertrend is bullish and the MACD histogram is ",
+    "zh": " 空头状态下先判定强空头条件(E/F);若不成立且 Supertrend 已转多、MACD 柱"
+  },
+  {
+    "en": "0, select R: base 0.75x × volatility scaling. This restores some exposure earlier than D, without restoring leverage.",
+    "zh": "0,进入 R 档:基础 0.75x×波动率目标。该档只负责比 D 更早恢复部分仓位,不直接恢复杠杆。"
+  },
+  {
+    "en": "Oversold floor (V1.6):",
+    "zh": "超跌底仓(V1.6):"
+  },
+  {
+    "en": " RSI(14)≤25 in a bearish macro regime activates a latch, keeping final net exposure at least 0.15x until the macro regime turns bullish. The floor buys only unleveraged QQQ; R/D targets above 0.15x remain unchanged.",
+    "zh": " 宏观空头状态下 RSI(14)≤25 即开启锁存,此后最终净敞口不低于 0.15x,直到宏观状态恢复多头。底仓只买 QQQ、不加杠杆;R 与 D 的原有目标若高于 0.15x,仍按原目标执行。"
+  },
+  {
+    "en": "Momentum score (bullish regime):",
+    "zh": "动量打分(多头区间):"
+  },
+  {
+    "en": " Bullish Supertrend +1, MACD histogram ",
+    "zh": " Supertrend 多头 +1、MACD 柱"
+  },
+  {
+    "en": "0 +1, MACD line ",
+    "zh": "0 +1、MACD 线"
+  },
+  {
+    "en": "50 +1; 0–2 points → all QQQ, 3–4 → QQQ+QLD (1.5x cap, MAX_EXPOSURE=1.5).",
+    "zh": "50 +1;0–2 分→QQQ全仓,3–4 分→QQQ+QLD(1.5x 封顶,MAX_EXPOSURE=1.5)。"
+  },
+  {
+    "en": "Volatility targeting (core):",
+    "zh": "波动率目标(核心):"
+  },
+  {
+    "en": " Final exposure = tier exposure ×min(1.0, 20%÷20-day annualized volatility), with a default target range of 0–1.5x (only scaled down). Volatility spikes in 2000/2008/2020 sharply reduced leverage and exposure to severe leveraged-ETF losses.",
+    "zh": " 最终敞口 = 档位敞口 ×min(1.0, 20%÷近20日年化波动率),当前版本默认 0–1.5x(只降不升)。2000/2008/2020 波动暴涨时自动大幅降杠杆,躲开杠杆 ETF 最致命的深亏。"
+  },
+  {
+    "en": "Deep-bear handling:",
+    "zh": "强空头处理:"
+  },
+  {
+    "en": " E/F requires price 4% below the 250-day average, MACD ",
+    "zh": " 只有价格低于 250 日线 4%,且 MACD"
+  },
+  {
+    "en": "0 and bearish Supertrend. Without the oversold latch, hold 100% cash; with it, retain a 0.15x floor. Shallow breaches remain D/R.",
+    "zh": "0、Supertrend 空头时,才进入 E/F;未开启超跌锁存时为 100% 现金,开启后保留 0.15x 底仓。浅破阶段维持 D/R。"
+  },
+  {
+    "en": "Confirmation and execution:",
+    "zh": "抗抖动与执行:"
+  },
+  {
+    "en": " Round exposure to 0.05 increments and require ",
+    "zh": " 敞口按 0.05 档、连续 "
+  },
+  {
+    "en": " consecutive days of confirmation, then apply a ",
+    "zh": " 日确认;再设 "
+  },
+  {
+    "en": " deadband (no change if target differs from current holdings by ",
+    "zh": " 死区(目标偏离当前持仓 "
+  },
+  {
+    "en": "0.15x). Generate the signal at the close of T; existing holdings absorb overnight moves, rebalance at the T+1 open, and new holdings earn intraday returns. Full-period switching is about ",
+    "zh": "0.15x 则不动)。信号 T 日收盘生成;旧仓先承担隔夜涨跌,T+1 开盘调仓,新仓承担日内收益。全周期换手约 "
+  },
+  {
+    "en": " times/year, with average net exposure ",
+    "zh": " 次/年,平均净敞口 "
+  },
+  {
+    "en": "Language",
+    "zh": "语言"
+  },
+  {
+    "en": ".",
+    "zh": "。"
+  },
+  {
+    "en": "0 +1, RSI",
+    "zh": "0 +1、RSI"
+  },
+  {
+    "en": "x.",
+    "zh": "x。"
+  }
+];
+const REPORT_LANGUAGE_KEY = 'qqq-report-language';
+function preferredReportLanguage(){
+  try {
+    const saved=localStorage.getItem(REPORT_LANGUAGE_KEY);
+    if(saved==='en'||saved==='zh') return saved;
+  } catch (_) { /* Storage may be unavailable for local files or private browsing. */ }
+  const clientLanguage=(navigator.languages&&navigator.languages[0])||navigator.language||'en';
+  return /^zh(?:-|$)/i.test(clientLanguage)?'zh':'en';
+}
+let reportLanguage=preferredReportLanguage();
+const t=(en,zh)=>reportLanguage==='zh'?zh:en;
+function applyReportLanguage(){
+  document.documentElement.lang=reportLanguage;
+  document.querySelectorAll('[data-i18n]').forEach(element=>{
+    element.textContent=REPORT_TRANSLATIONS[Number(element.dataset.i18n)][reportLanguage];
+  });
+  const labels={dstart:t('Equity start date','净值起始日期'),dend:t('Equity end date','净值结束日期'),
+    ddstart:t('Drawdown start date','回撤起始日期'),ddend:t('Drawdown end date','回撤结束日期'),
+    eqchart:t('Equity growth chart','净值增长图'),ddchart:t('Drawdown chart','回撤图'),
+    distchart:t('Decision-tier distribution chart','决策档时间占比图'),expchart:t('Net exposure chart','净敞口图')};
+  Object.entries(labels).forEach(([id,label])=>document.getElementById(id).setAttribute('aria-label',label));
+  const button=document.getElementById('language-switch');
+  button.setAttribute('aria-checked',String(reportLanguage==='zh'));
+  button.setAttribute('aria-label',t('Display in Chinese','显示中文'));
+  const error=document.getElementById('report-error');
+  if(error) error.innerHTML='<h2>'+t('Report data unavailable','缺少报告数据')+'</h2><p>'+
+    t('Run <code>python 3_generate_report.py</code> to generate <code>report_data.js</code>, then reopen this page.',
+      '请先运行 <code>python 3_generate_report.py</code> 生成 <code>report_data.js</code>,再打开本页面。')+'</p>';
+}
+document.getElementById('language-switch').addEventListener('click',()=>{
+  reportLanguage=reportLanguage==='en'?'zh':'en';
+  try { localStorage.setItem(REPORT_LANGUAGE_KEY,reportLanguage); } catch (_) {}
+  applyReportLanguage();
+  window.dispatchEvent(new Event('reportlanguagechange'));
+});
+applyReportLanguage();
+</script>
+
+<script>
 ;(async()=>{
 await window.REPORT_DATA_READY.catch(()=>{});
 const R = window.QQQ_REPORT_DATA;
 if(!R){
-  document.body.innerHTML='<div style="max-width:760px;margin:56px auto;padding:24px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;line-height:1.6;color:#1c2230"><h1>缺少报告数据</h1><p>请先运行 <code>python 3_generate_report.py</code> 生成 <code>report_data.js</code>,再打开本页面。</p></div>';
-  throw new Error('Missing report_data.js');
+  const error=document.createElement('div');
+  error.id='report-error';error.className='card';error.setAttribute('role','alert');
+  document.querySelector('.header-tools').after(error);
+  document.querySelectorAll('.card:not(#report-error),.versions').forEach(element=>element.hidden=true);
+  applyReportLanguage();
+  return;
 }
 const fmtP = x => (x*100).toFixed(1)+'%';
 const fmtP0 = x => (x*100).toFixed(0)+'%';
@@ -274,54 +903,69 @@ const DEC=R.decision;                 // 每日决策档(B/C/R/D/F/E)
 const PANIC=new Set(R.panic_dates||[]); // 观察标记,不参与策略
 const DECCOL={'B':'#6a9b3f','C':'#b8912f','R':'#3f7fb8','D':'#c2453b','F':'#8b6a9e','E':'#5a6172'};
 const DECNM ={'B':'趋势向上','C':'中性偏多','R':'反转恢复','D':'温和回调','F':'超跌底仓','E':'强空头/现金'};
+const STATEEN={'趋势向上':'Uptrend','中性偏多':'Neutral bullish','反转恢复':'Reversal recovery','温和回调':'Mild pullback','超跌底仓':'Oversold floor','强空头/现金':'Deep bear / cash'};
+function displayName(name){
+  if(reportLanguage==='zh') return name;
+  if(name===STRATEGY) return 'Strategy ('+(STRATEGY.match(/V[\d.]+/)||['V1.6.1'])[0]+')';
+  return STATEEN[name]||({'策略':'Strategy','QQQ半仓':'50% QQQ + cash','QQQ全仓(=买入持有QQQ)':'QQQ buy & hold',
+    'QLD全仓(=买入持有QLD)':'QLD buy & hold','QQQ+QLD(50/50)':'QQQ+QLD (50/50)'}[name])||name;
+}
+const decisionName=code=>displayName(DECNM[code]||'');
 
 // ---- latest signal ----
 const L=R.latest;
-document.getElementById('ldate').textContent=L.date;
-document.getElementById('lstate').textContent=L.state;
-document.getElementById('lstate').style.color=DECCOL[L.dec];
-document.getElementById('lstatebar').innerHTML='<span class="pill" style="background:'+DECCOL[L.dec]+'22;color:'+DECCOL[L.dec]+'">决策 '+L.state+' · 建议净敞口 '+L.exp.toFixed(2)+'x</span>';
-const executedExp=L.executed_exp??L.prev_exp;
-document.getElementById('lreb').innerHTML=
-  '上次开盘调仓:<b>'+L.last_reb+'</b>(距今 '+L.days_since+' 天)<br>'+
-  '当前已执行:'+executedExp.toFixed(2)+'x  →  下个开盘建议 '+L.exp.toFixed(2)+'x';
-const macroState=L.macro_bull?'多头':(L.deep_bear?'深空头':'回调观察');
-const vixText=Number.isFinite(L.vix)?L.vix.toFixed(1):'--';
-const ind=[['价格',L.price.toFixed(0),''],['SMA250',L.sma250.toFixed(0),''],['250日状态',macroState,L.macro_bull?'up':'dn'],
- ['Supertrend',L.st_level.toFixed(0),L.st_bull?'up':'dn'],
- ['MACD 柱',L.macd_hist.toFixed(2),L.macd_hist>0?'up':'dn'],['MACD 线',L.macd_line.toFixed(2),L.macd_line>0?'up':'dn'],
- ['RSI(14)',L.rsi.toFixed(1),L.rsi>50?'up':'dn'],['VIX',vixText,L.vix>=30?'dn':''],
- ['极端恐慌',L.extreme_panic?'已触发':'未触发',L.extreme_panic?'dn':''],['超跌底仓锁存',L.oversold_latch?'开启':'关闭',L.oversold_latch?'dn':'up'],
- ['20日波动率',(L.rvol*100).toFixed(0)+'%',L.rvol<0.4?'up':'dn']];
-document.getElementById('lind').innerHTML=ind.map(([k,v,c])=>'<div class="ind"><div class="k">'+k+'</div><div class="v '+c+'">'+v+'</div></div>').join('');
-document.getElementById('turn').textContent=R.ann_switch;
-document.getElementById('avgexp').textContent=R.avg_exp;
+function renderLatest(){
+ document.getElementById('ldate').textContent=L.date;
+ document.getElementById('lstate').textContent=decisionName(L.dec);
+ document.getElementById('lstate').style.color=DECCOL[L.dec];
+ document.getElementById('lstatebar').innerHTML='<span class="pill" style="background:'+DECCOL[L.dec]+'22;color:'+DECCOL[L.dec]+'">'+
+   t('Decision ','决策 ')+decisionName(L.dec)+t(' · Target net exposure ',' · 建议净敞口 ')+L.exp.toFixed(2)+'x</span>';
+ const executedExp=L.executed_exp??L.prev_exp;
+ document.getElementById('lreb').innerHTML=
+   t('Last opening rebalance: <b>','上次开盘调仓:<b>')+L.last_reb+'</b>'+t(' (','(距今 ')+L.days_since+t(' days ago)<br>',' 天)<br>')+
+   t('Currently executed: ','当前已执行:')+executedExp.toFixed(2)+'x → '+t('Next-open target ','下个开盘建议 ')+L.exp.toFixed(2)+'x';
+ const macroState=L.macro_bull?t('Bullish','多头'):(L.deep_bear?t('Deep bear','深空头'):t('Pullback watch','回调观察'));
+ const vixText=Number.isFinite(L.vix)?L.vix.toFixed(1):'--';
+ const ind=[[t('Price','价格'),L.price.toFixed(0),''],['SMA250',L.sma250.toFixed(0),''],[t('250-day regime','250日状态'),macroState,L.macro_bull?'up':'dn'],
+   ['Supertrend',L.st_level.toFixed(0),L.st_bull?'up':'dn'],
+   [t('MACD histogram','MACD 柱'),L.macd_hist.toFixed(2),L.macd_hist>0?'up':'dn'],[t('MACD line','MACD 线'),L.macd_line.toFixed(2),L.macd_line>0?'up':'dn'],
+   ['RSI(14)',L.rsi.toFixed(1),L.rsi>50?'up':'dn'],['VIX',vixText,L.vix>=30?'dn':''],
+   [t('Extreme panic','极端恐慌'),L.extreme_panic?t('Triggered','已触发'):t('Not triggered','未触发'),L.extreme_panic?'dn':''],
+   [t('Oversold floor latch','超跌底仓锁存'),L.oversold_latch?t('On','开启'):t('Off','关闭'),L.oversold_latch?'dn':'up'],
+   [t('20-day volatility','20日波动率'),(L.rvol*100).toFixed(0)+'%',L.rvol<0.4?'up':'dn']];
+ document.getElementById('lind').innerHTML=ind.map(([k,v,c])=>'<div class="ind"><div class="k">'+k+'</div><div class="v '+c+'">'+v+'</div></div>').join('');
+ document.getElementById('turn').textContent=R.ann_switch;
+ document.getElementById('avgexp').textContent=R.avg_exp;
+}
+renderLatest();
 
 // ---- KPI ----
 const PMETA={
-  full:{m:R.metrics,      label:'1999-03 至今(全区间)', span:'1999至今'},
-  sub :{m:R.metrics_sub,  label:'2006-06 至今(真实QLD)', span:'2006至今'},
-  p2010:{m:R.metrics_2010,label:'2010-01 至今',          span:'2010至今'},
-  p2020:{m:R.metrics_2020,label:'2020-01 至今',          span:'2020至今'},
+  full:{m:R.metrics, enLabel:'Since 1999-03 (full period)', zhLabel:'1999-03 至今(全区间)', enSpan:'Since 1999',zhSpan:'1999至今'},
+  sub:{m:R.metrics_sub,enLabel:'Since 2006-06 (actual QLD)',zhLabel:'2006-06 至今(真实QLD)',enSpan:'Since 2006',zhSpan:'2006至今'},
+  p2010:{m:R.metrics_2010,enLabel:'Since 2010-01',zhLabel:'2010-01 至今',enSpan:'Since 2010',zhSpan:'2010至今'},
+  p2020:{m:R.metrics_2020,enLabel:'Since 2020-01',zhLabel:'2020-01 至今',enSpan:'Since 2020',zhSpan:'2020至今'},
 };
-if(R.metrics_5y) PMETA.p5y={m:R.metrics_5y,label:'最近5年',span:'近5年'};
+if(R.metrics_5y) PMETA.p5y={m:R.metrics_5y,enLabel:'Last 5 years',zhLabel:'最近5年',enSpan:'Last 5 years',zhSpan:'近5年'};
 else document.querySelector('#kpitog [data-p="p5y"]').hidden=true;
+const periodLabel=meta=>t(meta.enLabel,meta.zhLabel);
 function renderKPI(period){
  const meta=PMETA[period]||PMETA.sub; const M=meta.m;
  const s=M[STRATEGY];
  const qqq=M['QQQ全仓(=买入持有QQQ)'], qld=M['QLD全仓(=买入持有QLD)'];
  const boxes=[
-  ['年化收益',fmtP(s.cagr),'CAGR'],
-  ['最大回撤',fmtP0(s.mdd),'峰值→谷底'],
-  ['Calmar',s.calmar.toFixed(2),'年化/回撤'],
-  ['夏普',s.sharpe.toFixed(2),'rf=0'],
-  ['年化波动',fmtP(s.vol),''],
-  ['总收益',fmtP0(s.total),meta.span],
+  [t('Annualized return','年化收益'),fmtP(s.cagr),'CAGR'],
+  [t('Maximum drawdown','最大回撤'),fmtP0(s.mdd),t('Peak → trough','峰值→谷底')],
+  ['Calmar',s.calmar.toFixed(2),t('CAGR / drawdown','年化/回撤')],
+  [t('Sharpe','夏普'),s.sharpe.toFixed(2),'rf=0'],
+  [t('Annualized volatility','年化波动'),fmtP(s.vol),''],
+  [t('Total return','总收益'),fmtP0(s.total),t(meta.enSpan,meta.zhSpan)],
  ];
  document.getElementById('kpi').innerHTML=boxes.map(([k,v,ss])=>'<div class="box"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="s">'+ss+'</div></div>').join('');
- let note='区间 '+meta.label+':策略 年化 '+fmtP(s.cagr)+'、回撤 '+fmtP0(s.mdd)+'、Calmar '+s.calmar.toFixed(2)
-   +';同期买入持有 QQQ '+fmtP(qqq.cagr)+' / '+fmtP0(qqq.mdd)+',QLD '+fmtP(qld.cagr)+' / '+fmtP0(qld.mdd)+'。';
- if(period==='full') note+=' 注:含 2000–2002 泡沫破裂;1999 上市前用缩放后的 ^NDX 暖机指标,收益仍从真实 QQQ 开盘数据开始。若从 QQQ 自身 SMA250 成熟后才计绩效,保守参考为年化 13.2%、回撤 −26.9%、Calmar 0.49。';
+ let note=t('Period ','区间 ')+periodLabel(meta)+t(': strategy CAGR ',':策略 年化 ')+fmtP(s.cagr)+t(', drawdown ','、回撤 ')+fmtP0(s.mdd)+', Calmar '+s.calmar.toFixed(2)
+   +t('; buy & hold QQQ ',';同期买入持有 QQQ ')+fmtP(qqq.cagr)+' / '+fmtP0(qqq.mdd)+', QLD '+fmtP(qld.cagr)+' / '+fmtP0(qld.mdd)+'.';
+ if(period==='full') note+=t(' Note: includes the 2000–2002 dot-com crash. Scaled pre-listing ^NDX warms up indicators, but returns start with actual QQQ opening data. Starting only after QQQ’s own SMA250 matures gives a conservative reference: CAGR 13.2%, drawdown −26.9%, Calmar 0.49.',
+   ' 注:含 2000–2002 泡沫破裂;1999 上市前用缩放后的 ^NDX 暖机指标,收益仍从真实 QQQ 开盘数据开始。若从 QQQ 自身 SMA250 成熟后才计绩效,保守参考为年化 13.2%、回撤 −26.9%、Calmar 0.49。');
  document.getElementById('kpinote').textContent=note;
  renderTable(M, period);
 }
@@ -329,23 +973,24 @@ let tableCard=null;
 function renderTable(M, period){
  if(!tableCard){
    tableCard=document.createElement('div'); tableCard.className='card';
-   tableCard.innerHTML='<h2><span class="n">1b</span>完整指标对照</h2><div class="note" id="tbnote"></div><div style="overflow-x:auto"><table id="mtab"></table></div>';
+   tableCard.innerHTML='<h2><span class="n">1b</span><span id="metric-title"></span></h2><div class="note" id="tbnote"></div><div style="overflow-x:auto"><table id="mtab"></table></div>';
    document.querySelector('.kpi').closest('.card').after(tableCard);
  }
+ document.getElementById('metric-title').textContent=t('Full metric comparison','完整指标对照');
  const keys=NAMES;
- const cols=[['cagr','年化',fmtP],['total','总收益',fmtP0],['vol','波动',fmtP],['sharpe','夏普',x=>x.toFixed(2)],['mdd','最大回撤',fmtP0],['calmar','Calmar',x=>x.toFixed(2)]];
+ const cols=[['cagr',t('CAGR','年化'),fmtP],['total',t('Total return','总收益'),fmtP0],['vol',t('Volatility','波动'),fmtP],['sharpe',t('Sharpe','夏普'),x=>x.toFixed(2)],['mdd',t('Max drawdown','最大回撤'),fmtP0],['calmar','Calmar',x=>x.toFixed(2)]];
  // find best per col
  let best={};
  cols.forEach(([c])=>{ let vals=keys.map(k=>M[k][c]); best[c]= (c==='mdd')? Math.max(...vals): Math.max(...vals); if(c==='vol') best[c]=Math.min(...vals); });
- let h='<thead><tr><th>方案</th>'+cols.map(c=>'<th>'+c[1]+'</th>').join('')+'</tr></thead><tbody>';
+ let h='<thead><tr><th>'+t('Portfolio','方案')+'</th>'+cols.map(c=>'<th>'+c[1]+'</th>').join('')+'</tr></thead><tbody>';
  keys.forEach(k=>{
-   h+='<tr'+(k===STRATEGY?' class="hl"':'')+'><td>'+k+'</td>'+cols.map(([c,,f])=>{
+   h+='<tr'+(k===STRATEGY?' class="hl"':'')+'><td>'+displayName(k)+'</td>'+cols.map(([c,,f])=>{
      let v=M[k][c]; let cls=(v===best[c])?' class="best"':''; return '<td'+cls+'>'+f(v)+'</td>';
    }).join('')+'</tr>';
  });
  h+='</tbody>';
  document.getElementById('mtab').innerHTML=h;
- document.getElementById('tbnote').textContent='区间 '+(PMETA[period]||PMETA.sub).label+'。绿色=该列最优。';
+ document.getElementById('tbnote').textContent=t('Period ','区间 ')+periodLabel(PMETA[period]||PMETA.sub)+t('. Green marks the best value in each column.','。绿色=该列最优。');
 }
 document.querySelectorAll('#kpitog button').forEach(b=>b.onclick=()=>{
  document.querySelectorAll('#kpitog button').forEach(x=>x.classList.remove('on'));
@@ -388,12 +1033,12 @@ const firstAnnualYear=annualRows[0].year;
 const latestAnnualYear=annualRows[annualRows.length-1].year;
 function renderAnnual(metric){
   const rows=[...annualRows].reverse();
-  let html='<thead><tr><th>年份</th>'+annualSeries.map(([name])=>'<th>'+name+'</th>').join('')+'</tr></thead><tbody>';
+  let html='<thead><tr><th>'+t('Year','年份')+'</th>'+annualSeries.map(([name])=>'<th>'+displayName(name)+'</th>').join('')+'</tr></thead><tbody>';
   rows.forEach(row=>{
     const values=row.values.map(v=>v[metric]);
     const best=Math.max(...values);
     const tags=(row.year===latestAnnualYear?'<span class="year-tag">YTD</span>':'')+
-      (row.year===firstAnnualYear?'<span class="year-tag">部分年度</span>':'');
+      (row.year===firstAnnualYear?'<span class="year-tag">'+t('Partial year','部分年度')+'</span>':'');
     html+='<tr><td>'+row.year+tags+'</td>'+values.map(value=>{
       const sign=value>0?'pos':(value<0?'neg':'');
       const isBest=Math.abs(value-best)<1e-12;
@@ -402,8 +1047,8 @@ function renderAnnual(metric){
   });
   document.getElementById('annualtable').innerHTML=html+'</tbody>';
   document.getElementById('annualnote').textContent=metric==='return'
-    ? '年度收益按上一年末至本年末净值变化计算;首年从初始净值 1.0 起算。下划线标出当年最高收益。'
-    : '年内最大回撤从上一年末净值开始计算,包含跨年后的一月下跌。下划线标出当年最浅回撤。';
+    ? t('Annual returns run from the previous year-end to the current year-end; the first year starts at equity 1.0. Underlines mark the highest return in each year.','年度收益按上一年末至本年末净值变化计算;首年从初始净值 1.0 起算。下划线标出当年最高收益。')
+    : t('Calendar-year maximum drawdown starts from the previous year-end equity, including January declines. Underlines mark the shallowest drawdown in each year.','年内最大回撤从上一年末净值开始计算,包含跨年后的一月下跌。下划线标出当年最浅回撤。');
 }
 document.querySelectorAll('#annualtog button').forEach(button=>button.onclick=()=>{
   document.querySelectorAll('#annualtog button').forEach(item=>item.classList.remove('on'));
@@ -413,15 +1058,15 @@ document.querySelectorAll('#annualtog button').forEach(button=>button.onclick=()
 renderAnnual('return');
 
 const stratDS={
-  label:STRATEGY,data:R.equity.strategy,borderWidth:2.6,pointRadius:0,tension:.05,
+  label:displayName(STRATEGY),data:R.equity.strategy,borderWidth:2.6,pointRadius:0,tension:.05,
   borderColor:'#1c2230',
   segment:{ borderColor: ctx => DECCOL[DEC[ctx.p1DataIndex]]||'#1c2230' }
 };
 const panicDS={
-  label:'极端恐慌观察',data:R.equity.strategy.map((value,index)=>PANIC.has(D[index])?value:null),
+  label:t('Extreme-panic observation','极端恐慌观察'),data:R.equity.strategy.map((value,index)=>PANIC.has(D[index])?value:null),
   showLine:false,pointRadius:4,pointHoverRadius:6,pointBackgroundColor:'#c2453b',pointBorderColor:'#fffdf8',pointBorderWidth:1.5,panic:true
 };
-function refline(name,arr){return {label:name,data:arr,borderColor:'#c9c0ac',backgroundColor:'#c9c0ac',borderWidth:1,pointRadius:0,tension:.05,borderDash: name.includes('QLD全仓')?[5,3]:(name.includes('QQQ全仓')?[]:[2,3])};}
+function refline(name,arr){return {label:displayName(name),data:arr,borderColor:'#c9c0ac',backgroundColor:'#c9c0ac',borderWidth:1,pointRadius:0,tension:.05,borderDash: name.includes('QLD全仓')?[5,3]:(name.includes('QQQ全仓')?[]:[2,3])};}
 const eqChart=new Chart(document.getElementById('eqchart'),{type:'line',
  data:{labels:D,datasets:[
    refline('QQQ全仓(=买入持有QQQ)',R.equity.qqq),
@@ -432,20 +1077,22 @@ const eqChart=new Chart(document.getElementById('eqchart'),{type:'line',
  ]},
  options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
    plugins:{legend:{display:false},tooltip:{callbacks:{
-      title:items=>{const i=items[0].dataIndex;return D[i]+'  ·  决策 '+(DECNM[DEC[i]]||'')+' · 净敞口 '+SE[i].toFixed(2)+'x'+(PANIC.has(D[i])?' · 极端恐慌':'');},
-      label:c=>c.dataset.panic?'极端恐慌观察(RSI≤25、VIX≥30)':c.dataset.label+': '+c.parsed.y.toFixed(3)+'x'}}},
+      title:items=>{const i=items[0].dataIndex;return D[i]+t(' · Decision ','  ·  决策 ')+decisionName(DEC[i])+t(' · Net exposure ',' · 净敞口 ')+SE[i].toFixed(2)+'x'+(PANIC.has(D[i])?t(' · Extreme panic',' · 极端恐慌'):'');},
+      label:c=>c.dataset.panic?t('Extreme-panic observation (RSI≤25, VIX≥30)','极端恐慌观察(RSI≤25、VIX≥30)'):c.dataset.label+': '+c.parsed.y.toFixed(3)+'x'}}},
    scales:{x:{type:'category',min:0,max:D.length-1,ticks:{maxTicksLimit:10,color:'#8a8570'},grid:{display:false}},
      y:{type:'logarithmic',ticks:{color:'#8a8570',callback:v=>Number(v.toPrecision(3))+'x'},grid:{color:'#eee4d2'}}}}
 });
-// state legend — 按决策档着色(具体净敞口见悬浮提示)
-document.getElementById('statelegend').innerHTML='<b style="color:#5a6172">策略主线配色(按<b>决策档</b>,净敞口见悬浮):</b>'+
-  [['#6a9b3f','趋势向上(基础1.5x)'],['#b8912f','中性偏多(基础1.0x)'],['#3f7fb8','反转恢复(基础0.75x)'],['#c2453b','温和回调(基础0.5x)'],['#8b6a9e','超跌底仓(最低0.15x)'],['#5a6172','强空头/现金(默认0x)']]
-  .map(([c,t])=>'<span><i class="dot" style="background:'+c+'"></i>'+t+'</span>').join('')+
-  '<span><i class="panic-dot"></i>极端恐慌观察(不影响策略)</span>';
-document.getElementById('eqlegend').innerHTML='<b style="color:#5a6172">灰色参照:</b>'+
-  '<span><i class="dot" style="background:#c9c0ac"></i>QQQ 买入持有</span>'+
-  '<span><i class="dot" style="background:#c9c0ac;border-top:1px dashed #888"></i>QLD 买入持有(虚线)</span>'+
-  '<span><i class="dot" style="background:#c9c0ac"></i>QQQ 半仓(点线)</span>';
+function renderLegends(){
+ document.getElementById('statelegend').innerHTML='<b style="color:#5a6172">'+t('Strategy colors (decision tier; see tooltips for exposure):','策略主线配色(按决策档,净敞口见悬浮):')+'</b>'+
+  [['B',t('base 1.5x','基础1.5x')],['C',t('base 1.0x','基础1.0x')],['R',t('base 0.75x','基础0.75x')],['D',t('base 0.5x','基础0.5x')],['F',t('minimum 0.15x','最低0.15x')],['E',t('default 0x','默认0x')]]
+    .map(([code,exposure])=>'<span><i class="dot" style="background:'+DECCOL[code]+'"></i>'+decisionName(code)+' ('+exposure+')</span>').join('')+
+  '<span><i class="panic-dot"></i>'+t('Extreme panic (observation only)','极端恐慌观察(不影响策略)')+'</span>';
+ document.getElementById('eqlegend').innerHTML='<b style="color:#5a6172">'+t('Gray benchmarks:','灰色参照:')+'</b>'+
+  '<span><i class="dot" style="background:#c9c0ac"></i>'+t('QQQ buy & hold','QQQ 买入持有')+'</span>'+
+  '<span><i class="dot" style="background:#c9c0ac;border-top:1px dashed #888"></i>'+t('QLD buy & hold (dashed)','QLD 买入持有(虚线)')+'</span>'+
+  '<span><i class="dot" style="background:#c9c0ac"></i>'+t('50% QQQ + cash (dotted)','QQQ 半仓(点线)')+'</span>';
+}
+renderLegends();
 
 // ---- zoom: preset ranges + drag-to-select ----
 function idxForDate(y){ for(let i=0;i<D.length;i++){ if(+D[i].slice(0,4)>=y) return i; } return 0; }
@@ -467,7 +1114,7 @@ function setRange(a,b){
     dataset.data=source.map((value,i)=>i<a||i>b||(dataset.panic&&!PANIC.has(D[i]))?null:value/base);
   });
   eqChart.options.scales.x.min=a; eqChart.options.scales.x.max=b; eqChart.update('none');
-  document.getElementById('rangelabel').textContent=D[a]+' → '+D[b]+' · 起点 = 1x';
+  document.getElementById('rangelabel').textContent=D[a]+' → '+D[b]+t(' · Start = 1x',' · 起点 = 1x');
   dStart.value=D[a]; dEnd.value=D[b];            // 同步到日期选择器
 }
 // 初始化日期选择器的可选范围与默认值
@@ -517,9 +1164,9 @@ document.getElementById('zreset').onclick=()=>{
 // ---- drawdown ----
 const ddChart = new Chart(document.getElementById('ddchart'),{type:'line',
  data:{labels:D,datasets:[
-   {label:'策略',data:ddown(R.equity.strategy),borderColor:'#1c2230',backgroundColor:'rgba(28,34,48,.10)',fill:true,borderWidth:1.6,pointRadius:0},
-   {label:'QQQ买入持有',data:ddown(R.equity.qqq),borderColor:'#c99a2e',borderWidth:1,pointRadius:0},
-   {label:'QLD买入持有',data:ddown(R.equity.qld),borderColor:'#9a7b3f',borderWidth:1,pointRadius:0,borderDash:[4,3]},
+   {label:t('Strategy','策略'),data:ddown(R.equity.strategy),borderColor:'#1c2230',backgroundColor:'rgba(28,34,48,.10)',fill:true,borderWidth:1.6,pointRadius:0},
+   {label:t('QQQ buy & hold','QQQ买入持有'),data:ddown(R.equity.qqq),borderColor:'#c99a2e',borderWidth:1,pointRadius:0},
+   {label:t('QLD buy & hold','QLD买入持有'),data:ddown(R.equity.qld),borderColor:'#9a7b3f',borderWidth:1,pointRadius:0,borderDash:[4,3]},
  ]},
  options:{responsive:true,maintainAspectRatio:false,animation:false,
    plugins:{legend:{labels:{boxWidth:12,font:{size:11}}},tooltip:{mode:'index',intersect:false,callbacks:{label:c=>c.dataset.label+': '+(c.parsed.y*100).toFixed(0)+'%'}}},
@@ -533,24 +1180,25 @@ const ddSources=[R.equity.strategy,R.equity.qqq,R.equity.qld];
 ddStart.min=ddEnd.min=D[0];
 ddStart.max=ddEnd.max=D[D.length-1];
 function setDrawdownRange(a,b,preset=null){
+  delete ddLabel.dataset.error;
   ddChart.data.labels=D.slice(a,b+1);
   ddChart.data.datasets.forEach((dataset,index)=>{
     dataset.data=ddown(ddSources[index].slice(a,b+1));
   });
   ddChart.update('none');
   ddStart.value=D[a]; ddEnd.value=D[b];
-  ddLabel.textContent=D[a]+' → '+D[b]+' · 起点 = 0%';
+  ddLabel.textContent=D[a]+' → '+D[b]+t(' · Start = 0%',' · 起点 = 0%');
   document.querySelectorAll('#ddrangetog button').forEach(button=>{
     button.classList.toggle('on',button.dataset.r===preset);
   });
 }
 function applyDrawdownDates(start,end,preset=null){
-  if(!start||!end){ ddLabel.textContent='请选择起止日期。'; return; }
+  if(!start||!end){ ddLabel.dataset.error='dates'; ddLabel.textContent=t('Select start and end dates.','请选择起止日期。'); return; }
   if(start>end) [start,end]=[end,start];
   const a=D.findIndex(date=>date>=start);
   let b=D.length-1;
   while(b>=0&&D[b]>end) b--;
-  if(a<0||b<a){ ddLabel.textContent='所选区间内没有交易数据,请调整日期。'; return; }
+  if(a<0||b<a){ ddLabel.dataset.error='empty'; ddLabel.textContent=t('No trading data in this range. Adjust the dates.','所选区间内没有交易数据,请调整日期。'); return; }
   setDrawdownRange(a,b,preset);
 }
 document.querySelectorAll('#ddrangetog button').forEach(button=>button.onclick=()=>{
@@ -566,7 +1214,7 @@ setDrawdownRange(0,D.length-1,'all');
 const dEntries=Object.entries(R.dist).filter(([k,v])=>v>0.0005);
 const dl=dEntries.map(e=>e[0]), dv=dEntries.map(e=>e[1]);
 const distChart = new Chart(document.getElementById('distchart'),{type:'bar',
- data:{labels:dl,datasets:[{data:dv.map(x=>+(x*100).toFixed(1)),backgroundColor:dl.map(k=>STATECOL[k]),borderRadius:4,barThickness:24}]},
+ data:{labels:dl.map(displayName),datasets:[{data:dv.map(x=>+(x*100).toFixed(1)),backgroundColor:dl.map(k=>STATECOL[k]),borderRadius:4,barThickness:24}]},
  options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:false,
    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.x.toFixed(1)+'%'}}},
    scales:{x:{beginAtZero:true,max:100,ticks:{color:'#8a8570',callback:v=>v+'%'},grid:{color:'#eee4d2'}},y:{ticks:{color:'#5a6172'},grid:{display:false}}}}
@@ -574,9 +1222,9 @@ const distChart = new Chart(document.getElementById('distchart'),{type:'bar',
 
 // ---- exposure over time ----
 const expChart = new Chart(document.getElementById('expchart'),{type:'line',
- data:{labels:D,datasets:[{label:'净敞口',data:SE,borderColor:'#3f7fb8',backgroundColor:'rgba(63,127,184,.12)',fill:true,borderWidth:1,pointRadius:0,stepped:true}]},
+ data:{labels:D,datasets:[{label:t('Net exposure','净敞口'),data:SE,borderColor:'#3f7fb8',backgroundColor:'rgba(63,127,184,.12)',fill:true,borderWidth:1,pointRadius:0,stepped:true}]},
  options:{responsive:true,maintainAspectRatio:false,animation:false,
-   plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'敞口 '+c.parsed.y.toFixed(1)+'x'}}},
+   plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>t('Exposure ','敞口 ')+c.parsed.y.toFixed(1)+'x'}}},
    scales:{x:{ticks:{maxTicksLimit:10,color:'#8a8570'},grid:{display:false}},
      y:{min:0,max:2.1,ticks:{color:'#8a8570',stepSize:0.5,callback:v=>v.toFixed(1)+'x'},grid:{color:'#eee4d2'}}}}
 });
@@ -589,12 +1237,44 @@ window.addEventListener('resize',()=>{
   },100);
 });
 
+function renderFoot(){
+ if(reportLanguage==='zh'){
 document.getElementById('foot').innerHTML=
  '数据:QQQ / QLD / ^NDX / ^IRX / ^VIX(yfinance),区间 '+R.range[0]+' 至 '+R.range[1]+'。QQQ 上市前的 ^NDX OHLC 按 QQQ 首日收盘价缩放,<b>只用于指标暖机,不计入收益</b>。'+
  '2006-06 前 QLD 由「2×QQQ 日收益 − (0.95% 费率 + 短端利率融资成本)/252」合成,与真实 QLD 重叠期日收益相关性 0.996、CAGR 偏乐观约 0.8%/年。'+
  '<br>V1.6.1 回测含 5bps/边 交易成本;避险现金按 ^IRX 短端国债利率计息;夏普用 rf=0。指标在 QQQ 上计算(仅上市前暖机段使用 ^NDX),信号 T 日收盘生成;旧仓承担隔夜涨跌,T+1 开盘调仓,新仓承担日内收益。<b>档位持有期内不做再平衡</b>(QQQ/QLD 权重随行情漂移),仅在换档时按实际成交计成本。'+
  '<br>极端恐慌观察标记定义为 <b>RSI(14)≤25 且 VIX≥30</b>,仅用于标记历史与当前市场情绪,<b>不参与任何仓位、确认、死区或调仓计算</b>。'+
  '<br><b>重要:</b>历史回测不代表未来收益;杠杆 ETF 存在波动损耗与日度重置风险。本页面仅供研究与教育,非投资建议。';
+ }else{
+ document.getElementById('foot').innerHTML=
+ 'Data: QQQ / QLD / ^NDX / ^IRX / ^VIX (yfinance), '+R.range[0]+' to '+R.range[1]+'. Pre-listing ^NDX OHLC is scaled to QQQ’s first closing price and <b>used only for indicator warm-up, never for returns</b>. '+
+ 'Before 2006-06, QLD is synthesized as “2×QQQ daily return − (0.95% fee + short-term financing rate)/252”. Overlapping daily returns correlate 0.996 with actual QLD, with an optimistic CAGR bias of about 0.8%/year.'+
+ '<br>V1.6.1 includes 5bps/side trading costs. Defensive cash earns ^IRX short-term Treasury interest; Sharpe uses rf=0. Indicators use QQQ (pre-listing warm-up only uses ^NDX). Signals form at the close of T; existing holdings absorb overnight moves, rebalance at the T+1 open, and new holdings earn intraday returns. <b>No rebalancing while a tier is held</b>: QQQ/QLD weights drift, and actual traded amounts incur costs only when the allocation changes.'+
+ '<br>Extreme-panic observation means <b>RSI(14)≤25 and VIX≥30</b>. It marks historical and current sentiment and <b>does not affect allocation, confirmation, deadband or rebalancing</b>.'+
+ '<br><b>Important:</b> historical backtests do not guarantee future returns. Leveraged ETFs carry volatility-drag and daily-reset risks. This page is for research and education only, not investment advice.';
+ }
+}
+renderFoot();
+
+// Refresh labels in place: keep the selected periods, chart ranges and all numeric data.
+window.addEventListener('reportlanguagechange',()=>{
+ renderLatest();
+ renderKPI(document.querySelector('#kpitog button.on').dataset.p);
+ renderAnnual(document.querySelector('#annualtog button.on').dataset.m);
+ renderLegends();renderFoot();
+ eqChart.data.datasets.forEach((dataset,index)=>{
+   dataset.label=index===4?t('Extreme-panic observation','极端恐慌观察'):displayName([NAMES[2],NAMES[4],NAMES[1],STRATEGY][index]);
+ });
+ ddChart.data.datasets.forEach((dataset,index)=>dataset.label=[t('Strategy','策略'),t('QQQ buy & hold','QQQ买入持有'),t('QLD buy & hold','QLD买入持有')][index]);
+ distChart.data.labels=dl.map(displayName);
+ expChart.data.datasets[0].label=t('Net exposure','净敞口');
+ document.getElementById('rangelabel').textContent=dStart.value+' → '+dEnd.value+t(' · Start = 1x',' · 起点 = 1x');
+ ddLabel.textContent=ddLabel.dataset.error==='dates'?t('Select start and end dates.','请选择起止日期。'):
+   ddLabel.dataset.error==='empty'?t('No trading data in this range. Adjust the dates.','所选区间内没有交易数据,请调整日期。'):
+   ddStart.value+' → '+ddEnd.value+t(' · Start = 0%',' · 起点 = 0%');
+ [eqChart,ddChart,distChart,expChart].forEach(chart=>chart.update('none'));
+});
+
 })();
 </script>
 </body></html>
