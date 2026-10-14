@@ -24,6 +24,7 @@
 | Root directory | 仓库根目录，留空或使用默认值 |
 | Build command | `bash build_cloudflare.sh` |
 | Deploy command | `npm run deploy` |
+| Preview command | `npm run preview` |
 | 构建环境变量 `PYTHON_VERSION` | `3.12.10` |
 
 **Workers Builds 不需要填写 Build output directory**，`dist/` 已在 Wrangler 的 `assets.directory` 中配置。如果现有 Worker 名称不同，先将 `wrangler.jsonc` 的 `name` 改成该名称，再提交推送。
@@ -31,6 +32,39 @@
 构建会安装 Python 依赖，先验证 yfinance 缓存所需的 SQLite 读写，再在临时目录运行 `1 → 2 → 3`；最新行情与报告日期/曲线检查通过后，生成首页、原报告 HTML、`report_data.js` 和 `_headers`。下载/行情检查最多尝试三次。构建失败时不会发布新版本。
 
 构建成功后，打开 Worker 页面显示的 `workers.dev` 地址，确认报告最新交易日。静态资源优先返回，`_headers` 负责 `report_data.js` 的重新验证；访问网页只读取报告，不会触发重新构建。
+
+### 先 preview 验证，再合并 main
+
+以后代码和部署配置修改都先提交、推送到 `preview`。Cloudflare 中进入 **此 Worker → Settings → Builds → Branch control**，生产分支保留 `main`，开启 **Enable Preview Builds**。在构建命令设置中将 **Preview command** 设为 `npm run preview`，Build command 仍为 `bash build_cloudflare.sh`；生产 Deploy command 仍为 `npm run deploy`。开启后非生产分支的推送会触发预览构建，本项目日常使用 `preview` 分支。
+
+如果已有 Worker 显示 **Set up Worker Previews**，先按控制台引导切换到 Worker Previews，再使用上述 Preview command。本仓库固定的 Wrangler 4.150.0 已支持此命令。该一次性切换不可撤销；详情见 [Cloudflare 分支构建说明](https://developers.cloudflare.com/workers/ci-cd/builds/build-branches/)。
+
+`npm run preview` 为当前分支创建或更新独立预览，不发布到生产。根目录 `previews: {}` 已配置；静态资源仍来自当前构建的 `dist/`。旧式版本 URL 开关 `preview_urls: false` 不影响 Worker Previews。**Previews Base 中不要添加生产 `DEPLOY_HOOK_URL` Secret**；Cron 和每日更新 Hook 继续用于生产 `main`。
+
+在 Builds 中确认 **preview 的具体提交**构建成功，打开对应 Preview URL，核对最新交易日、首页、曲线和数据加载正常，再将这个已验证提交合并到 `main`。只有本地检查通过、构建仍在运行或构建失败时，都先保留在 `preview`。`main` 合并后的推送会重新构建并发布生产版本。
+
+日常提交：
+
+```bash
+git switch preview
+# 修改文件，明确选择本次修改的文件暂存后提交
+git add <本次修改的文件>
+git commit -m "描述本次修改"
+git push origin preview
+```
+
+构建和页面验证通过后，工作区干净时合并：
+
+```bash
+git fetch origin
+git switch main
+git pull --ff-only origin main
+git merge --ff-only <已通过验证的preview提交SHA>
+git push origin main
+git switch preview
+```
+
+如果不能快进合并，先将最新 `main` 合并进 `preview`，推送并重新验证新提交。设置开启前的推送可能没有触发预览构建，可在 Cloudflare Builds 中为 `preview` 手动启动一次构建。
 
 ## 2. 创建此 Worker 的 Deploy Hook
 
@@ -61,10 +95,10 @@ npm ci
 source .venv/bin/activate
 npm run build
 npx wrangler login
-npm run deploy
+npm run preview
 ```
 
-如果没有 Python 虚拟环境，先运行 `python3 -m venv .venv`。`npm run build` 会安装依赖并生成静态报告；`npm run deploy` 发布已生成的报告。整个自动流程仍需完成第 1、2 步，连接 Workers Builds 并设置 Hook。
+如果没有 Python 虚拟环境，先运行 `python3 -m venv .venv`。在 `preview` 分支执行上述命令会生成报告并发布分支预览。生产通过已验证提交合并到 `main` 后由 Workers Builds 发布；`npm run deploy` 是生产发布命令。整个自动流程仍需完成第 1、2 步，连接 Workers Builds 并设置 Hook。
 
 设置或替换运行时 Secret：
 
@@ -91,4 +125,4 @@ npm run check:deploy
 
 只读查看实时日志：`npx wrangler tail`。暂停自动更新：将根目录配置的 `triggers.crons` 改为 `[]` 后重新部署。
 
-官方文档：[Workers Builds 配置](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/)、[Python 构建环境](https://developers.cloudflare.com/workers/ci-cd/builds/build-image/)、[Workers Builds Deploy Hooks](https://developers.cloudflare.com/workers/ci-cd/builds/deploy-hooks/)、[静态资源](https://developers.cloudflare.com/workers/static-assets/binding/)、[静态缓存响应头](https://developers.cloudflare.com/workers/static-assets/headers/)。
+官方文档：[Workers Builds 配置](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/)、[分支构建](https://developers.cloudflare.com/workers/ci-cd/builds/build-branches/)、[Worker Previews 配置](https://developers.cloudflare.com/workers/previews/configuration/)、[Python 构建环境](https://developers.cloudflare.com/workers/ci-cd/builds/build-image/)、[Workers Builds Deploy Hooks](https://developers.cloudflare.com/workers/ci-cd/builds/deploy-hooks/)、[静态资源](https://developers.cloudflare.com/workers/static-assets/binding/)、[静态缓存响应头](https://developers.cloudflare.com/workers/static-assets/headers/)。

@@ -110,6 +110,7 @@ CONFIRM=3 COST_BPS=5/10000 DEADBAND=0.15  (死区 0.05~0.25 不敏感,取 0.15 �
 
 ## 9. 一致性要求(改代码务必遵守)
 
+- **Git 交付流程（用户决定，2026-10-14）**：以后代码与部署配置修改先提交并推送到 `preview`，由 Cloudflare Workers Builds 自动构建并用 `npm run preview` 发布分支预览；确认对应提交的 Cloudflare 构建成功、预览报告日期和页面正常后，才合并并推送到 `main` 触发生产部署。不能仅凭本地检查通过就直接推送 `main`；没有远程构建结果时保留在 `preview`。生产分支与每日自动更新 Hook 仍为 `main`。根目录 Wrangler 的 `previews: {}` 只使用本分支静态资源，不配置生产 Hook Secret 或 Cron；Cloudflare 控制台设置由用户自行完成，见 [`CLOUDFLARE_DEPLOY.md`](./CLOUDFLARE_DEPLOY.md)。
 - **指标、宏观状态机、超跌锁存与决策档逻辑已统一到 `indicators.py`**,`2_backtest.py` 和 `daily_check.py` 都 import 它。`macro_regime()` 与 `oversold_latch()` 必须按完整时间序列递推;锁存不得在 SMA 有效前触发。`deep_bear` 必须按 `price < SMA × (1-BEAR_EXIT_BUFFER)` 计算,E/F 还需 MACD/Supertrend 共振。但**决策后的敞口映射**(动量分→档位敞口、波动率目标缩放、底仓下限、确认与死区)仍在两文件各自的 `targets()`/主循环里,改这部分仍需两处同步。`opt.py`/`ablation.py` 为扫描参数而各自内联实现,不依赖模块,改规则时必须同步。
 - **执行引擎统一**:`2_backtest.py` / `opt.py` / `ablation.py` 必须共同调用 `execution.run_next_open()`。执行顺序固定为:旧仓位承担 T→T+1 隔夜涨跌和现金利息,T+1 开盘按目标调仓并计成本,新仓位承担开盘→收盘日内收益。不能重新复制一份 close-to-close 回测循环。
 - **暖机/交易边界**:`signal_close/high/low` 可含 QQQ 上市前的 NDX 代理,但 `qqq/qld_overnight_ret` 与 `qqq/qld_intraday_ret` 在该段必须为 NaN。所有脚本必须先用完整 signal 序列计算指标、确认与 shift(1),再按 `execution.valid_trade_index()` 截取收益;绝不能让 NDX 涨跌进入组合收益。
