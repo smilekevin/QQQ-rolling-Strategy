@@ -4,6 +4,7 @@
   "scripts": {
     "build": "bash build_cloudflare.sh",
     "deploy": "wrangler deploy",
+    "preview": "wrangler preview",
     "dev": "wrangler dev",
     "check:deploy": "wrangler deploy --dry-run"
   },
