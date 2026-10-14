@@ -38,6 +38,8 @@ open qqq_qld_report.html      # macOS;Windows 直接双击该文件
 
 数据每天更新:重跑这三步即可刷新到最新交易日。`qqq_qld_report.html` 是固定页面壳,日更数据在 `report_data.js` 中,该文件与 `prices.csv` / `results.json` 一样被 gitignore。线上部署时 `_headers` 要与 HTML 一起发布,使浏览器和 Cloudflare 对日更数据重新验证。页面会按上海时区自动生成 `report_data.js?v=1.6.1a-YYYY-MM-DD-HH` 的小时级缓存键;HTML 无需每小时更新,策略版本升级时才需同步修改其中的 `1.6.1a`。
 
+Cloudflare 自动日更部署见 [`CLOUDFLARE_DEPLOY.md`](./CLOUDFLARE_DEPLOY.md)：Pages 用 `bash build_cloudflare.sh` 构建并发布 `dist/`，定时 Worker 默认在北京时间周二至周六 06:30 触发构建。数据下载与回测在 Pages 构建环境执行，策略规则不变。
+
 ## 三、策略逻辑(V1.6.1)
 
 决策链,**信号在 T 日收盘生成、T+1 开盘执行(无未来函数)**。旧仓位先承担隔夜涨跌,开盘按新目标调仓,新仓位再获得当日日内收益:

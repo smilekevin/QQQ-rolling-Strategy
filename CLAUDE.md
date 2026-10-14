@@ -26,6 +26,8 @@ QQQ / QLD **动态滚仓策略**:用 QQQ 的技术指标(MACD / RSI / Supertrend
 
 流水线顺序:`1 → 2 → 3`。`prices.csv` / `results.json` / `report_data.js` 被 gitignore(可重建);`qqq_qld_report.html` 固定并提交到 Git。
 
+**Cloudflare 自动部署（2026-10-14）**：`build_cloudflare.sh` 安装依赖，`scripts/build_pages.py` 在临时目录运行原流水线，做最新行情与报告日期/序列检查，下载/行情校验最多三次尝试；成功后仅生成 `dist/` 静态发布文件（`index.html`、原报告 HTML、`report_data.js`、`_headers`）。`cloudflare/worker.mjs` 通过 Secret `DEPLOY_HOOK_URL` 定时 POST Pages Hook；`cloudflare/wrangler.jsonc` 的 `30 22 * * MON-FRI` 为北京时间周二至周六 06:30。为支持提前调度，当日日线校验门槛同步设为纽约时间 17:00（常规收盘后至少一小时），冬令时调度为 17:30、夏令时为 18:30。具体配置见 [`CLOUDFLARE_DEPLOY.md`](./CLOUDFLARE_DEPLOY.md)。这是部署辅助文件，未改策略、参数、执行或原数据填充口径；宽松的七天过期检查不是交易所日历。文件已准备，需配置 Cloudflare 项目并验证首次远程构建。
+
 ## 3. 当前策略 V1.6.1(完整规则)
 
 决策链(信号 T 日收盘生成、T+1 开盘执行,无未来函数):
