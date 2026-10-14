@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "qqq-strategy-auto-deploy",
+  "main": "cloudflare/worker.mjs",
+  "compatibility_date": "2026-10-13",
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": false
+  },
+  "triggers": {
+    // UTC 周一至周五 22:30 = 北京时间周二至周六 06:30。
+    "crons": ["30 22 * * MON-FRI"]
+  },
+  "observability": {
+    "enabled": true
+  }
+}

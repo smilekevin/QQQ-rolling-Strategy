@@ -63,7 +63,7 @@ def validate_report(path, latest_date):
 
 
 def main():
-    with tempfile.TemporaryDirectory(prefix="qqq-pages-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="qqq-report-") as temporary:
         work = Path(temporary)
         for name in SOURCES:
             shutil.copy2(ROOT / name, work / name)
@@ -89,7 +89,7 @@ def main():
         shutil.copy2(ROOT / "qqq_qld_report.html", dist / "qqq_qld_report.html")
         shutil.copy2(ROOT / "_headers", dist / "_headers")
         shutil.copy2(work / "report_data.js", dist / "report_data.js")
-        print(f"Pages 静态文件已生成：{dist}；行情日期：{latest_date}", flush=True)
+        print(f"Cloudflare 静态报告已生成：{dist}；行情日期：{latest_date}", flush=True)
 
 
 if __name__ == "__main__":
