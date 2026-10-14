@@ -43,6 +43,8 @@
 
 在 Builds 中确认 **preview 的具体提交**构建成功，打开对应 Preview URL，核对最新交易日、首页、曲线和数据加载正常，再将这个已验证提交合并到 `main`。只有本地检查通过、构建仍在运行或构建失败时，都先保留在 `preview`。`main` 合并后的推送会重新构建并发布生产版本。
 
+**Pull request comment**：为本批修改创建 `preview → main` 的 Pull Request。通过 Cloudflare Workers & Pages GitHub App 连接仓库后，PR 关联提交的构建会自动在 PR 中评论构建状态；使用 `wrangler preview` 的构建还会附上 Preview URL。同一分支后续推送会更新预览。开启预览构建并创建 PR 后，再推送修改或在 Cloudflare 手动触发一次该分支构建；仅有 Git 分支、没有 PR 时不会出现 PR 评论。见 [GitHub 集成说明](https://developers.cloudflare.com/workers/ci-cd/builds/git-integration/github-integration/)。
+
 日常提交：
 
 ```bash
