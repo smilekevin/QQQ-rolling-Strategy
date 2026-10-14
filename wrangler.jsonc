@@ -3,9 +3,6 @@
   "name": "qqq-strategy-auto-deploy",
   "main": "cloudflare/worker.mjs",
   "compatibility_date": "2026-10-13",
-  "workers_dev": true,
-  // 关闭旧式 Version URLs；分支预览使用 previews 和 wrangler preview。
-  "preview_urls": false,
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
@@ -13,10 +10,6 @@
   },
   // 分支预览使用本分支的静态资源；不配置生产 Hook Secret 或 Cron。
   "previews": {},
-  "triggers": {
-    // UTC 周一至周五 22:30 = 北京时间周二至周六 06:30。
-    "crons": ["30 22 * * MON-FRI"]
-  },
   "observability": {
     "enabled": true
   }
