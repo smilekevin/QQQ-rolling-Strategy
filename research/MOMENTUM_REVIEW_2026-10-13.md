@@ -1,74 +1,74 @@
-# 动能预测与提高收益的研究
+# Momentum Prediction and Higher-Return Research
 
-研究日期：2026-10-13。正式策略：V1.6.1。行情截止：2026-09-25。
+Study date: 2026-10-13. Production strategy: V1.6.1. Price cutoff: 2026-09-25.
 
-## 判断
+## Assessment
 
-用户愿意承担更高风险，因此本次同时考察收益与回撤的取舍。最值得继续验证的是适度提高普通多头 C 档的敞口，其次是提高趋势 B 档敞口；目前没有足够证据支持靠动能变化速度预测下一次转折并提前重仓。
+The user accepts greater risk, so this study examines both returns and drawdown tradeoffs. A modest increase in ordinary bullish C-tier exposure is the most promising candidate for further validation, followed by higher B-tier exposure. Evidence is insufficient to anticipate the next reversal from momentum acceleration and increase exposure early.
 
-这些结论是历史探索结果，不是正式升级决定。所有生产策略、每日检查和 Pine 规则保持原样。
+These are exploratory historical findings, not a production upgrade decision. Production, daily-check and Pine rules remain unchanged.
 
-## 动能能否预判涨跌
+## Can momentum predict gains and declines?
 
-动能指标把已经发生的价格变化转换成趋势、强弱和变化速度。它可以提供条件性预测信息，但“价格上涨速度变慢”并不等于“价格马上下跌”。MACD 柱缩短、RSI 下降、价格与指标背离，均需要检验后续可成交收益，而不能仅凭图上领先于某个顶部判断有效。
+Momentum indicators convert realized price changes into trend, strength and speed. They may contain conditional predictive information, but slowing gains do not imply an imminent decline. Shrinking MACD histograms, falling RSI and divergences need tests against subsequent executable returns; appearing before a chart’s peak is not proof.
 
-学术上的时间序列动量有证据支持中期趋势延续：Moskowitz、Ooi、Pedersen 的研究覆盖58种期货及远期合约，主要证据涉及月度至年度趋势，不能直接推导出 QQQ 次日转折或某条 MACD 规则具有预测优势。[论文介绍](https://www.aqr.com/Insights/Research/Journal-Article/Time-Series-Momentum)
+Academic time-series momentum supports medium-term trend persistence. Moskowitz, Ooi and Pedersen studied 58 futures/forward contracts, mainly monthly-to-yearly trends. This does not establish next-day QQQ reversal prediction or a particular MACD rule’s edge. [Paper overview](https://www.aqr.com/Insights/Research/Journal-Article/Time-Series-Momentum)
 
-本次建立固定岭回归，按年度向前训练：2010年起每个测试年只使用此前可观察到完整标签的数据，剔除收益窗口进入测试年的训练标签。归一化只使用训练段，正则系数固定10，不搜索模型参数。
+Use fixed ridge regression with annual walk-forward training. From 2010, each test year uses only prior observations with fully observable labels; exclude training labels whose return windows enter the test year. Normalize on training data only; fix regularization at 10 without parameter search.
 
-- 价格控制组：过去5/20日收益、63日回撤、20日波动率、宏观多空状态。
-- 当前指标组：在控制组上加入按价格归一的 MACD 线/柱、RSI14、Supertrend 方向、距 SMA250 的距离。
-- 动能加速度组：在当前指标组上加入 MACD 柱五日变化/当前价格、RSI 五日变化。
-- 长周期动量组：在当前指标组上加入63/126/252日涨幅。
+- Price controls: 5/20-day returns, 63-day drawdown, 20-day volatility and macro regime.
+- Current indicators: add price-normalized MACD line/histogram, RSI14, Supertrend direction and distance from SMA250.
+- Momentum acceleration: add five-day MACD histogram change/current price and five-day RSI change.
+- Longer momentum: add 63/126/252-day price gains to current indicators.
 
-预测目标是 T+1 开盘买入、T+h 收盘卖出的 QQQ 收益，扣往返各5bp；不包含信号收盘至下一个开盘的跳空收益。下表为加入该组特征后均方预测误差的相对改善，正数代表改善，负数代表恶化。
+Targets are QQQ returns from buying at the T+1 open to selling at the T+h close, with 5bp each way, excluding the signal-close-to-next-open gap. The table shows relative mean-squared-prediction-error improvement after adding each feature group: positive means better, negative worse.
 
-| 预测周期 | 当前指标 vs 价格控制 | 动能加速度 vs 当前指标 | 长周期动量 vs 当前指标 |
+| Horizon | Current indicators vs price controls | Acceleration vs current indicators | Longer momentum vs current indicators |
 |---|---:|---:|---:|
-| 1日 | -0.14% | +0.03% | +0.01% |
-| 5日 | -0.67% | -0.49% | -0.19% |
-| 20日 | +0.29% | -0.12% | -2.22% |
-| 63日 | +3.87% | +0.02% | -5.94% |
+| 1 day | -0.14% | +0.03% | +0.01% |
+| 5 days | -0.67% | -0.49% | -0.19% |
+| 20 days | +0.29% | -0.12% | -2.22% |
+| 63 days | +3.87% | +0.02% | -5.94% |
 
-当前指标和加速度组的改善，用年份整体重采样4000次得到的粗略95%区间均包含零。预测误差使用每日样本，较长收益窗口存在重叠；年份重采样保留年内相关性，但不能消除全部跨年相关性。长周期动量组在这个模型的20/63日预测中反而增加误差。它们只能说明本次固定线性模型未验证出稳定的额外预测优势，不能排除其他非线性条件或不同持有周期有效，也不是对经典跨资产时间序列动量的否定。
+For current indicators and acceleration, rough 95% intervals from resampling whole years 4000 times all include zero. Prediction errors use daily observations with overlapping longer windows. Year resampling preserves within-year dependence but not all cross-year dependence. Longer momentum worsens this model’s 20/63-day errors. These results show no stable extra predictive advantage in this fixed linear model, but do not rule out nonlinear conditions or different horizons, nor refute classic cross-asset time-series momentum.
 
-20日预测期间，QQQ净收益为正的比例为66.45%；当前指标模型的方向准确率为61.80%。这说明单看“预测正确率超过50%”不够，必须与同区间始终预测上涨的基准比较。它也不能直接决定仓位策略的收益，因为均方误差、方向胜率与控制尾部风险是不同目标。
+QQQ net returns are positive in 66.45% of the 20-day prediction windows; the current-indicator model’s directional accuracy is 61.80%. Accuracy above 50% alone is insufficient: compare with always predicting gains in the same period. Mean-squared error, directional accuracy and tail-risk control are different objectives and do not directly determine allocation returns.
 
-另作非重叠窗口的描述性检查：每20交易日固定取一个窗口，多头状态且动量≥3分的173个窗口平均净收益+0.48%，0–2分的84个窗口为+2.35%。每63日窗口则为+3.52%与+2.23%。这种周期差异提示短期修复与中期趋势延续可能并存；样本少、市场环境及波动率未匹配，不能据此把当前打分反过来交易。
+A descriptive non-overlapping check uses one fixed window every 20 trading days. Bullish regimes with momentum ≥3 have 173 windows averaging +0.48%; 0–2 points have 84 windows averaging +2.35%. At 63 days, averages are +3.52% and +2.23%. Short-term repair and medium-term trend continuation may coexist, but small samples and unmatched regimes/volatility do not justify reversing the score’s trading direction.
 
-用最新数据重跑现有 `ablation.py`：完整版全区间年化约15.2%/回撤-26.9%；去 MACD 为15.4%/-27.6%，去 RSI 为13.4%/-26.9%，去 Supertrend 为13.2%/-26.9%。去 RSI 同时移除了超跌底仓。消融改变整套状态与交易路径，不能把这些差值当成单项指标的独立预测能力。
+Rerunning `ablation.py` with updated data gives full-period CAGR/drawdown approximately 15.2%/-26.9%; no MACD 15.4%/-27.6%; no RSI 13.4%/-26.9%; no Supertrend 13.2%/-26.9%. Removing RSI also removes the floor. Ablation changes the full state/trade path; differences are not each indicator’s independent predictive power.
 
-## 愿意增加风险时的收益对照
+## Return comparisons when accepting more risk
 
-候选全部沿用宏观状态、E/F 优先级、RSI 底仓、波动率缩放、三日确认、0.05敞口档、0.15死区、共享次日开盘执行和单边5bp成本。仅改变如下基础敞口：
+All candidates retain macro state, E/F priority, RSI floor, volatility scaling, three-day confirmation, 0.05 increments, 0.15 deadband, shared next-open execution and 5bp per-side costs. Only base exposures change:
 
-- B=2x：把当前所有 B 档从1.5x改为2x。它不能与早期旧版的2x机制直接等同。
-- C=1.25x：B仍为1.5x；仅在原有 `lever_ok` 成立时将 C 从1x提高到1.25x，其余 C保持原规则。
-- B/C一起提高：B=1.75x，允许杠杆的 C=1.25x。作为组合对照，不能把其效果归因于一个独立改动。
-- R=1x：熊市反转恢复基础敞口由0.75x提高到1x，继续波动缩放和底仓保护，不使用QLD。
+- B=2x: every current B tier changes from 1.5x to 2x. This is not directly equivalent to the earlier strategy’s 2x mechanism.
+- C=1.25x: B remains 1.5x; raise C from 1x to 1.25x only when existing `lever_ok` holds; other C rules stay unchanged.
+- Joint B/C increase: B=1.75x, leverage-eligible C=1.25x. A combined comparison, not attributable to one isolated change.
+- R=1x: bearish reversal-recovery base increases from 0.75x to 1x, retaining volatility scaling and floor protection, without QLD.
 
-下表每格为“年化收益 / 最大回撤”。子区间保留完整历史的状态与持仓，从上一交易日收盘净值计算区间首日收益；包含初始本金的收盘回撤。与旧报告的首日归一或重新建仓口径可能略有差异。
+Cells are CAGR / maximum drawdown. Subperiods preserve full-history state/holdings and include first-day returns from the prior trading close. Closing drawdown includes initial capital. Results may differ slightly from older first-day normalization or fresh-entry methods.
 
-| 方案 | 全区间（1999起） | 真实QLD区间（2006起） | 2010年以来 | 近五年 |
+| Candidate | Full period (since 1999) | Actual QLD (since 2006) | Since 2010 | Last five years |
 |---|---:|---:|---:|---:|
 | V1.6.1 | 15.21% / -26.91% | 17.65% / -26.91% | 18.79% / -26.91% | 17.92% / -21.84% |
 | B=2x | 16.15% / -31.25% | 18.90% / -31.25% | 20.67% / -31.25% | 18.16% / -24.90% |
-| 仅允许杠杆的 C=1.25x | 16.23% / -32.55% | 18.50% / -32.55% | 19.67% / -32.55% | 19.53% / -22.58% |
-| B=1.75x / 允许杠杆的 C=1.25x | 16.84% / -36.24% | 19.19% / -36.24% | 20.56% / -36.24% | 19.85% / -24.12% |
+| Leverage-eligible C=1.25x only | 16.23% / -32.55% | 18.50% / -32.55% | 19.67% / -32.55% | 19.53% / -22.58% |
+| B=1.75x / eligible C=1.25x | 16.84% / -36.24% | 19.19% / -36.24% | 20.56% / -36.24% | 19.85% / -24.12% |
 | R=1x | 15.32% / -26.91% | 17.87% / -26.91% | 19.01% / -26.91% | 18.04% / -23.49% |
-| 买入持有QQQ | 10.90% / -82.96% | 16.65% / -53.40% | 19.20% / -35.12% | 15.56% / -35.12% |
+| QQQ buy and hold | 10.90% / -82.96% | 16.65% / -53.40% | 19.20% / -35.12% | 15.56% / -35.12% |
 
-近五年起始日期按行情截止日减五年，为2021-09-25，首个有效交易日为2021-09-27。1999至QLD上市前仍包含项目原有合成QLD，不能视为真实杠杆ETF历史。
+The five-year start is the cutoff minus five years, 2021-09-25; the first valid trading date is 2021-09-27. From 1999 to QLD listing, existing synthetic QLD remains included and is not actual leveraged-ETF history.
 
-仅提高 C 是较温和的研究候选：2010年以来年化增加0.88个百分点，历史最大回撤加深5.64个百分点。它缩小了 B/C 的仓位差，全区间单边年化换手从8.41x降至5.64x；收益变化同时涉及风险承担和交易路径，不能解释成预测更准。
+C alone is a milder research candidate: since 2010, CAGR rises 0.88 percentage points and drawdown deepens 5.64 points. Narrowing the B/C exposure gap reduces full-period annualized one-way turnover from 8.41x to 5.64x. Return changes reflect risk-taking and altered trades, not more accurate prediction.
 
-B=2x 的全区间换手增至15.36x，近五年年化只增加0.24个百分点，而回撤加深3.06个百分点。R=1x 增益也小，近五年回撤反而加深，不优先考虑。
+B=2x increases full-period turnover to 15.36x; recent CAGR rises only 0.24 points while drawdown deepens 3.06 points. R=1x also has small gains and worse recent drawdown, so is not a priority.
 
-## 成本、执行与跨年代检查
+## Costs, execution and different eras
 
-下表每格仍为“年化 / 最大回撤”，使用2010年以来的区间。
+Cells remain CAGR / maximum drawdown, since 2010.
 
-| 方案 | 正常执行、5bp | 正常执行、10bp | 额外晚一日执行、5bp |
+| Candidate | Normal execution, 5bp | Normal execution, 10bp | One extra execution day, 5bp |
 |---|---:|---:|---:|
 | V1.6.1 | 18.79% / -26.91% | 18.18% / -26.95% | 19.16% / -28.63% |
 | B=2x | 20.67% / -31.25% | 19.53% / -31.33% | 20.94% / -35.04% |
@@ -76,35 +76,35 @@ B=2x 的全区间换手增至15.36x，近五年年化只增加0.24个百分点�
 | B=1.75x / C=1.25x | 20.56% / -36.24% | 19.89% / -36.27% | 20.78% / -33.63% |
 | R=1x | 19.01% / -26.91% | 18.39% / -26.95% | 19.44% / -28.63% |
 
-C 候选在成本加倍后仍有收益增益，但近五年若所有方案均额外晚一天执行，基线变为20.14%，C候选为19.96%，相对增益消失。延迟有时让回测变好不意味着应主动拖延，而说明进出场时点对近期排名影响很大。
+C retains a gain with doubled costs, but adding one execution day to all candidates in the last five years makes baseline CAGR 20.14% and C 19.96%, erasing relative gains. Delays sometimes improving backtests do not justify intentional delay; recent rankings are sensitive to entry/exit timing.
 
-| 区间 | 基线年化 / 回撤 | C=1.25x年化 / 回撤 |
+| Period | Baseline CAGR / drawdown | C=1.25x CAGR / drawdown |
 |---|---:|---:|
 | 2011–2014 | 20.49% / -19.63% | 21.22% / -20.59% |
 | 2015–2018 | 9.54% / -17.35% | 10.45% / -18.32% |
 | 2019–2022 | 15.90% / -26.91% | 15.76% / -32.55% |
-| 2023至截止日 | 29.12% / -19.19% | 31.81% / -20.17% |
+| 2023 to cutoff | 29.12% / -19.19% | 31.81% / -20.17% |
 
-2019–2022说明增加 C 敞口并不是每个年代都划算。不能因为最终累计收益较高就忽略这种失效阶段。
+2019–2022 shows that increasing C is not worthwhile in every era. Higher final cumulative returns do not justify ignoring failure periods.
 
-## 其他提高收益的路径与下一步
+## Other return-improvement paths and next steps
 
-1. **适度提高 C 敞口**：先把上面的单项候选冻结下来，观察能否接受约33%的历史收盘回撤及更差的未来情景；做前瞻记录，不继续按本表调参。
-2. **风险通道与趋势确认分开**：研究突发风险时是否需要更快减仓、反弹时如何恢复。此前全面缩短减仓确认的结果不佳，不能把“更快”直接当作改进；本次未新增风险通道规则。
-3. **降低换手和实际成交成本**：当前全区间换手8.41x/年，每降低1bp单边成本，按名义成交额粗略计算可减少约0.084个百分点/年的费用。实际效果还取决于滑点、交易路径和税费。
-4. **增加互补收益来源**：黄金、管理期货等应与相同现金占比比较。此前项目跨资产研究显示分散风险有价值，但不能保证提高长期收益，黄金近期强势和较短的基金历史尤其容易影响结论。
-5. **动能改进继续作为研究问题**：优先检查某项信息是否在现有状态之外增加可成交收益，再测试接入仓位后的结果。暂不以“柱缩短”“背离”作为独立提前清仓或加杠杆条件。
+1. **Moderately increase C:** freeze the single candidate above, assess willingness to tolerate historical closing drawdowns around 33% and worse future scenarios, and record forward performance without more table-driven tuning.
+2. **Separate risk reductions from trend confirmation:** investigate faster cuts under sudden risk and how to restore exposure. Broadly shortening reduction confirmation previously performed poorly; faster is not automatically better. No new risk-channel rule is introduced here.
+3. **Reduce turnover and actual trading costs:** current full-period turnover is 8.41x/year. Each 1bp reduction in one-way costs saves roughly 0.084 percentage points/year on nominal traded amounts; actual results also depend on slippage, trades and taxes.
+4. **Add complementary return sources:** compare gold/managed futures with equal cash allocations. Earlier cross-asset work supports diversification value, but not guaranteed higher long-term returns; gold’s recent strength and short fund histories can bias conclusions.
+5. **Keep momentum improvements as research:** first establish incremental executable information beyond existing states, then test allocation integration. Shrinking histograms and divergences are not standalone early-exit or leverage triggers for now.
 
-波动管理与点位预测可以分别评估。Moreira、Muir 的研究为高波动时降低风险提供了实证支持，但其收益定义和组合结构与本项目不同，不能直接移植论文的收益提升数字。[研究原文入口](https://www.nber.org/papers/w22208)
+Volatility management and turning-point prediction can be assessed separately. Moreira and Muir provide evidence for reducing risk during high volatility, but their return definitions and portfolios differ from this project; their reported gains cannot be transplanted directly. [Research paper](https://www.nber.org/papers/w22208)
 
-所有历史已经被用于策略开发，本次按时间向前训练也不能使整套研究成为未触碰的最终样本外验证。历史最大回撤不是未来风险上限；本研究未含个人税费、盘中极端回撤及所有真实开盘滑点。
+All history has informed strategy development; chronological training does not make this an untouched final out-of-sample test. Historical maximum drawdown is not a future risk cap. Personal taxes, extreme intraday losses and all real opening slippage are excluded.
 
-## 复现与核验
+## Reproduction and validation
 
-运行 `.venv/bin/python momentum_research.py`，无需下载行情。默认研究输出位于 `/private/tmp/qqq_momentum_20261013`，包括完整结果JSON、每日预测、特征以及各候选净值、敞口和换手CSV。临时文件不是持久归档，删除后可用同一输入重建。
+Run `.venv/bin/python momentum_research.py` without downloading prices. Default output is `/private/tmp/qqq_momentum_20261013`, including full results JSON, daily predictions/features and candidate equity/exposure/turnover CSVs. Temporary files are not a durable archive; identical inputs can rebuild them.
 
-研究复用 `breadth_research.py` 的基线加载、确认、前瞻收益和统计工具；基线加载在 `2_backtest.py` 写报告之前停止，不覆盖 `results.json`。组合调用 `execution.run_next_open()`。
+The study reuses baseline loading, confirmation, forward returns and statistics from `breadth_research.py`. Baseline loading stops before `2_backtest.py` writes reports, without overwriting `results.json`. Portfolios call `execution.run_next_open()`.
 
-已核验：基线目标权重和净值精确复原；未来窗口从下一开盘开始；尾部不完整窗口排除；指标前缀不受后续行情影响；无NDX代理收益进入组合；候选权重和为1，目标敞口处于0–2x。档位内不再平衡，实际权重可以漂移。
+Verified: exact baseline target weights/equity; future windows start at the next open; incomplete tail windows excluded; indicator prefixes unchanged by later prices; no NDX proxy returns; candidate weights sum to 1 with target exposure in 0–2x. No within-tier rebalancing; actual weights may drift.
 
-价格文件SHA256：`7f053199ab5ba1a10606ecbe0d65ba6028ebf336e7c608807efd3a0ec8a6092d`。
+Price-file SHA256: `7f053199ab5ba1a10606ecbe0d65ba6028ebf336e7c608807efd3a0ec8a6092d`.

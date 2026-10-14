@@ -1,100 +1,100 @@
-# S5FI市场宽度与QQQ反弹研究
+# S5FI Market Breadth and QQQ Rebound Study
 
-研究日期：2026-09-11。策略：V1.6.1。
+Study date: 2026-09-11. Strategy: V1.6.1.
 
-## 结论
+## Conclusion
 
-S5FI低位回升与随后约一个月的QQQ上涨存在值得关注的条件性关系，但本次没有验证出能够稳定提高现有策略收益的交易改动。5日短线效果不佳；20日事件统计较好，并不等于接入仓位管理后就能获得额外收益。
+Recovering S5FI from low levels has an interesting conditional relationship with QQQ gains over roughly the next month, but this study did not validate a trading change that consistently improves the existing strategy. Five-day results are weak; favorable 20-day event statistics do not guarantee incremental returns after integration into allocation rules.
 
-本次直接使用TradingView的`INDEX:S5FI`历史数据，没有用今天的标普成分股名单重建历史。S5FI表示标普500成分股站上各自50日均线的百分比，20代表20%，不是20只股票。它反映标普市场参与面，与QQQ的纳指100成分范围不同。
+The study directly uses TradingView `INDEX:S5FI` history rather than rebuilding history from today’s S&P constituents. S5FI is the percentage of S&P 500 constituents above their own 50-day averages: 20 means 20%, not 20 stocks. It measures S&P participation, distinct from QQQ’s Nasdaq-100 universe.
 
-## 数据与执行
+## Data and execution
 
-- 数据来源：[TradingView INDEX:S5FI](https://www.tradingview.com/symbols/INDEX-S5FI/)，公开图表元数据标明提供方为Barchart。
-- 本次取得2006-12-29至2026-09-10的4977条日线。已检查数值位于0至100、无重复日期、研究期间没有缺失的策略交易日。
-- QQQ沿用项目价格文件，SPY使用Yahoo Finance复权开收盘价。因此统一研究截止2026-07-30，起点为2007-01-03，不使用之后的宽度数据预测之前收益。
-- 宽度日线时间对应纽约09:30开盘所标记的交易日，采用该日最终Close作为盘后信号。数据提供商的历史修订及最终发布时间未独立审计，因此也测试了宽度加仓额外延迟一天。
-- 事件收益：T日收盘生成信号，T+1开盘买入，T+5、T+10或T+20收盘卖出，往返各计5bp。不包含信号当天或T到T+1开盘前无法成交的上涨。
-- 同一组事件按时间顺序至少间隔20个交易日，避免重复统计同一段20日持仓。不同信号组仍可覆盖相同市场行情，不能当成互相独立的实验。
-- 基准取每20交易日一个窗口，包含普通和极端行情，起始日期固定；它不是随机抽样或严格匹配的因果对照。
-- 数据提供商是否按当时成分计算、是否修订过历史，没有独立名单审计。本次避免了自行采用当前成分股重建的明显偏差，但不声称数据已通过完整时点审计。
+- Source: [TradingView INDEX:S5FI](https://www.tradingview.com/symbols/INDEX-S5FI/); public chart metadata identifies Barchart as provider.
+- Downloaded 4977 daily bars from 2006-12-29 through 2026-09-10. Values stay within 0–100, dates are unique, and no strategy trading days are missing in the study period.
+- QQQ uses project prices; SPY uses adjusted Yahoo Finance opening/closing prices. The common study cutoff is 2026-07-30, starting 2007-01-03. Later breadth data never predicts earlier returns.
+- Breadth bars are labeled with the trading day’s New York 09:30 open; that day’s final close is the post-close signal. Provider revisions and final release timing were not independently audited, so breadth entries were also tested with one extra day of delay.
+- Event returns: signal at the T close, buy at the T+1 open, sell at the T+5/T+10/T+20 close, with 5bp each way. Excludes gains on the signal day or before the next executable open.
+- Within each signal group, events are at least 20 trading days apart to avoid counting the same holding window twice. Different signal groups may cover the same market periods and are not independent experiments.
+- Benchmark windows start every 20 trading days on fixed dates, including ordinary and extreme markets. This is neither random sampling nor a strictly matched causal control.
+- No independent constituent-level audit establishes point-in-time membership or provider revisions. Using provider history avoids the obvious bias of reconstructing from current constituents, but is not a complete point-in-time audit.
 
-## 固定信号定义
+## Fixed signal definitions
 
-| 名称 | 盘后可确定的规则 |
+| Signal | Rule observable after the close |
 |---|---|
-| 宽度跌入超跌区 | S5FI从前一日不低于20，降至20以下 |
-| 低位回升30 | 前10个交易日最低S5FI不高于20，今日从不高于30上穿30 |
-| 强恢复50 | 前10个交易日最低S5FI不高于20，今日从不高于50上穿50 |
-| 价格恢复对照 | QQQ从5日均线下方或均线上，上穿5日均线 |
-| QQQ回调环境 | QQQ距过去63日最高收盘价下跌至少5% |
+| Breadth enters oversold territory | S5FI falls below 20 from at least 20 the prior day |
+| Recovery through 30 | Previous 10 trading days’ minimum S5FI ≤20; today crosses above 30 from ≤30 |
+| Strong recovery through 50 | Previous 10 trading days’ minimum S5FI ≤20; today crosses above 50 from ≤50 |
+| Price-recovery control | QQQ crosses above its 5-day average from at or below it |
+| QQQ pullback context | QQQ is at least 5% below the highest close over the previous 63 days |
 
-30和50信号是本次预设的简单阈值，不是搜索所得的最优值。强恢复50并不是经典Zweig Breadth Thrust指标，后者使用上涨家数比例的另一套定义。
+30 and 50 were predefined simple thresholds, not optimized values. Recovery through 50 is not the classic Zweig Breadth Thrust, which uses a different advancing-issue definition.
 
-## 事件统计
+## Event statistics
 
-下表为QQQ平均净收益，括号为正收益比例；收益已经计入往返10bp。
+Cells show average net QQQ returns, with positive-return share in parentheses. Returns include the 10bp round trip.
 
-| 信号 | 事件数 | 随后5日 | 随后10日 | 随后20日 |
+| Signal | Events | Next 5 days | Next 10 days | Next 20 days |
 |---|---:|---:|---:|---:|
-| 每20交易日一个基准窗口 | 246 | +0.33%（61.0%） | +0.47%（61.8%） | +1.18%（66.3%） |
-| 宽度跌入20以下 | 35 | -0.21%（45.7%） | +0.31%（42.9%） | +2.86%（71.4%） |
-| 低位回升30 | 30 | -0.29%（46.7%） | +0.72%（66.7%） | +3.19%（76.7%） |
-| 强恢复50 | 23 | -0.68%（39.1%） | +1.90%（78.3%） | +3.29%（73.9%） |
-| QQQ回调至少5%后价格上穿5日均线 | 72 | -0.11%（48.6%） | +0.12%（58.3%） | +1.55%（63.9%） |
+| Benchmark window every 20 trading days | 246 | +0.33% (61.0%) | +0.47% (61.8%) | +1.18% (66.3%) |
+| Breadth falls below 20 | 35 | -0.21% (45.7%) | +0.31% (42.9%) | +2.86% (71.4%) |
+| Recovery through 30 | 30 | -0.29% (46.7%) | +0.72% (66.7%) | +3.19% (76.7%) |
+| Strong recovery through 50 | 23 | -0.68% (39.1%) | +1.90% (78.3%) | +3.29% (73.9%) |
+| Price crosses 5-day average after ≥5% QQQ pullback | 72 | -0.11% (48.6%) | +0.12% (58.3%) | +1.55% (63.9%) |
 
-更接近同一回调环境的比较：低位回升30且QQQ回调至少5%有24次事件，20日均值+3.29%、胜率75.0%；单纯QQQ回调至少5%的107个去重窗口为+1.55%、60.7%。这支持继续研究条件性信号，但两组风险和事件日期并未完全匹配，不能把差值直接解释为因果超额收益。
+A closer pullback-context comparison: recovery through 30 with QQQ at least 5% below its peak produced 24 events, average 20-day return +3.29% and win rate 75.0%; 107 deduplicated windows with only the ≥5% QQQ pullback produced +1.55% and 60.7%. This supports further conditional-signal research, but risks and event dates are not fully matched, so the difference is not causal excess return.
 
-低位回升30的20日平均收益，用事件所在年份整体重采样2000次得到的粗略95%区间为+1.82%至+5.15%。这不是“比基准更高”的显著性检验；短线5日均值的区间跨零。样本只有30次，按年分组也不能消除所有跨年行情相关性。
+Resampling event years as whole blocks 2000 times gives a rough 95% interval of +1.82% to +5.15% for recovery-through-30 average 20-day returns. This is not a significance test against the benchmark. The five-day mean’s interval crosses zero. Only 30 events are available; grouping by year does not remove all cross-year dependence.
 
-同一低位回升30信号在SPY上：20日平均收益+2.32%、胜率70.0%，5日平均收益-0.20%、胜率43.3%。QQQ和SPY都没有体现出可靠的5日短线买入优势。
+For the same recovery-through-30 signal in SPY: average 20-day return +2.32%, win rate 70.0%; five-day -0.20%, win rate 43.3%. Neither QQQ nor SPY shows a reliable five-day buying edge.
 
-低位回升30的QQQ20日结果按年代拆分：
+QQQ 20-day recovery-through-30 results by era:
 
-| 年代 | 事件数 | 平均净收益 | 正收益比例 |
+| Era | Events | Average net return | Positive-return share |
 |---|---:|---:|---:|
 | 2007-2012 | 14 | +2.48% | 71.4% |
 | 2013-2019 | 7 | +3.59% | 85.7% |
 | 2020-2026 | 9 | +3.97% | 77.8% |
 
-方向在三个年代相同，但后两段样本尤其少，这些都是历史探索性检查。
+Direction agrees across the three eras, but later samples are especially small. These remain exploratory historical checks.
 
-## 相关性与额外预测信息
+## Correlation and incremental predictive information
 
-- S5FI五日变化与QQQ同期五日收益的相关系数约+0.704，说明宽度与指数上涨经常同时发生。
-- 同一宽度变化与QQQ未来5/10/20日可成交收益的相关系数分别为-0.029、+0.006、+0.008，线性关系很弱。
-- 宽度水平与未来20日收益相关系数约-0.099，低宽度后存在一定反弹倾向，但远不足以精确预测某一天的涨跌。
+- S5FI five-day change correlates about +0.704 with contemporaneous QQQ five-day returns: breadth and index gains often occur together.
+- The same change correlates -0.029/+0.006/+0.008 with executable future 5/10/20-day returns, a weak linear relationship.
+- Breadth level correlates about -0.099 with future 20-day returns. Low breadth has some rebound tendency, far from precise daily prediction.
 
-为了检查是否超出现有价格信息，使用按年向前滚动的固定岭回归：先用QQQ过去5/20日收益、63日回撤、RSI14、20日波动率、宏观多空状态预测，再加入S5FI水平和五日变化。2012年起每年只用之前的数据训练，剔除预测窗口会跨进测试年的训练标签，特征只用训练段均值和标准差归一化，正则系数固定10。
+To test beyond existing price information, use fixed annual walk-forward ridge regression. Controls are QQQ 5/20-day returns, 63-day drawdown, RSI14, 20-day volatility and macro regime; then add S5FI level and five-day change. From 2012, each year trains only on earlier data, excludes training labels crossing into the test year, normalizes with training means/deviations only, and fixes regularization at 10.
 
-| 预测周期 | 加入宽度后的测试均方误差变化 |
+| Horizon | Test mean-squared-error change after adding breadth |
 |---|---:|
-| 5日 | 增加0.52% |
-| 10日 | 增加0.83% |
-| 20日 | 增加1.22% |
+| 5 days | Increase of 0.52% |
+| 10 days | Increase of 0.83% |
+| 20 days | Increase of 1.22% |
 
-按年重采样的误差变化区间均包含零，因此不能据此认定宽度一定有害；可以确定的是，这个简单模型没有显示稳定的额外预测改善。它也不能排除某些非线性的稀有事件规则有效。
+Year-resampled intervals all include zero, so breadth is not proven harmful. This simple model shows no stable incremental predictive improvement; it does not rule out nonlinear rare-event rules.
 
-## 接入当前策略后
+## Integration with the current strategy
 
-加仓候选规则：满足宽度或价格事件、QQQ63日回调至少5%、原策略盘后确认目标低于0.30x时，将下一开盘起20个交易日的目标敞口下限设为0.30x，仅用QQQ，不增加QLD。期间不延长期限；原策略目标高于0.30x时执行原目标。到期后的下一开盘恢复原目标，旧仓仍承担隔夜收益。该下限不再等待原有三日确认，所以是一项单独研究的执行规则改动。
+Entry candidate: after a breadth or price event, with a ≥5% QQQ 63-day pullback and confirmed post-close strategy target below 0.30x, set a 0.30x exposure floor for 20 trading days from the next open, using only QQQ and no extra QLD. Do not extend the holding period. Higher original targets take priority. Restore original targets at the open after expiration; old holdings still absorb overnight returns. This floor bypasses the original three-day confirmation and is a separately researched execution-rule change.
 
-另测宽度杠杆门槛：S5FI低于50时，把原始目标上限限制为1x，然后沿用原有三日确认、死区和次日开盘成交。门槛并非即时强平实际漂移仓位。
+Also test a breadth leverage gate: below S5FI 50, cap raw target exposure at 1x, then apply original three-day confirmation, deadband and next-open execution. It does not immediately liquidate drifted holdings.
 
-所有组合调用原有共享执行引擎，计单边5bp成本；没有修改正式策略。主比较区间为2007-01-03至2026-07-30。子区间沿用之前的持仓，包含起始日收益，不能和此前“截取首日收盘再归一”或“首日开盘重新建仓”的数字混用。
+All portfolios use the shared engine and 5bp per-side costs; production is unchanged. Main period: 2007-01-03 to 2026-07-30. Subperiods retain earlier holdings and include first-day returns; do not mix these results with prior first-close normalization or first-open fresh-entry figures.
 
-| 规则 | 全区间年化 / 最大回撤 | 近五年年化 / 最大回撤 |
+| Rule | Full-period CAGR / maximum drawdown | Last-five-year CAGR / maximum drawdown |
 |---|---:|---:|
-| V1.6.1基准 | 17.07% / -26.91% | 16.56% / -21.84% |
-| 跌入20以下后0.30x底仓 | 17.26% / -29.86% | 17.74% / -21.39% |
-| 低位回升30后0.30x底仓 | 17.04% / -26.91% | 16.34% / -23.69% |
-| 低位回升30，额外晚一天执行 | 17.07% / -26.91% | 16.40% / -23.34% |
-| 价格修复后0.30x底仓 | 16.91% / -35.11% | 16.86% / -23.91% |
-| S5FI低于50限制杠杆 | 16.38% / -26.91% | 15.67% / -21.06% |
+| V1.6.1 baseline | 17.07% / -26.91% | 16.56% / -21.84% |
+| 0.30x floor after breadth falls below 20 | 17.26% / -29.86% | 17.74% / -21.39% |
+| 0.30x floor after recovery through 30 | 17.04% / -26.91% | 16.34% / -23.69% |
+| Recovery through 30, one extra execution day | 17.07% / -26.91% | 16.40% / -23.34% |
+| 0.30x floor after price recovery | 16.91% / -35.11% | 16.86% / -23.91% |
+| Limit leverage below S5FI 50 | 16.38% / -26.91% | 15.67% / -21.06% |
 
-事件胜率高并不意味着这套策略会多赚。低位回升30共30次独立事件，真正满足低仓位条件、在策略中启动底仓的只有14次；进入低仓位子样本后，收益分布也发生变化。另外，原策略自己的R/D/F状态已经参与了部分后续上涨。
+High event win rates do not guarantee strategy gains. Of 30 distinct recovery-through-30 events, only 14 met the low-exposure condition and actually activated the floor. Returns also change after selecting the low-exposure subset. Existing R/D/F states already participate in some subsequent gains.
 
-| 年度 | 原策略 | 跌入20后底仓 | 回升30后底仓 |
+| Year | Original strategy | Floor after below-20 entry | Floor after recovery through 30 |
 |---|---:|---:|---:|
 | 2008 | -12.41% | -16.17% | -12.95% |
 | 2011 | -7.68% | -7.79% | -7.54% |
@@ -103,30 +103,30 @@ S5FI低位回升与随后约一个月的QQQ上涨存在值得关注的条件性�
 | 2022 | -17.72% | -14.90% | -19.00% |
 | 2025 | +7.75% | +9.57% | +8.45% |
 
-成本提高到单边10bp后，基准全区间年化16.51%，跌入20底仓16.69%，回升30底仓16.47%，杠杆门槛15.81%。没有出现支持立即升级的稳健收益回撤优势。
+At 10bp per-side costs, full-period CAGR is baseline 16.51%, below-20 floor 16.69%, recovery-through-30 floor 16.47%, and leverage gate 15.81%. There is no robust return/drawdown advantage supporting immediate adoption.
 
-## 具体失效情景
+## Specific failure scenarios
 
-- 2008-09-29，S5FI为8.89。次日开盘买QQQ，20交易日后仍亏约24.02%。宽度极低可以意味着持续危机，不能当作底部保证。
-- 2022-05-17，S5FI上穿30至31.28。次日开盘买QQQ，20交易日净收益约-6.31%；窗口内最差收盘相对买入价约-8.67%。随后反弹失败，加底仓候选该窗口相对原策略净值变化约-2.64%。
-- 2020-04-14，S5FI回升30，QQQ随后20日净收益+6.44%，但加底仓候选相对原策略的窗口净值改善仅约0.05%。看到一段漂亮反弹，并不代表原策略尚未参与。
-- 2025-04-24回升信号后，QQQ20日净收益约+9.96%；策略全年收益仅从7.75%提升到8.45%，仍不足以据此认定规则有效。
+- 2008-09-29: S5FI 8.89. Buying QQQ at the next open still loses about 24.02% after 20 trading days. Extremely low breadth can signal a continuing crisis, not a guaranteed bottom.
+- 2022-05-17: S5FI crosses 30 to 31.28. Next-open QQQ entry earns about -6.31% over 20 trading days; worst closing loss versus entry is about -8.67%. The rebound fails; the floor candidate changes relative window equity by about -2.64% versus baseline.
+- 2020-04-14: recovery through 30 precedes +6.44% QQQ 20-day returns, but the floor improves strategy window equity by only about 0.05%. A strong rebound does not imply the original strategy missed it.
+- After the 2025-04-24 signal, QQQ’s 20-day net return is about +9.96%, but strategy annual return improves only from 7.75% to 8.45%, insufficient to establish effectiveness.
 
-窗口相对净值变化是候选/基准净值比在事件前后之比的变化，不是可直接相加的收益贡献。策略窗口还包含到期后下一开盘的恢复交易，与单独20日收盘卖出的事件统计口径略有不同。
+Relative window equity change is the change in candidate/baseline equity ratios across the event, not an additive return contribution. Strategy windows include the restoration trade at the next open after expiration, slightly differing from standalone events sold at the 20-day close.
 
-## 后续建议
+## Next steps
 
-优先把S5FI用于记录市场参与面和观察反弹持续性。低于20属于广泛超跌，低位回升30属于修复扩散，高于50表示多数成分股重回50日均线上方；这些状态都不是独立买卖指令。
+Prefer S5FI as an observation of market participation and rebound durability. Below 20 means broad oversold conditions; recovery through 30 means repair is spreading; above 50 means most constituents are back above their 50-day average. None is a standalone trading instruction.
 
-本次证据不支持直接上调杠杆或把任何一个候选加入V1.6.1。下一轮若继续研究，可采用相同规则检验纳指100的对应宽度，并预先固定验证方案，比较是否比S5FI更贴近QQQ。不要根据2025年或某一次失败反弹继续调整门槛来追逐更好曲线。
+Evidence does not support raising leverage or adding any candidate to V1.6.1. Further research could apply identical rules to Nasdaq-100 breadth, with a predefined validation plan, to see whether it better matches QQQ. Do not retune thresholds after 2025 or one failed rebound to chase a better curve.
 
-这次事件规则、持仓改动及岭回归都属于研究工具。历史数据已经被用于策略开发；即使预测按时间向前训练，也不应把整套研究称为从未触碰的最终样本外测试。
+Event rules, allocation changes and ridge regression are research tools. History has already informed strategy development. Even chronological prediction training does not make the whole study an untouched final out-of-sample test.
 
-## 复现与验证
+## Reproduction and validation
 
-- `breadth_research.py --download`通过公开访客行情连接下载S5FI并下载SPY，之后完成研究；已有数据时不传`--download`。需要项目现有Python环境及yfinance、websockets、pandas、numpy。
-- 默认数据目录为`/private/tmp/qqq_breadth_20260911`，可用`--data-dir`指定其他位置。行情、逐事件记录、预测结果、候选净值、结果JSON均写入该目录，不提交日更数据。
-- 已检验前瞻收益的开盘/收盘偏移、最后不完整窗口处理、固定持有期限不续期、信号前缀不受后续数据影响、权重和为1、无事件时与原目标一致、原有确认/死区目标精确复原。
-- 提供商元数据保存为`S5FI_metadata.json`；来源校验值在结果JSON中。公开接口的可用性与历史长度可能变化，重新下载可能得到不同的提供商修订数据。
-- S5FI输入SHA256：`e64b2318278606f76c2a5134197c8665375c2f2c3d76c706998eee2efc858991`。
-- QQQ策略价格SHA256：`43c1bb379086e57db7271fe3a3c2abc24e37fa5363d8968f2b9229ad3dd2aa21`。
+- `breadth_research.py --download` downloads S5FI through a public guest-price connection and downloads SPY, then runs the study. Omit `--download` with existing data. Requires the project Python environment and yfinance, websockets, pandas and numpy.
+- Default data directory: `/private/tmp/qqq_breadth_20260911`; override with `--data-dir`. Prices, individual events, predictions, candidate equity and results JSON are written there; daily data is not committed.
+- Checked opening/closing offsets in forward returns, incomplete final windows, fixed non-renewing holding periods, prefix invariance to future data, weights summing to 1, original targets without events, and exact reconstruction of confirmation/deadband targets.
+- Provider metadata is saved as `S5FI_metadata.json`; source checksums are in results JSON. Public-interface availability/history length may change, and redownloads may include revised provider history.
+- S5FI input SHA256: `e64b2318278606f76c2a5134197c8665375c2f2c3d76c706998eee2efc858991`.
+- QQQ strategy price SHA256: `43c1bb379086e57db7271fe3a3c2abc24e37fa5363d8968f2b9229ad3dd2aa21`.

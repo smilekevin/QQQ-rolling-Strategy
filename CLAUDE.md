@@ -1,140 +1,143 @@
-# CLAUDE.md — 项目上下文与设计决策记录
+# CLAUDE.md — Project Context and Design Decisions
 
-> 给未来的 Claude / 接手者:这份文件记录本仓库的策略设计、演进历史、关键分析结论和易踩的坑。改代码前请先读完,尤其是「一致性要求」一节。
+> For future agents and maintainers: this document records strategy design, evolution, key analytical findings and pitfalls. Read it in full before changing code, especially **Consistency requirements**.
 
-## 1. 项目是什么
+## 1. Project overview
 
-QQQ / QLD **动态滚仓策略**:用 QQQ 的技术指标(MACD / RSI / Supertrend + 250 日均线)+ 波动率目标,在 **现金 → QQQ → QQQ+QLD(1.5x)** 之间连续调节杠杆敞口。附完整历史回测(1999 至今)与交互式 HTML 报告。QLD 是 2× 做多 QQQ 的杠杆 ETF。
+A QQQ / QLD **dynamic allocation strategy** using QQQ technical indicators (MACD / RSI / Supertrend + a 250-day moving average) and volatility targeting to adjust exposure continuously between **cash → QQQ → QQQ+QLD (1.5x)**. Includes a full historical backtest from 1999 onward and an interactive HTML report. QLD targets 2× QQQ’s daily return.
 
-当前报告版本：**V1.6.1a**；当前策略版本：**V1.6.1**。报告版本只包含展示与观察标记更新,不改变策略规则或回测口径。
+Current report version: **V1.6.1a**; current strategy version: **V1.6.1**. Report updates affect presentation and observation markers only, without changing strategy rules or backtest methodology.
 
-## 2. 文件结构
+## 2. File structure
 
-| 文件 | 作用 |
+| File | Purpose |
 |---|---|
-| `1_prepare_data.py` | 下载 ^NDX/QQQ/QLD/^IRX/^VIX,用 NDX 暖机指标并合成 2006 前 QLD → `prices.csv` |
-| `indicators.py` | **共享指标模块**:ema/macd/rsi/supertrend/compute + decide_tier/DECNAME + 极端恐慌观察判定。被 2/daily_check 复用 |
-| `execution.py` | **共享执行模块**:旧仓隔夜 → T+1 开盘调仓 → 新仓日内。被 2/opt/ablation 复用 |
-| `2_backtest.py` | 指标(import indicators)+ V1.6.1 策略回测 → `results.json`。**顶部 CONFIG 是唯一调参处** |
-| `3_generate_report.py` | 只更新交互式报告数据 → `report_data.js`,不改写 HTML |
-| `qqq_qld_report.html` | 固定交互式页面壳,从本地 `report_data.js` 读取日更数据 |
-| `_headers` | Cloudflare 静态资源的 `report_data.js` 缓存规则,防止页面壳/数据版本错配 |
-| `daily_check.py` | 盘后算目标敞口 + 决策档,给"持有/调仓"建议 |
-| `opt.py` | 参数稳健性 / 样本内外验证(向量化,<1s) |
-| `ablation.py` | 指标消融实验 |
-| `research/` | 历史研究报告及日期索引，见 [`research/README.md`](./research/README.md) |
-| `README.md` | 面向用户的说明 |
+| `1_prepare_data.py` | Download ^NDX/QQQ/QLD/^IRX/^VIX, warm up indicators with NDX and synthesize pre-2006 QLD → `prices.csv` |
+| `indicators.py` | **Shared indicators:** ema/macd/rsi/supertrend/compute, decide_tier/DECNAME and extreme-panic observation; reused by the backtest and daily check |
+| `execution.py` | **Shared execution:** existing holdings overnight → rebalance at the T+1 open → new holdings intraday; reused by backtest/opt/ablation |
+| `2_backtest.py` | Indicators imported from indicators + V1.6.1 backtest → `results.json`; **top-level CONFIG is the only parameter-editing location** |
+| `3_generate_report.py` | Update interactive report data → `report_data.js`; never rewrite the HTML |
+| `qqq_qld_report.html` | Fixed interactive shell reading local `report_data.js`, with English/Chinese presentation |
+| `_headers` | Cloudflare revalidation rules for `report_data.js`, preventing shell/data version mismatches |
+| `daily_check.py` | Post-close target exposure and decision tier, with hold/rebalance guidance |
+| `opt.py` | Parameter robustness and training/validation comparisons (vectorized, <1s) |
+| `ablation.py` | Indicator ablation experiments |
+| `research/` | Historical reports and date index; see [`research/README.md`](./research/README.md) |
+| `README.md` | User-facing guide |
 
-流水线顺序:`1 → 2 → 3`。`prices.csv` / `results.json` / `report_data.js` 被 gitignore(可重建);`qqq_qld_report.html` 固定并提交到 Git。
+Pipeline order: `1 → 2 → 3`. `prices.csv`, `results.json` and `report_data.js` are gitignored and reproducible. The fixed `qqq_qld_report.html` is committed.
 
-**Cloudflare 自动部署（2026-10-14，Worker + Wrangler + Workers Builds）**：`build_cloudflare.sh` 安装依赖，`scripts/build_report.py` 在临时目录运行原流水线，做最新行情与报告日期/序列检查，下载/行情校验最多三次尝试；成功后仅生成 `dist/` 静态发布文件（`index.html`、原报告 HTML、`report_data.js`、`_headers`）。根目录 `wrangler.jsonc` 绑定 `dist/`，一个 `qqq-strategy-auto-deploy` Worker 托管静态报告并由控制台 Cron 定时 POST 自己的 Workers Builds Hook；`cloudflare/worker.mjs` 验证 Secret `DEPLOY_HOOK_URL` 为 Workers Builds 地址及 API 返回的构建 ID，HTTP 请求只读取 ASSETS。默认静态资源优先返回，保留 `_headers` 缓存规则。`package.json` 固定 Wrangler 版本；生产部署命令仍为 `npm run deploy`（`wrangler deploy`）；预览开关和 Cron 因省略对应字段而保留网页已有设置。workers.dev 未显式配置时可能默认重新开启，用户接受这个行为。Workers Builds 中另设构建命令 `bash build_cloudflare.sh`。网页 Cron `30 22 * * MON-FRI` 对应北京时间周二至周六 06:30；当日日线校验门槛为纽约时间 17:00，冬令时调度为 17:30、夏令时为 18:30。原 Pages Hook 必须换成此 Worker 的 Builds Hook。具体配置见 [`CLOUDFLARE_DEPLOY.md`](./CLOUDFLARE_DEPLOY.md)。部署辅助文件未改策略、参数、执行或原数据填充口径；宽松的七天过期检查不是交易所日历。
+**Cloudflare automatic deployment (2026-10-14, Worker + Wrangler + Workers Builds):** `build_cloudflare.sh` installs dependencies; `scripts/build_report.py` runs the existing pipeline in a temporary directory and validates current prices, report dates and series. Downloads/price validation allow three attempts. Success produces only static files in `dist/`: `index.html`, the original report HTML, `report_data.js` and `_headers`. Root `wrangler.jsonc` binds `dist/`; one `qqq-strategy-auto-deploy` Worker hosts the report and uses dashboard Cron to POST its own Workers Builds Hook. `cloudflare/worker.mjs` validates the runtime Secret `DEPLOY_HOOK_URL` as a Workers Builds address and checks the returned build ID; HTTP requests only read ASSETS. Assets have priority and `_headers` remains effective. `package.json` pins Wrangler. Production uses `npm run deploy` (`wrangler deploy`). Omitting preview/Cron fields preserves dashboard settings; omitted workers.dev may default to enabled, which the user accepts. Workers Builds separately uses `bash build_cloudflare.sh`. Dashboard Cron `30 22 * * MON-FRI` is 06:30 Beijing time Tuesday–Saturday, or 17:30 New York standard time / 18:30 daylight time. Same-day data validation requires at least 17:00 New York time. Replace the old Pages Hook with this Worker’s Builds Hook. See [`CLOUDFLARE_DEPLOY.md`](./CLOUDFLARE_DEPLOY.md). Deployment helpers do not change strategy, parameters, execution or data filling. The permissive seven-day staleness check is not an exchange calendar.
 
-**Cloudflare SQLite 兼容修复（2026-10-14）**：首次 Workers Builds 日志确认 Python 3.12.10 已安装，但 yfinance/Peewee 因无可用 SQLite 驱动导致五个标的全部下载失败，随后空数据引发 IndexError。`requirements.txt` 为 Linux x86_64 固定增加 `pysqlite3-binary==0.5.4.post2`；Peewee 原生支持该备用驱动，无需改写标准库或第三方源码。`build_cloudflare.sh` 在下载前运行 `scripts/check_build_runtime.py`，验证实际缓存后端能建表、写入和读取并打印版本；驱动缺失时立即失败，避免三次无效下载重试。仅修复构建依赖，不改变行情处理、策略或执行口径。
+**Cloudflare SQLite compatibility fix (2026-10-14):** initial Workers Builds logs showed Python 3.12.10 installed, but all five yfinance/Peewee downloads failed without SQLite, and empty data then caused IndexError. `requirements.txt` pins `pysqlite3-binary==0.5.4.post2` on Linux x86_64. Peewee natively supports this fallback without rewriting the standard library or third-party source. Before downloading, `build_cloudflare.sh` runs `scripts/check_build_runtime.py` to create, write and read a table using the actual cache backend and print its version. Missing drivers fail immediately rather than retrying invalid downloads three times. This fixes build dependencies only.
 
-**Cloudflare 预览 URL 入口修复（2026-10-14）**：实际访问 PR #2 的分支预览与部署 URL 均返回 `404 / error code: 1042`，生产地址正常。`preview_urls` 不仅关联旧式 Version URLs，也控制 Worker Previews 的 workers.dev 路由入口；此前“false 不影响分支预览”的说明错误。按用户最新决定，该开关只在 Cloudflare 网页维护，仓库不设置它；部署脚本不主动修改已存在的预览开关。预览验收必须实际访问首页和报告数据，不能只看构建/部署成功。
+**Cloudflare preview URL routing fix (2026-10-14):** PR #2’s branch and deployment preview URLs returned `404 / error code: 1042` while production worked. `preview_urls` controls the workers.dev route for Worker Previews as well as legacy Version URLs. Earlier guidance that false would not affect branch previews was wrong. The user now manages this switch only in the dashboard; the repository omits it and deployment does not explicitly change its existing state. Preview acceptance requires opening the page and report data, beyond build/deployment success.
 
-**Cloudflare 正式域名与网页配置（用户决定，2026-10-14）**：正式站为 `https://qqq-strategy.kenzhu.link`，用户已在控制台绑定，首页和 `report_data.js` 均验证返回 HTTP 200。根目录删除 `workers_dev`、`preview_urls`、`triggers` 三项，域名、预览入口和 Cron 由用户在网页配置。生产仍使用原来的 `npm run deploy` / `wrangler deploy`；固定的 Wrangler 4.150.0 在省略 `preview_urls` 时保留已有开关，不会主动关闭已开启的 Preview URL，省略 Cron 时也保留已有定时任务。workers.dev 在字段省略且仓库未声明 routes 时可能默认重新开启，用户明确接受这个行为，不增加额外版本发布脚本。首次需在网页开启 Preview URL 并设置 Cron，暂停定时更新也在网页操作。本次改动使用 `fix/cloudflare-preview-urls` 分支，PR 由用户手动合并。
+**Production domain and dashboard configuration (user decision, 2026-10-14):** production is `https://qqq-strategy.kenzhu.link`, already bound by the user; the home page and `report_data.js` returned HTTP 200. Root config omits `workers_dev`, `preview_urls` and `triggers`. The user manages domains, previews and Cron in the dashboard. Production remains `npm run deploy` / `wrangler deploy`. Pinned Wrangler 4.150.0 preserves existing preview and scheduled-trigger settings when those fields are omitted. With no `workers_dev` or repository routes, production may re-enable workers.dev by default; the user explicitly accepts this and requested no extra version-publishing script. Initially enable Preview URL and configure Cron in the dashboard; pause scheduled updates there too. The related change used `fix/cloudflare-preview-urls`; the user merges PRs manually.
 
-## 3. 当前策略 V1.6.1(完整规则)
+**English documentation and bilingual report (2026-10-14):** all project Markdown is maintained in English. The report defaults to English, chooses Chinese when the browser’s first preferred language begins with `zh`, and offers an EN/Chinese switch at the top right. A valid saved manual preference overrides browser detection. Storage failures must not break rendering or switching. Switching updates static text, dynamic indicators, tables, chart labels/tooltips and errors in place while preserving selected periods/ranges. Data keys, numeric calculations and strategy rules remain unchanged. This work uses `feat/english-docs-bilingual-report`.
 
-决策链(信号 T 日收盘生成、T+1 开盘执行,无未来函数):
+## 3. Current strategy V1.6.1: complete rules
 
-1. **宏观闸门(有状态滞回)**:多头状态跌破 **250 日均线**即退出;进入空头状态后,需站上 `SMA250 × 1.01` 才恢复多头。
-2. **决策档**(基础/名义敞口):
-   - **E 强空头/现金**(空头状态,且价低于 `SMA250 × 0.96`、MACD线<0、Supertrend空头)→ 默认 **0x 现金**(买国债)。**强空头判定优先于 R**
-   - **F 超跌底仓**(满足上述强空头条件,且熊市 RSI 超跌锁存已开启)→ 最低 **0.15x QQQ**,不加杠杆(V1.6 起)
-   - **R 反转恢复**(空头状态、不满足强空头条件,且 Supertrend多头、MACD柱>0)→ 基础 **0.75x** × 波动率目标(V1.5 起,实际约 0.2–0.75x)
-   - **D 温和回调**(空头状态但不满足强空头/R 条件)→ 基础 **0.5x** × 波动率目标(V1.3 起,实际约 0.15–0.5x)
-   - **C 中性偏多**(多头状态,动量 0–2 分,或杠杆熔断)→ 基础 **1.0x**
-   - **B 趋势向上**(多头状态,动量 3–4 分,且 SMA250 上行、波动率<40%)→ 基础 **1.5x**(最高档)
-   - 动量打分 = `Supertrend多头 +1, MACD柱>0 +1, MACD线>0 +1, RSI>50 +1`(0–4)
-3. **波动率目标(核心)**:最终净敞口 = 基础档 × `min(1.0, 20% ÷ 20日年化波动率)`。**只降不升**,0–1.5x 封顶。波动飙升时自动降杠杆——这是同时压回撤、提收益的关键。
-4. **RSI 超跌底仓锁存**:宏观空头期 RSI(14)≤25 后开启,把最终净敞口下限托到 **0.15x**,直到宏观状态恢复多头才解除。它不增加杠杆;若 R/D 原目标高于 0.15x,仍执行原目标。锁存只在 SMA250 有效后才允许触发。
-5. **抗抖动**:宏观状态使用上述 0%/1% 非对称滞回;敞口按 0.05 档、连续 3 日确认才切换;再设 0.15x 死区。
-6. **执行顺序(V1.6.1)**:T 日收盘确认信号;T+1 开盘前旧仓位承担隔夜涨跌和现金利息,随后按开盘价调到新目标,新仓位承担开盘至收盘收益。每次调仓计 5bp 单边成本;**档位持有期内不做再平衡**(权重随行情漂移,仅换档时调仓)。
+Decision chain: signal at the close of T, execution at the T+1 open, no look-ahead.
 
-**极端恐慌观察标记(非策略规则):** `RSI(14)≤25 且 VIX≥30` 时标记当前状态与历史日期。该标记只用于研究观察,不进入决策档、目标敞口、确认、死区或调仓逻辑,因此不改变 V1.6.1 的任何回测收益。
+1. **Stateful macro gate with hysteresis:** exit the bullish regime below the **250-day moving average**. Once bearish, re-enter only above `SMA250 × 1.01`.
+2. **Decision tiers (base/nominal exposure):**
+   - **E — Deep bear/cash:** bearish macro regime, price below `SMA250 × 0.96`, MACD line < 0 and bearish Supertrend → default **0x cash**, earning Treasury interest. **Deep-bear conditions have priority over R.**
+   - **F — Oversold floor:** those deep-bear conditions with the bearish RSI floor latch active → minimum **0.15x QQQ**, unleveraged, since V1.6.
+   - **R — Reversal recovery:** bearish macro regime without deep-bear conditions, but bullish Supertrend and MACD histogram > 0 → base **0.75x** × volatility scaling, since V1.5; actual about 0.2–0.75x.
+   - **D — Mild pullback:** bearish macro regime without deep-bear/R conditions → base **0.5x** × volatility scaling, since V1.3; actual about 0.15–0.5x.
+   - **C — Neutral bullish:** bullish macro regime with 0–2 momentum points, or leverage blocked → base **1.0x**.
+   - **B — Uptrend:** bullish macro regime, 3–4 momentum points, rising SMA250 and volatility <40% → base **1.5x**, the highest tier.
+   - Momentum score = `bullish Supertrend +1, MACD histogram>0 +1, MACD line>0 +1, RSI>50 +1` (0–4).
+3. **Volatility targeting (core):** final net exposure = base tier × `min(1.0, 20% / 20-day annualized volatility)`. **Scale down only**, with a 0–1.5x target cap. Volatility spikes cut leverage automatically, central to both drawdown control and historical returns.
+4. **Oversold RSI floor latch:** RSI(14)≤25 during a bearish macro regime activates a **0.15x** minimum until the macro regime turns bullish. No leverage is added. R/D targets above 0.15x remain unchanged. The latch cannot activate before SMA250 is valid.
+5. **Noise control:** asymmetric 0%/1% macro hysteresis; exposure rounded to 0.05 increments with 3 consecutive days of confirmation; then a 0.15x deadband.
+6. **Execution order (V1.6.1):** after the T-close signal, existing holdings absorb overnight returns and cash interest. Rebalance to the new target at the T+1 open; new holdings earn open-to-close returns. Charge 5bp per side. **No rebalancing while a tier is held**: weights drift with prices and change only on allocation transitions.
 
-**关键概念:净敞口 = 波动率倍数。** 因 QLD 与 QQQ 相关性 0.998,组合波动率 = 净敞口 × QQQ波动率(1.5x敞口=1.5×波动,实测验证)。所以波动率目标本质是直接控制组合波动。
+**Extreme-panic observation, not a strategy rule:** `RSI(14)≤25 and VIX≥30` marks current/historical sentiment. It never enters decision tiers, target exposure, confirmation, deadband or trades and cannot change V1.6.1 returns.
 
-## 4. CONFIG 参数(`2_backtest.py` 顶部)
+**Key concept: net exposure is the portfolio volatility multiplier.** QLD and QQQ correlate 0.998, so portfolio volatility is approximately net exposure × QQQ volatility; 1.5x exposure is about 1.5× volatility, empirically checked. Volatility targeting therefore directly adjusts portfolio risk.
 
-```
+## 4. CONFIG parameters (top of `2_backtest.py`)
+
+```text
 SMA_LEN=250  BEAR_EXIT_BUFFER=0.04  BULL_REENTRY_BUFFER=0.01  RECOVERY_EXPOSURE=0.75
 RSI_OVERSOLD=25  OVERSOLD_FLOOR=0.15
 VOL_TARGET=0.20  VOL_CAP=1.0  MAX_EXPOSURE=1.5
 ST_PERIOD=10 ST_MULT=3.0 RVOL_WIN=20 LEVER_VOLCEIL=0.40
-CONFIRM=3 COST_BPS=5/10000 DEADBAND=0.15  (死区 0.05~0.25 不敏感,取 0.15 换手更低)
+CONFIRM=3 COST_BPS=5/10000 DEADBAND=0.15  (0.05–0.25 is insensitive; 0.15 reduces turnover)
 ```
 
-## 5. 回测结果(1999-03 至今,含成本,不再平衡)
+## 5. Backtest results (1999-03 onward, costs included, no rebalancing within tiers)
 
-| 区间 | 年化 | 最大回撤 | Calmar | 夏普 |
+| Period | CAGR | Maximum drawdown | Calmar | Sharpe |
 |---|---|---|---|---|
-| 全区间 | 14.9% | −26.9% | 0.55 | 0.82 |
-| 2006后(真实QLD) | 17.3% | −26.9% | 0.64 | 0.91 |
-| 2010后 | 18.2% | −26.9% | 0.68 | 0.94 |
-| 2020后 | 18.5% | −26.9% | 0.69 | 0.88 |
-| 最近5年 | 16.3% | −21.8% | 0.74 | 0.87 |
+| Full period | 14.9% | −26.9% | 0.55 | 0.82 |
+| Since 2006 (actual QLD) | 17.3% | −26.9% | 0.64 | 0.91 |
+| Since 2010 | 18.2% | −26.9% | 0.68 | 0.94 |
+| Since 2020 | 18.5% | −26.9% | 0.69 | 0.88 |
+| Last 5 years | 16.3% | −21.8% | 0.74 | 0.87 |
 
-对照:买入持有 QQQ 10.6%/−83%/0.13;QLD 9.9%/−99%/0.10。1万美元 27 年 → 约 44.9 万。年化目标敞口切换约 13.0 次、单边换手 8.35x,平均净敞口 ≈0.97x。
+Benchmarks (CAGR/drawdown/Calmar): QQQ buy and hold 10.6%/−83%/0.13; QLD 9.9%/−99%/0.10. $10,000 over 27 years becomes about $449,000. Annualized exposure switching is about 13.0 times, one-way turnover 8.35x, and average net exposure approximately 0.97x.
 
-**暖机口径(重要):** QQQ 1999-03-10 才上市。`prices.csv` 用缩放后的 ^NDX 1997-01-02 至上市前历史生成 `signal_close/high/low`,仅供指标暖机;QQQ/QLD 开盘分段收益在暖机段保持 NaN,主回测、opt、ablation 都只从首个真实 QQQ 可执行日 1999-03-11 开始计收益。若不用 NDX、从 QQQ 自身 SMA250 首次有效的 2000-03-03 才计绩效,保守参考为 13.2%/−26.9%/Calmar 0.49。暖机口径的差异不能当成策略规则带来的改进。
+**Warm-up methodology:** QQQ listed on 1999-03-10. `prices.csv` uses scaled ^NDX from 1997-01-02 until listing for `signal_close/high/low` only. QQQ/QLD opening-segment returns stay NaN during warm-up. Backtest/opt/ablation begin returns on the first executable real QQQ day, 1999-03-11. Starting instead when QQQ’s own SMA250 becomes valid on 2000-03-03, without NDX, gives 13.2%/−26.9%/Calmar 0.49. Warm-up differences are not strategy improvements.
 
-## 6. 演进史(每步的 why —— 都是样本内外验证 + 经济逻辑驱动)
+## 6. Evolution: rationale and validation
 
-- **初版**:纯日线 Supertrend 择时 → 换手 33 次/年、回撤 −84%,失败(熊市反弹反复加杠杆的"杠杆ETF陷阱")。
-- **加 250 日闸门 + 波动率目标 + 强空头清仓 + 现金生息** → 回撤 −42%,Calmar 翻倍。
-- **VOL_CAP 1.15→1.0**(波动目标只降不升):回撤再降,收益持平。
-- **V1.1**:趋势闸门 200→**250 日**。opt.py 验证:250/300 是"高原",前后两段样本都改善,非过拟合。回撤 −42%→−32%。
-- **V1.2**:**去掉 QLD全仓 2x 档**(MAX_EXPOSURE=1.5)。消融发现 2x 顶档触发于过热点位、不赚风险溢价,砍掉零代价(甚至微升),换手还降低。
-- **V1.3**:**D 档从固定 0.5x 改为 0.5x×波动率目标**。测试各 D 敞口发现固定 0.5 偏高;降到 vol-scaled 后回撤 −30%→−26%、Calmar 0.41→0.45,全区间和子区间一致改善。
-- **V1.4**:**给 SMA250 闸门加入非对称滞回,并把 E 清仓线下移 4%**。起因是 2015-06 至 2016-07 QQQ 横盘但旧策略回撤约 −25.3%:价格在均线附近反复切到 E 现金,错过反弹后又重新追入。V1.4 改为“跌破均线退出多头、站上 1% 才恢复;深破 4% 且空头指标共振才进 E,否则留 D”。该阶段回撤降至约 −17.3%。细网格数学峰值约 4%/0.5%,但 3.5%–4.75% / 0.5%–1.5% 均为高原,故选择更稳健易解释的 4%/1%。代价是 2018/COVID 局部回撤略差。
-- **V1.5**:**在空头状态加入 R 反转恢复档**。复盘 2011、2016、2025 大幅跑输 QQQ 的共同原因:长期闸门尚未恢复时,D 档经波动缩放后的平均敞口仅约 0.2x,因此错过 V 型反弹。V1.5 在 E 不成立且 `Supertrend多头 + MACD柱>0` 时先恢复到 0.75x×波动率目标,不直接恢复杠杆。对应年度收益约从 −9.2%→−8.4%、−3.9%→−2.6%、+4.9%→+5.7%。0.70–0.80x 的结果接近,选中间值 0.75x;它缓解恢复滞后,但不会保证在 V 型反弹中跟上 QQQ。
-- **V1.6**:**加入 RSI 超跌后的无杠杆底仓锁存**。宏观空头期 RSI(14)≤25 后将最低净敞口维持在 0.15x,直到宏观状态恢复多头;它主要覆盖强空头 E 原本完全空仓后的修复段,不改变 V1.5 的 R 档。四组结构对照为:无 R/无底仓 14.17%/−25.34%/Calmar 0.559;仅 R 14.49%/−25.39%/0.571;仅底仓 14.49%/−24.91%/0.582;R+底仓 14.94%/−24.73%/0.604,说明两者作用互补而非重复。
-- **V1.6.1**:**只修正执行口径,不改变策略规则或参数**。旧模型虽将目标权重 shift(1),却把 T+1 新仓位直接乘以“前收盘→当收盘”收益,错误包含了信号产生后无法成交的隔夜跳空。新版将收益拆成隔夜/日内,按“旧仓隔夜→开盘调仓→新仓日内”执行。全周期年化仍约 14.9%,但最大回撤由 −24.7% 修正为 −26.9%,Calmar 0.60→0.55。
+- **Initial:** daily Supertrend alone → 33 switches/year and −84% drawdown; failed because of repeated leverage re-entry in bear-market rebounds.
+- **Long-term gate + volatility targeting + deep-bear cash exit + interest on cash:** drawdown fell to −42% and Calmar doubled.
+- **VOL_CAP 1.15→1.0:** scaling can only reduce exposure; drawdown improved with similar returns.
+- **V1.1:** trend gate 200→**250 days**. opt.py found a plateau at 250/300 and improvement in both training/validation periods. Drawdown −42%→−32%.
+- **V1.2:** removed the all-QLD 2x tier, `MAX_EXPOSURE=1.5`. Ablation found no useful risk premium from 2x at overheated points; removal cost no material return, sometimes improved it, and reduced turnover.
+- **V1.3:** D changed from fixed 0.5x to **0.5x × volatility scaling**. Fixed 0.5 was too high. Scaling reduced drawdown −30%→−26%, Calmar 0.41→0.45, consistently across the full period and subperiods.
+- **V1.4:** SMA250 asymmetric hysteresis: exit below the average; re-enter 1% above; E only 4% below with bearish indicator agreement; otherwise D. The 2015-06–2016-07 sideways period previously suffered about −25.3% drawdown from repeated cash exits and late re-entry; this fell to about −17.3%. Fine-grid peak was around 4%/0.5%, but 3.5%–4.75% / 0.5%–1.5% formed a plateau, so choose interpretable 4%/1%. Local 2018/COVID drawdowns became slightly worse.
+- **V1.5:** added R reversal recovery in bearish regimes. In 2011, 2016 and 2025, volatility-scaled D averaged only about 0.2x and missed sharp rebounds. If E is absent and Supertrend/MACD histogram are bullish, restore base 0.75x without leverage. Annual returns changed approximately −9.2%→−8.4%, −3.9%→−2.6%, +4.9%→+5.7%. 0.70–0.80x is similar; select 0.75x. It reduces recovery delay but cannot guarantee keeping up with QQQ in V-shaped rebounds.
+- **V1.6:** added the bearish RSI floor latch, minimum 0.15x after RSI(14)≤25 until bullish macro recovery; complements R without leverage. Structural comparisons (CAGR/drawdown/Calmar): no R/no floor 14.17%/−25.34%/0.559; R only 14.49%/−25.39%/0.571; floor only 14.49%/−24.91%/0.582; R+floor 14.94%/−24.73%/0.604. The mechanisms are complementary.
+- **V1.6.1:** corrected execution only. The old shift(1) target multiplied by close-to-close returns wrongly included overnight gaps unavailable to new holdings. Split overnight/intraday: old holdings overnight → opening rebalance → new holdings intraday. Full CAGR stays near 14.9%; drawdown −24.7%→−26.9%, Calmar 0.60→0.55.
 
-⚠️ **过拟合诚实提示**:V1.1–V1.6 都在同一段历史上逐步优化。V1.4–V1.6 有明确的状态机逻辑和参数高原,但仍由已知历史问题驱动;真实前瞻表现大概率低于回测 Calmar 0.55。V1.6.1 仅修正执行方法,不新增参数,因此不把执行修正本身视为一次策略优化。
+**Overfitting disclosure:** V1.1–V1.6 were progressively optimized on the same history. V1.4–V1.6 have explicit state-machine logic and parameter plateaus, but were still motivated by known historical problems. Forward Calmar is likely lower than the backtest’s 0.55. V1.6.1 adds no parameters and is an execution correction, not a new optimization.
 
-## 7. 关键分析结论(讨论中得出,避免重复劳动)
+## 7. Key analytical findings: avoid repeating prior research
 
-- **用户当前决定(2026-10-13)**:先不做策略改动,继续使用 V1.6.1 现有规则和参数。本轮动能、提高敞口及缩短QLD窗口的结果保留为研究记录,暂不采用任何候选方案。
-- **2026-10-13 QLD窗口研究**(数据至2026-09-25,正式规则未改):见 [`QLD_WINDOW_REVIEW_2026-10-13.md`](./research/QLD_WINDOW_REVIEW_2026-10-13.md) 和 `qld_window_research.py`。所有≤1x确认目标保持原样,关闭QLD时换成QQQ。20日上限+QQQ窗口运行收盘峰值回撤5%退出的探索性组合,近五年年化/回撤17.17%/−19.60%,基线17.92%/−21.84%;2010后17.77%/−24.87%,基线18.79%/−26.91%。QLD近期持仓日占比44.1%→23.9%,成本加倍及额外延迟一天后取舍方向仍保留,但2015–2018回撤不改善且收益下降。该组合是在单项诊断后提出,不是独立样本外证明。2020失败杠杆窗口仅13交易日,所以单纯20日上限挡不住快速失败;5%退出单项近五年最大回撤不改善。完全不用QLD近期仍回撤约19.6%,显示QQQ核心仓位风险依然显著。持有天数本身不等同于杠杆ETF损耗,不得依据事后窗口长度直接择时,也不得把本候选自动加入正式策略。
-- **2026-10-13 动能与收益研究**(数据至2026-09-25,正式规则未改):见 [`MOMENTUM_REVIEW_2026-10-13.md`](./research/MOMENTUM_REVIEW_2026-10-13.md) 和 `momentum_research.py`。固定按年向前训练的岭回归未验证出 MACD/RSI 五日变化的稳定额外预测优势。用户愿意提高风险;仅在 `lever_ok` 成立时将 C 基础敞口从1x提高到1.25x、B仍1.5x的候选,2010后年化/回撤为19.67%/−32.55%,基线18.79%/−26.91%,但2019–2022失效,近五年增益对额外一天执行延迟敏感。B统一提高到2x的换手明显增加。上述为探索性历史风险收益对照,不是升级决定;不得直接接入正式策略。
-- **V1.6.1 消融**:完整版约 14.9%/−26.9%/Calmar 0.55;去 MACD 约 15.1%/−27.6%/0.55,去 RSI(同时移除 RSI 底仓)约 13.1%/−26.9%/0.49,去 Supertrend 约 12.9%/−26.9%/0.48。三指标完整版不是所有单项指标的数学峰值,但风险收益更均衡,且 MACD/Supertrend 同时承担 E/R 的方向确认。
-- **参数敏感性**:volt(0.14–0.25)、vcap、lev_volceil 都不敏感(高原);SMA=200–300、confirm=3 是较优区。V1.4 的深空头阈值 4%–4.5%、重返多头阈值 0.5%–1.5% 仍形成高原;V1.5 的 R 基础敞口 0.70–0.80x 结果接近。V1.6 的 RSI 阈值 23–25、底仓 0.15–0.20x 附近是可用高原;阈值≥27 与较高底仓组合会明显恶化。选定参数训练/验证 Calmar 约 0.42/0.71。**别追逐单点峰值**。
-- **D=清仓(0x) vs D=0.5x×波动**:旧结论的全周期差异高度依赖 1999 暖机段,暖机修正后不能继续引用旧的 0.93pp/96% 数字。2010 后两者接近的判断不受影响;当前仍保留 D=vol-scaled,但若再次讨论简化必须按新数据重跑。
-- **执行频率**:每天盘后看即可(回测里"每日检查"回撤最浅)。目标敞口切换约 13.0 次/年。规则:跨"清仓/杠杆"关键边界必调;同区偏离≥0.15x 才调。不要拖到两周以上才看(回撤变差)。
-- **再平衡**:档位内不做再平衡(权重漂移),只换档时调仓——与"每日再平衡"结果差 <0.03pp,可忽略。混合档只占约17%时间、漂移小。
+- **User decision (2026-10-13):** retain V1.6.1 rules and parameters. Momentum, higher exposure and shorter QLD-window results remain research records; no candidate is adopted.
+- **QLD-window study, 2026-10-13:** data through 2026-09-25, production unchanged. See [`QLD_WINDOW_REVIEW_2026-10-13.md`](./research/QLD_WINDOW_REVIEW_2026-10-13.md) and local `qld_window_research.py`. All confirmed targets ≤1x are unchanged; QLD exits substitute QQQ. The exploratory 20-day cap plus a 5% QQQ running-close-peak drawdown exit gives last-five-year CAGR/drawdown 17.17%/−19.60%, versus baseline 17.92%/−21.84%; since 2010, 17.77%/−24.87% versus 18.79%/−26.91%. Recent QLD holding-day share falls 44.1%→23.9%. The tradeoff persists with doubled costs and one extra execution day, but 2015–2018 drawdown does not improve and returns fall. The combination followed single-rule diagnostics and is not independent out-of-sample proof. The failed 2020 leverage window lasted only 13 trading days, so a 20-day cap cannot stop rapid failures; the 5% exit alone does not improve recent maximum drawdown. No QLD still draws down about 19.6% recently, showing substantial core QQQ risk. Holding days are not leveraged-ETF drag; do not time trades using hindsight window lengths or adopt this candidate automatically.
+- **Momentum/return study, 2026-10-13:** data through 2026-09-25, production unchanged. See [`MOMENTUM_REVIEW_2026-10-13.md`](./research/MOMENTUM_REVIEW_2026-10-13.md) and local `momentum_research.py`. Fixed annual walk-forward ridge regression did not establish stable incremental predictive value from five-day MACD/RSI changes. The user accepts more risk. Raising eligible C from 1x to 1.25x only when `lever_ok` holds, keeping B at 1.5x, gives since-2010 19.67%/−32.55% versus baseline 18.79%/−26.91%. It fails in 2019–2022 and recent gains are sensitive to one extra execution day. Uniform B=2x substantially increases turnover. These are exploratory historical risk/return comparisons, not an upgrade decision; never wire them directly into production.
+- **V1.6.1 ablation:** full strategy about 14.9%/−26.9%/Calmar 0.55; no MACD 15.1%/−27.6%/0.55; no RSI (also removing the floor) 13.1%/−26.9%/0.49; no Supertrend 12.9%/−26.9%/0.48. Full indicators do not maximize each isolated metric, but balance risk/return. MACD/Supertrend also confirm E/R direction.
+- **Parameter sensitivity:** volt (0.14–0.25), vcap and lev_volceil are insensitive plateaus; SMA=200–300 and confirm=3 are favorable. V1.4 deep-bear 4%–4.5% and re-entry 0.5%–1.5% remain plateaus. V1.5 R base 0.70–0.80x is similar. V1.6 RSI 23–25 and floor 0.15–0.20x are viable; thresholds ≥27 with higher floors substantially worsen results. Selected training/validation Calmar is about 0.42/0.71. **Do not chase isolated peaks.**
+- **D=0x versus D=0.5x × volatility:** old full-period differences depended heavily on the 1999 warm-up. After correction, do not reuse the old 0.93pp/96% figures. Since-2010 similarity is unchanged. Keep volatility-scaled D; rerun on new data before discussing simplification.
+- **Execution frequency:** daily post-close checks suffice; daily checks gave the shallowest backtest drawdown. About 13.0 target switches/year. Always rebalance across cash/leverage boundaries; within a region, require ≥0.15x deviation. Waiting more than two weeks worsens drawdowns.
+- **Rebalancing:** weights drift within tiers; rebalance only on allocation changes. Difference versus daily rebalancing is <0.03pp, negligible. Mixed holdings cover only about 17% of time, with small drift.
 
-## 8. 概念澄清(报告里已体现,别再搞混)
+## 8. Clarifications
 
-- **决策档 ≠ 最终净敞口**:决策档(B/C/R/D/F/E)描述策略状态;最终敞口还要经过波动率缩放、0.15x 底仓、确认与死区。例:R 档(0.75x)高波动时可能缩到 0.4x;F 表示强空头条件下锁存的 0.15x 底仓。
-- **报告曲线按「决策档」着色**(绿=趋势向上/金=中性偏多/蓝=反转恢复/红=温和回调/紫=超跌底仓/灰=强空头现金),**具体净敞口看悬浮提示**。占比图=决策档时间占比。
-- **确认滞后**:换档后 3–4 个交易日,颜色(最新决策)会领先于敞口(执行滞后)。例:2023-05-15 显示"趋势向上但 1.0x",是因新信号尚未确认满 3 天(那几天波动率仅16%,非缩放所致)。这是设计,不是 bug。
-- **宏观状态是路径相关的**:同样位于 SMA250 上方 0.5%,若此前已处于多头则仍是多头;若此前处于空头则仍需等到 +1% 才重返多头。不能只看当天 `price > sma` 重建 `macro_bull`。
-- **SMA 首次有效时的初始化**:`macro_regime()` 用 `price >= sma` 初始化状态,之后才应用 0%/1% 滞回。不能把 SMA 为 NaN 的暖机日默认当作可交易 D 档。
-- **各档的实际敞口范围**(回测实测):B 0.75–1.5x(中位1.5)、C 0.22–1.0x(中位1.0,高波动缩得狠)、R 约0.2–0.75x、D 0.15–0.5x、F 0.15x、E 0x。C 到 0.2x 需波动率~90%(仅2000/2020),B 到 0.75x 需~40%(2000/2015/2020)。
+- **Decision tier ≠ final exposure:** B/C/R/D/F/E describe strategy states; volatility scaling, the floor, confirmation and deadband still apply. R base 0.75x can scale to 0.4x; F means the deep-bear 0.15x floor latch is active.
+- **Equity colors encode decision tiers:** green uptrend, gold neutral bullish, blue reversal recovery, red mild pullback, purple oversold floor, gray deep bear/cash. **Actual exposure is in tooltips.** The distribution chart counts tier time.
+- **Confirmation delay:** after a tier switch, latest-decision colors lead executed exposure by 3–4 trading days. On 2023-05-15, uptrend with 1.0x was caused by incomplete three-day confirmation, not volatility scaling (about 16% then). This is intentional.
+- **Macro state is path-dependent:** 0.5% above SMA250 stays bullish if previously bullish, but stays bearish until +1% if previously bearish. Never reconstruct `macro_bull` from `price > sma` alone.
+- **Initial valid SMA:** `macro_regime()` initializes using `price >= sma`, then applies 0%/1% hysteresis. NaN warm-up days are not executable D-tier days.
+- **Observed exposure ranges:** B 0.75–1.5x (median 1.5), C 0.22–1.0x (median 1.0), R about 0.2–0.75x, D 0.15–0.5x, F 0.15x, E 0x. C near 0.2x requires annualized volatility around 90% (only 2000/2020); B near 0.75x around 40% (2000/2015/2020).
 
-## 9. 一致性要求(改代码务必遵守)
+## 9. Consistency requirements
 
-- **Cloudflare 网页配置优先**：不在 Wrangler 配置中重新添加 `workers_dev`、`preview_urls` 或 `triggers`。生产仍使用 `npm run deploy` / `wrangler deploy`，预览使用 `npm run preview`；域名、预览 URL 与 Cron 由用户在控制台维护。用户接受 workers.dev 被默认重新开启；省略 `preview_urls` 和 Cron 字段应保留网页已有状态，不承诺缺省配置能保持 workers.dev 关闭。
-- **Git 交付流程（用户决定，2026-10-14）**：每次修改从最新 `main` 新建按用途命名的功能分支，如 `feat/...` 或 `fix/...`；不固定使用名为 `preview` 的分支。本次预览功能使用 `feat/cloudflare-preview`。提交、推送功能分支后，创建或更新该分支到 `main` 的 Pull Request，接收 Cloudflare 自动发布的构建状态和预览链接评论。Workers Builds 使用 `npm run preview` 为非生产分支构建独立预览；确认对应提交的构建成功、报告日期和页面正常后，**由用户自行在 PR 中合并到 `main`**。Codex 负责功能分支的提交、推送、PR 和验证，不合并 PR、不启用自动合并、不直接推送 `main`。没有远程构建结果时保留在功能分支。生产分支与每日自动更新 Hook 仍为 `main`。根目录 Wrangler 的 `previews: {}` 只使用本分支静态资源，不配置生产 Hook Secret 或 Cron；Cloudflare 控制台设置由用户自行完成，见 [`CLOUDFLARE_DEPLOY.md`](./CLOUDFLARE_DEPLOY.md)。
-- **指标、宏观状态机、超跌锁存与决策档逻辑已统一到 `indicators.py`**,`2_backtest.py` 和 `daily_check.py` 都 import 它。`macro_regime()` 与 `oversold_latch()` 必须按完整时间序列递推;锁存不得在 SMA 有效前触发。`deep_bear` 必须按 `price < SMA × (1-BEAR_EXIT_BUFFER)` 计算,E/F 还需 MACD/Supertrend 共振。但**决策后的敞口映射**(动量分→档位敞口、波动率目标缩放、底仓下限、确认与死区)仍在两文件各自的 `targets()`/主循环里,改这部分仍需两处同步。`opt.py`/`ablation.py` 为扫描参数而各自内联实现,不依赖模块,改规则时必须同步。
-- **执行引擎统一**:`2_backtest.py` / `opt.py` / `ablation.py` 必须共同调用 `execution.run_next_open()`。执行顺序固定为:旧仓位承担 T→T+1 隔夜涨跌和现金利息,T+1 开盘按目标调仓并计成本,新仓位承担开盘→收盘日内收益。不能重新复制一份 close-to-close 回测循环。
-- **暖机/交易边界**:`signal_close/high/low` 可含 QQQ 上市前的 NDX 代理,但 `qqq/qld_overnight_ret` 与 `qqq/qld_intraday_ret` 在该段必须为 NaN。所有脚本必须先用完整 signal 序列计算指标、确认与 shift(1),再按 `execution.valid_trade_index()` 截取收益;绝不能让 NDX 涨跌进入组合收益。
-- QLD 2006 前隔夜收益按 `2×QQQ隔夜收益` 合成,日内收益用总日收益反推,必须满足 `(1+overnight)*(1+intraday)-1 == qld_ret`;真实 QLD 上市后必须使用真实复权 Open/Close。
-- **着色/占比统一按决策档**(B/C/R/D/F/E),不再用敞口分档的 `band()`/`tier()`(已随"按决策档着色"删除)。历史教训:曾用敞口区间着色 + `<`/`<=` 边界不一致,导致 0.75 等边界值在回测与日检里归档错位——现改用 `decide_tier` 单一实现后不再有此问题。
-- **决策档定义**必须与 targets() 一致:`decide_tier` 返回 B 仅当 `macro_bull 且 s>=3 且 lever_ok`;空头区先判 `deep_bear 且 MACD<0 且 Supertrend空头`,锁存开启时为 F、否则为 E;不满足强空头时再判 `Supertrend多头 且 MACD柱>0` 为 R,其余为 D。**强空头条件的优先级不能被 R 覆盖。**锁存即使在 D/R 状态托高最低敞口,决策名仍保持 D/R。
-- 报告 `STATECOL` 的 key 必须与 `results.json` 的 `dist` key(决策档名)完全一致,否则占比图颜色错。
-- **极端恐慌仅作观察:**阈值统一由 `indicators.extreme_panic()` 定义为 `RSI≤25 且 VIX≥30`;`2_backtest.py` 与 `daily_check.py` 必须共用该判定。它只能导出为 `panic_dates` / `latest.extreme_panic`,不得接入 targets、确认、死区或执行引擎。
-- 报告 HTML 是固定页面壳,只能从 CDN 加载 Chart.js;`3_generate_report.py` 不改写 HTML,只把日更数据写入 gitignored 的 `report_data.js`。数据为日线(约6880点,目前约350KB并随区间增长;回撤和年度收益/年内最大回撤均在前端由 equity 算、敞口图与悬浮共用 state_exp,不存冗余年度数据)。年度收益按上一年末至本年末计算;年内最大回撤以上一年末净值作为年初峰值,确保包含一月下跌。
-- **回撤图区间口径:**支持独立的全部/2008后/2015后/2020后/2022后和自定义日期;先截取所选区间净值,再按区间内运行峰值计算回撤,首日为 0%,不继承区间前峰值。起日取首个不早于指定日期的交易日,止日取末个不晚于指定日期的交易日;无交易数据时保留原图并提示。
-- **部署缓存一致性**:`_headers` 必须与 HTML 一起部署,使 `report_data.js` 每次重新验证。HTML 按上海时区在浏览器中动态生成 `report_data.js?v=1.6.1a-YYYY-MM-DD-HH` 缓存键,保证即使中间缓存忽略响应头,最多也只会沿用同一小时的数据;HTML 本身不需日更,升级策略版本时必须同步修改缓存键中的 `1.6.1a`。页面必须从 `R.metrics` 自动识别当前策略键,不得再硬编码具体版本名,以容忍 HTML 与日更数据的短暂发布时序差。
-- `results.json` 导出键:dates / equity{strategy,qqq,qld,blend,half} / state_exp / decision(B/C/R/D/F/E,着色用)/ panic_dates(极端恐慌观察日)/ dist(决策档占比)/ metrics(全区间、2006后、2010后、2020后、近5年)/ latest。`latest` 含 `executed_exp`(当前已执行敞口)、`exp`(下个开盘建议)、`sma250` / `macro_bull` / `deep_bear` / `oversold_latch` / `vix` / `extreme_panic`;曲线着色按 decision,悬浮显示 state_exp(净敞口)。
+- **Dashboard configuration takes priority:** never re-add `workers_dev`, `preview_urls` or `triggers` to Wrangler. Production remains `npm run deploy` / `wrangler deploy`, previews `npm run preview`. The user maintains domains, Preview URLs and Cron in the dashboard and accepts default workers.dev re-enabling. Omitted preview/Cron fields should preserve dashboard state; do not promise omitted settings keep workers.dev disabled.
+- **Git delivery (user decision, 2026-10-14):** start each task from latest `main` on a purpose-named feature branch, such as `feat/...` or `fix/...`; no mandatory branch named `preview`. The earlier preview feature used `feat/cloudflare-preview`. Commit, push and create/update a PR to `main` with Cloudflare build status and preview comments. Non-production builds use `npm run preview`. Verify the exact commit’s build, date and page. **The user merges manually in the PR.** Codex handles branches, commits, pushes, PRs and validation; never merge, enable auto-merge or push directly to `main`. Without remote build results, leave the feature branch. Production and the daily Hook remain on `main`. Root `previews: {}` uses only branch assets, without production Hook Secret or Cron. The user handles Cloudflare dashboard settings; see [`CLOUDFLARE_DEPLOY.md`](./CLOUDFLARE_DEPLOY.md).
+- **English documentation, bilingual presentation:** maintain all project Markdown in English. The report must support English and Chinese for every visible label, tooltip, explanation and error. Saved manual preference takes priority over the first browser language. Keep the original Chinese data keys used by the Python pipeline; translate display labels only. Switching must preserve numeric values, selected periods, dates and chart ranges. Keep the HTML self-contained so both local-file opening and the current static build continue to work.
+- **Shared indicators/state machine/latch/tiers:** `2_backtest.py` and `daily_check.py` import `indicators.py`. `macro_regime()` and `oversold_latch()` must evolve over complete history; no latch before SMA validity. `deep_bear` is `price < sma × (1-BEAR_EXIT_BUFFER)`; E/F also require negative MACD and bearish Supertrend. **Post-decision exposure mapping** (score→base, volatility scaling, floor, confirmation, deadband) remains separately in both scripts’ `targets()`/main loop; changes must stay synchronized. `opt.py`/`ablation.py` inline rules for parameter scans and must also be updated when rules change.
+- **Shared execution:** backtest/opt/ablation must call `execution.run_next_open()`: existing holdings T→T+1 overnight and cash interest → opening rebalance/costs → new holdings open→close. Never copy a close-to-close execution loop.
+- **Warm-up/trading boundary:** `signal_close/high/low` may include pre-listing NDX proxies, but `qqq/qld_overnight_ret` and `qqq/qld_intraday_ret` must be NaN there. Calculate indicators, confirmation and shift(1) on full signal history, then restrict returns with `execution.valid_trade_index()`. Never include NDX returns in portfolio returns.
+- **Synthetic pre-2006 QLD:** overnight = `2×QQQ overnight return`; infer intraday from the total daily return so `(1+overnight)*(1+intraday)-1 == qld_ret`. After listing, use actual adjusted opening/closing prices.
+- **Colors/distribution use decision tiers**, never exposure bins; the former `band()`/`tier()` were removed. Earlier exposure-bin `<`/`<=` boundaries disagreed at 0.75, causing classification errors. `decide_tier` is now the single definition.
+- **Tier definitions must match targets():** B only for `macro_bull and s>=3 and lever_ok`. In bearish regimes, first check `deep_bear and MACD<0 and bearish Supertrend`: F if latch active, E otherwise. Without deep-bear conditions, bullish Supertrend and MACD histogram>0 gives R; otherwise D. **Deep-bear priority must not be overridden by R.** If the latch raises D/R exposure, the tier name remains D/R.
+- `STATECOL` keys must exactly match `results.json`’s `dist` tier-name keys, otherwise distribution colors break. Translate rendered chart labels without altering key-based color lookups.
+- **Extreme panic is observation only:** `indicators.extreme_panic()` defines `RSI≤25 and VIX≥30`, shared by the backtest/daily check. Export only `panic_dates` / `latest.extreme_panic`; never use it in targets, confirmation, deadband or execution.
+- **Fixed HTML shell:** only Chart.js loads from CDN. `3_generate_report.py` writes daily gitignored `report_data.js`, never HTML. Daily series have about 6880 points and approximately 350KB, growing with history. Drawdown and yearly return/drawdown derive from equity in the browser; exposure and tooltips share `state_exp`; do not store redundant annual data. Annual returns use prior-year-end to current-year-end equity. Calendar-year drawdown starts from prior-year-end equity, including January declines.
+- **Drawdown ranges:** independent full/after-2008/2015/2020/2022 and custom ranges. Slice equity first, then calculate within-range running peaks. First day is 0%; no pre-range drawdown carries in. Start advances to the first available day, end retreats to the last. If no data, retain the chart and show a localized message.
+- **Cache consistency:** deploy `_headers` with HTML to revalidate `report_data.js`. Shanghai-time hourly keys use `report_data.js?v=1.6.1a-YYYY-MM-DD-HH`, limiting stale data to the same hour even if intermediate caches ignore headers. HTML is not updated daily; synchronize its `1.6.1a` key on version changes. Detect the strategy key from `R.metrics`; never hardcode its versioned name, to tolerate short shell/data publication races.
+- **Export contract:** `results.json` contains dates / equity{strategy,qqq,qld,blend,half} / state_exp / decision(B/C/R/D/F/E) / panic_dates / dist / metrics(full,since-2006,2010,2020,last-five-years) / latest. `latest` includes `executed_exp` (currently executed), `exp` (next-open target), `sma250`, `macro_bull`, `deep_bear`, `oversold_latch`, `vix`, `extreme_panic`. Equity colors use decision; tooltips display actual `state_exp`.
 
-## 10. 数据与免责
+## 10. Data and disclaimer
 
-- 数据源:yfinance 的 QQQ / QLD / ^NDX / ^IRX / ^VIX。^NDX 仅用于 QQQ 上市前指标暖机,按 QQQ 首日收盘价缩放并在上市后切回真实 QQQ OHLC;^VIX 仅用于极端恐慌观察标记。QQQ/QLD 均使用复权 Open/Close。**QLD 2006-06 上市**,之前用 `2×QQQ日收益 −(0.95%费率+短端利率)/252` 合成,与真实 QLD 日收益相关性 0.996、CAGR 偏乐观约 0.8%/年。2006 后为真实数据。
-- 夏普 rf=0;Calmar=年化/|最大回撤|。
-- **免责**:仅供研究与教育,非投资建议。历史回测不代表未来。杠杆 ETF 有波动损耗与每日重置风险,长持或震荡市可能显著跑输。实盘还有开盘滑点、税费和流动性等回测未反映的成本。
+- Sources: yfinance QQQ / QLD / ^NDX / ^IRX / ^VIX. ^NDX is scaled to QQQ’s first closing price for pre-listing warm-up only, switching to actual QQQ OHLC after listing. ^VIX is observation only. QQQ/QLD use adjusted opening/closing prices. **QLD listed in 2006-06**; earlier returns use `2×QQQ daily return − (0.95% fee + short-term rate)/252`. Correlation with actual QLD daily returns is 0.996 and CAGR is optimistically biased about 0.8%/year. Since 2006, actual data is used.
+- Sharpe uses rf=0; Calmar = CAGR / |maximum drawdown|.
+- **Disclaimer:** research and education only, not investment advice. Historical backtests do not predict future results. Leveraged ETFs have volatility-drag and daily-reset risks and can substantially underperform in long holding periods or sideways markets. Live opening slippage, taxes, fees and liquidity costs are not fully modeled.

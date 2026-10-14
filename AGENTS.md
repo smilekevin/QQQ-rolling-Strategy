@@ -1,5 +1,5 @@
 # AGENTS.md
 
-本项目的上下文与设计决策记录统一维护在 **[`CLAUDE.md`](./CLAUDE.md)**——涵盖策略设计、演进史、关键分析结论、一致性要求、数据与免责。
+Project context and design decisions are maintained exclusively in **[`CLAUDE.md`](./CLAUDE.md)**, covering strategy design, evolution, key research findings, consistency requirements, data and disclaimers.
 
-给未来的 Codex / 接手者:改代码前请先完整阅读 `CLAUDE.md`,尤其是「一致性要求」一节。本文件仅作指引、不重复内容,以避免两份文档不同步。
+For future Codex agents and maintainers: read `CLAUDE.md` in full before changing code, especially the **Consistency requirements** section. This file is only a pointer; avoid duplicating guidance across both documents.

@@ -1,98 +1,96 @@
-# QQQ/QLD 策略再评估
+# QQQ/QLD Strategy Reassessment
 
-日期：2026-09-07  
-评估版本：V1.6.1  
-数据截止：2026-07-30
+Date: 2026-09-07. Version assessed: V1.6.1. Data cutoff: 2026-07-30.
 
-## 结论先行
+## Conclusion
 
-这套策略值得继续做，但更准确的定位是“纳指风险管理策略”，而不是已经被证明能够持续击败 QQQ 的 alpha 策略。
+The strategy deserves further work, but is more accurately described as a Nasdaq risk-management strategy than a proven alpha strategy that can consistently beat QQQ.
 
-- 全区间回测的优势主要来自避开 2000 年互联网泡沫和 2008 年危机。策略年化约 15.0%，最大回撤约 -26.9%；同期 QQQ 约 10.6% 和 -83.0%。
-- 在更有代表性的 2010 年以后，策略年化约 18.3%，QQQ 约 18.7%，两者接近；策略最大回撤较低，为 -26.9% 对 -35.1%。
-- 最近五年策略年化约 16.8%，QQQ 约 14.1%，最大回撤 -21.8% 对 -35.1%。这是积极信号，但样本仍短，不能据此确认长期超额收益。
-- 实际 QLD 上市后的区间，策略年化约 17.4%，QLD 约 24.9%，但策略最大回撤 -26.9%，QLD 约 -83.1%。策略换取了显著较低的风险，并没有持续获得 QLD 的全部上行收益。
+- The full-period advantage mainly comes from avoiding the 2000 dot-com collapse and the 2008 crisis. Strategy CAGR is about 15.0% and maximum drawdown about -26.9%, versus QQQ’s 10.6% and -83.0%.
+- In the more representative period since 2010, strategy CAGR is about 18.3% versus QQQ’s 18.7%, with similar returns but a lower drawdown: -26.9% versus -35.1%.
+- Over the last five years, strategy CAGR is about 16.8% versus QQQ’s 14.1%, and drawdown -21.8% versus -35.1%. This is encouraging, but the sample is short and does not establish long-term excess returns.
+- After actual QLD launched, strategy CAGR is about 17.4% versus QLD’s 24.9%, but drawdown is -26.9% versus about -83.1%. The strategy buys substantially lower risk rather than capturing all QLD upside.
 
-因此，下一步目标不应是继续堆叠指标，而应是：统一真实执行口径、减少确认滞后造成的损失、用严格的时间外验证筛选少量改动。
+The next goal should be consistent executable accounting, reducing losses from confirmation delays, and selecting a small number of changes using strict chronological validation, rather than adding more indicators.
 
-## 三个需要先纠正的认识
+## Three misconceptions to correct first
 
-### 1. “20% 波动率目标”不是组合硬上限
+### 1. The 20% volatility target is not a hard portfolio cap
 
-当前公式是：
+The current formula is:
 
 ```text
-基础敞口 × min(1, 20% / 20日年化波动率)
+base exposure × min(1, 20% / 20-day annualized volatility)
 ```
 
-当 B 档基础敞口为 1.5x、波动率约 20% 时，组合名义波动率约为 30%，不是 20%。此外，三日确认、死区和隔夜跳空还会让实际执行风险进一步偏离目标。当前目标敞口上限是 1.5x，但行情漂移后实测最大实际敞口约 1.54x。
+At B-tier base exposure 1.5x and volatility around 20%, nominal portfolio volatility is about 30%, not 20%. Three-day confirmation, the deadband and overnight gaps further separate executed risk from the target. Target exposure is capped at 1.5x, but observed exposure after price drift reaches about 1.54x.
 
-这不是一定要马上改掉的错误，而是报告和风险管理中必须说清楚的口径。若确实要控制组合波动率接近 20%，应测试“先按基础敞口折算，再限制最终敞口”的硬预算版本。初步结果是全区间年化 13.8%、最大回撤 -24.2%，近五年年化 15.6%、最大回撤 -20.6%，风险更低但收益也下降，不应包装成免费优化。
+This does not necessarily require an immediate rule change, but reports and risk management must describe it clearly. To keep portfolio volatility near 20%, test a hard-budget version that accounts for base leverage before limiting final exposure. Preliminary results are full-period CAGR 13.8%/drawdown -24.2%, and last-five-year 15.6%/-20.6%. Both risk and returns fall; this is not a free improvement.
 
-### 2. 三日确认在急跌时会拖慢减仓
+### 2. Three-day confirmation delays cuts during fast declines
 
-COVID 阶段出现过这种路径：原始目标从 1.50x 降到 0.85x，再降到 0.50x，但连续三日确认和 0.15x 死区使已执行敞口仍停留在旧档位。这个设计能减少横盘来回交易，却会在波动突然上升时保留过高风险。
+During COVID, raw targets fell from 1.50x to 0.85x and then 0.50x, while three-day confirmation and the 0.15x deadband kept executed exposure at the old tier. The design reduces sideways churn but retains excessive risk when volatility rises abruptly.
 
-直接把减仓改成一日或两日并不好：近五年看起来改善，但全区间年化降到约 13.4%，换手升到约 11.8x，2011 年损失反而扩大。问题不是“确认越短越好”，而是减仓和加仓不应共用同一条确认通道。
+Simply cutting exposure after one or two days is not a clear improvement: recent results look better, but full-period CAGR falls to about 13.4%, turnover rises to about 11.8x, and 2011 losses worsen. The issue is not that shorter confirmation is always better; increasing and reducing exposure may need separate channels.
 
-### 3. 目前没有足够的样本证明继续加条件有效
+### 3. There are too few events to justify adding conditions
 
-RSI 超跌底仓在真实 QQQ 区间只触发过 7 次新事件，2020 年暴跌时 RSI 最低约 27，根本没有触发。因此不能用 COVID 一次事件来把 RSI 阈值继续上调。当前版本先保持 RSI≤25、底仓 0.15x 是更稳妥的选择。
+The oversold RSI floor triggered only 7 new events in actual QQQ history. RSI bottomed near 27 during the 2020 crash and never triggered it. That one event cannot justify raising the RSI threshold. Keeping RSI≤25 and the 0.15x floor is more prudent for now.
 
-## 已做的候选对照
+## Candidate comparisons already completed
 
-所有候选使用相同数据、T+1 开盘执行和 5bp 成本；结果仍是历史样本内诊断，不是前瞻证明。
+All candidates use identical data, T+1 opening execution and 5bp costs. These are historical in-sample diagnostics, not forward evidence.
 
-| 候选 | 全区间年化 / 最大回撤 | 近五年年化 / 最大回撤 | 判断 |
+| Candidate | Full-period CAGR / maximum drawdown | Last-five-year CAGR / maximum drawdown | Assessment |
 |---|---:|---:|---|
-| V1.6.1 基线 | 15.0% / -26.9% | 16.8% / -21.8% | 当前基准 |
-| 去掉 MACD | 15.2% / -27.6% | 18.2% / -21.2% | 值得单独做前瞻验证 |
-| 减仓 2 日、加仓 3 日 | 13.4% / -27.8% | 16.1% / -20.4% | 不能直接采用，换手更高 |
-| 减仓 1 日、加仓 3 日 | 13.4% / -24.6% | 15.9% / -21.7% | 不能直接采用，2011 年明显变差 |
-| 最终敞口硬限 20% 波动 | 13.8% / -24.2% | 15.6% / -20.6% | 适合风险优先，不是收益优化 |
-| 固定 20% QQQ 核心底仓 | 14.5% / -36.7% | 16.4% / -24.4% | 风险收益不划算 |
+| V1.6.1 baseline | 15.0% / -26.9% | 16.8% / -21.8% | Current benchmark |
+| Remove MACD | 15.2% / -27.6% | 18.2% / -21.2% | Worth separate forward validation |
+| Cut after 2 days, add after 3 days | 13.4% / -27.8% | 16.1% / -20.4% | Not ready for adoption; higher turnover |
+| Cut after 1 day, add after 3 days | 13.4% / -24.6% | 15.9% / -21.7% | Not ready for adoption; much worse in 2011 |
+| Hard final-exposure 20% volatility budget | 13.8% / -24.2% | 15.6% / -20.6% | Risk-first tradeoff, not a return improvement |
+| Fixed 20% QQQ core floor | 14.5% / -36.7% | 16.4% / -24.4% | Unattractive risk/return tradeoff |
 
-去掉 MACD 的结果略好，但优势幅度很小，且它改变了 E/R 确认和多头打分，不能简单解释成“MACD 没用”。它最多是一个需要冻结规则后重新验证的候选版本。
+Removing MACD slightly improves results, but the advantage is small and changes both E/R confirmation and bullish scoring. It does not prove MACD is useless. At most, it is a candidate requiring frozen rules and fresh validation.
 
-## 建议的改进顺序
+## Recommended order of work
 
-### 第一优先级：先把执行和报告口径完全锁定
+### First: lock down execution and reporting methodology
 
-1. Python、每日检查和 Pine 都明确采用“收盘产生信号、下一个交易日开盘成交”。
-2. 单独记录信号目标、确认后目标、实际开盘成交权重、漂移后实际敞口和交易成本。
-3. 把 1.5x 定义清楚：是目标上限，还是包含行情漂移的实际硬上限。若是后者，需要加入换档前的实际敞口保护。
-4. QQQ、QLD、半仓和现金基准使用相同的 T+1、现金利息、成本和再平衡口径。
+1. Python, daily checks and Pine must explicitly use closing signals and next-trading-day opening fills.
+2. Record raw signal targets, confirmed targets, actual opening weights, drifted exposure and trading costs separately.
+3. Define whether 1.5x is a target cap or an actual hard cap including price drift. The latter needs protection before allocation transitions.
+4. QQQ, QLD, half-allocation and cash benchmarks must share T+1 execution, interest, costs and rebalancing assumptions.
 
-这是最值得先做的工程改进，因为它能防止把执行差异误判成策略优势，也比新增一个指标更能提高结论可信度。
+This is the most valuable engineering work because it prevents execution differences from being mistaken for strategy advantages and improves confidence more than another indicator.
 
-### 第二优先级：只验证一个“去 MACD”候选
+### Second: validate only one no-MACD candidate
 
-冻结 V1.6.1 为基线，不改 RSI、4%/1% 滞回、R 档、确认天数和死区，只把去 MACD 作为单独候选。候选必须在滚动时间外测试中同时检查：年化、最大回撤、Calmar、相对 QQQ 的滚动表现、换手和最差月份。
+Freeze V1.6.1 as baseline. Keep RSI, 4%/1% hysteresis, R, confirmation days and deadband unchanged. Test no-MACD separately using chronological rolling tests covering CAGR, maximum drawdown, Calmar, rolling relative performance versus QQQ, turnover and worst months.
 
-如果去 MACD 只在近五年占优、但在 2007-2012 或 2013-2019 失效，就保留 V1.6.1，而不是因为单段收益较高就升级。
+If no-MACD wins only recently but fails in 2007-2012 or 2013-2019, keep V1.6.1 rather than upgrade based on one strong period.
 
-### 第三优先级：测试“风险独立减仓通道”，不要全面取消确认
+### Third: test a separate risk-reduction channel
 
-候选设计应保持加仓三日确认；只有当波动率快速上升、价格出现大幅单日破坏，或实际敞口超过风险预算时，才允许风险通道提前降低一小档。该通道要与趋势信号分开，并预先固定触发条件和最大降幅。
+Keep three-day confirmation for increases. Permit an earlier small cut only when volatility rises rapidly, price suffers a large one-day break or actual exposure exceeds its risk budget. Separate this from trend signals and fix triggers and maximum cuts in advance.
 
-这正对准 2020 年的确认滞后，同时避免 2011 年那种横盘反复减仓。当前尚未对这条规则完成可靠的样本外验证，因此不应直接写入生产策略。
+This targets the 2020 delay while avoiding repeated cuts in sideways periods such as 2011. Reliable out-of-sample validation has not been completed, so it must not enter production directly.
 
-### 第四优先级：再考虑真正的 20% 风险预算
+### Fourth: consider a genuine 20% risk budget
 
-如果首要目标是控制回撤，可以继续测试硬波动预算；如果首要目标是长期收益，则当前结果不支持马上采用。不要同时改变波动率目标、确认机制和底仓，否则无法知道收益变化来自哪里。
+If drawdown control is the priority, continue testing the hard volatility budget. If long-term returns are the priority, present results do not support immediate adoption. Do not simultaneously change volatility targeting, confirmation and the floor; that would obscure attribution.
 
-## 过拟合判断方案
+## Overfitting assessment plan
 
-之前的参数演进都使用了同一段历史，严格来说不能把已有“训练/测试”称为未触碰的样本外验证。下一轮应采用以下固定流程：
+Earlier parameter evolution reused the same history. Existing training/testing therefore cannot strictly be called untouched out-of-sample validation. Use a fixed process next:
 
-1. 先冻结 V1.6.1 和最多 1～2 个候选，不根据完整历史结果继续挑参数。
-2. 使用滚动时间切分，例如训练 1999-2010、测试 2011-2014；再训练到 2014、测试 2015-2018；依次向前滚动。
-3. 每个测试段都从完整历史计算指标并保留真实持仓状态，不能在切点重新初始化宏观状态、暖机或资金。
-4. 只在所有测试段方向一致时考虑升级；同时报告交易成本加倍、延迟一至两天和最差滚动三年结果。
-5. 用配对区块重采样估计策略相对 QQQ 的不确定性，并保留完整每日订单账本和价格数据哈希。
+1. Freeze V1.6.1 and at most 1–2 candidates; stop selecting parameters from full-history results.
+2. Use rolling chronological splits: train 1999-2010/test 2011-2014, then train through 2014/test 2015-2018, and continue forward.
+3. Compute indicators from full history and preserve real holding state in every test segment. Never reinitialize macro state, warm-up or capital at split points.
+4. Consider upgrades only with consistent direction across all test segments. Also report doubled costs, one-to-two-day delays and worst rolling three-year results.
+5. Use paired block resampling to estimate uncertainty versus QQQ; retain complete daily order ledgers and price-data hashes.
 
-## 当前决定
+## Current decision
 
-本次评估不修改 V1.6.1，也不把任何候选直接部署。建议下一次实现一个研究开关，先完成“去 MACD”和“风险独立减仓”两组严格滚动验证，再根据结果决定是否产生 V1.6.2。
+This assessment changes neither V1.6.1 nor production deployment. A future research switch should first complete strict rolling validation for no-MACD and separate risk reductions, then determine whether V1.6.2 is justified.
 
-本报告使用的本地数据只到 2026-07-30，并未代表 2026-09-07 的最新行情。历史回测仅供研究和教育，不能保证未来收益；杠杆 ETF 仍有每日重置、波动损耗、滑点、税费和流动性风险。
+Local data ends on 2026-07-30 and is not current market data for 2026-09-07. Historical backtests are for research and education, not a guarantee of returns. Leveraged ETFs retain daily-reset, volatility-drag, slippage, tax, fee and liquidity risks.

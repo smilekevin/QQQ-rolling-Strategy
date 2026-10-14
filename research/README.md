@@ -1,15 +1,15 @@
-# 研究报告归档
+# Research Report Archive
 
-这里保存策略研究的历史记录，按报告日期整理。每份报告保留当时的数据截止日期、回测口径、结论和局限，阅读时以报告内说明为准。
+This directory preserves historical strategy research, organized by report date. Each report retains its original data cutoff, backtest methodology, conclusions and limitations; interpret its results within that context.
 
-| 日期 | 报告 | 研究主题 |
+| Date | Report | Topic |
 |---|---|---|
-| 2026-09-07 | [QQQ/QLD 策略再评估](./STRATEGY_REVIEW_2026-09-07.md) | 波动率目标、确认滞后与后续验证方案 |
-| 2026-09-08 | [跨资产配置评估](./CROSS_ASSET_REVIEW_2026-09-08.md) | 黄金、债券与其他资产的组合对照 |
-| 2026-09-11 | [S5FI 市场宽度与 QQQ 反弹研究](./BREADTH_REVIEW_2026-09-11.md) | 市场宽度、超跌与反弹的历史关系 |
-| 2026-10-13 | [动能预测与提高收益的研究](./MOMENTUM_REVIEW_2026-10-13.md) | 动能预测及提高敞口的风险收益取舍 |
-| 2026-10-13 | [缩短 QLD 敞口窗口的研究](./QLD_WINDOW_REVIEW_2026-10-13.md) | 杠杆持有时间上限与回撤退出条件 |
+| 2026-09-07 | [QQQ/QLD strategy reassessment](./STRATEGY_REVIEW_2026-09-07.md) | Volatility targeting, confirmation delays and a validation plan |
+| 2026-09-08 | [Cross-asset allocation review](./CROSS_ASSET_REVIEW_2026-09-08.md) | Portfolio comparisons with gold, bonds and other assets |
+| 2026-09-11 | [S5FI market breadth and QQQ rebounds](./BREADTH_REVIEW_2026-09-11.md) | Historical relationships between breadth, oversold conditions and rebounds |
+| 2026-10-13 | [Momentum prediction and higher returns](./MOMENTUM_REVIEW_2026-10-13.md) | Momentum prediction and the risk/return tradeoff of higher exposure |
+| 2026-10-13 | [Shorter QLD exposure windows](./QLD_WINDOW_REVIEW_2026-10-13.md) | Leveraged holding-period limits and drawdown exits |
 
-用户于 2026-10-13 决定继续使用 V1.6.1 现有规则和参数，候选方案暂不接入正式策略。当前策略定义见根目录的 [CLAUDE.md](../CLAUDE.md)。
+On 2026-10-13, the user decided to retain existing V1.6.1 rules and parameters. Research candidates have not been adopted into the production strategy. See the root [CLAUDE.md](../CLAUDE.md) for the current strategy definition.
 
-报告中列出的复现命令均以仓库根目录为工作目录；相关研究脚本仍在本地，本次归档只提交报告。行情缓存、临时研究输出和日更报告数据不放入本目录。后续研究报告沿用 `主题_REVIEW_YYYY-MM-DD.md` 命名，并更新本索引。
+Reproduction commands in the reports assume the repository root as the working directory. Related research scripts remain local; the archive commit included reports only. Market-data caches, temporary research outputs and daily report data do not belong in this directory. Use `TOPIC_REVIEW_YYYY-MM-DD.md` for future reports and update this index.
