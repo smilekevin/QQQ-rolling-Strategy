@@ -28,7 +28,7 @@
 
 **Workers Builds 不需要填写 Build output directory**，`dist/` 已在 Wrangler 的 `assets.directory` 中配置。如果现有 Worker 名称不同，先将 `wrangler.jsonc` 的 `name` 改成该名称，再提交推送。
 
-构建会安装 Python 依赖，在临时目录运行 `1 → 2 → 3`；最新行情与报告日期/曲线检查通过后，生成首页、原报告 HTML、`report_data.js` 和 `_headers`。下载/行情检查最多尝试三次。构建失败时不会发布新版本。
+构建会安装 Python 依赖，先验证 yfinance 缓存所需的 SQLite 读写，再在临时目录运行 `1 → 2 → 3`；最新行情与报告日期/曲线检查通过后，生成首页、原报告 HTML、`report_data.js` 和 `_headers`。下载/行情检查最多尝试三次。构建失败时不会发布新版本。
 
 构建成功后，打开 Worker 页面显示的 `workers.dev` 地址，确认报告最新交易日。静态资源优先返回，`_headers` 负责 `report_data.js` 的重新验证；访问网页只读取报告，不会触发重新构建。
 
@@ -86,6 +86,7 @@ npm run check:deploy
 - Git 仓库不可见：检查 GitHub App 的仓库授权，以及 Cloudflare 选中的 GitHub 账号。
 - Worker 名称不匹配：将 Wrangler 的 `name` 与连接 Workers Builds 的 Worker 名称对齐。
 - Hook 报错：检查 `DEPLOY_HOOK_URL` 是否来自此 Worker 的 Builds，并确认分支为 `main`。
+- `SQLite driver not installed!`：部分 Cloudflare Python 构建缺少标准库的 `_sqlite3`。`requirements.txt` 已为 Linux x86_64 固定安装 `pysqlite3-binary`，Peewee 会自动使用它；日志应先显示“构建环境自检通过”和驱动名称，再开始下载。更新到此修复提交后重新构建，无需调整 Worker 设置或升级 pip。
 - Worker 成功但网站未更新：查看 Builds 的 Python 下载、回测和部署日志。
 
 只读查看实时日志：`npx wrangler tail`。暂停自动更新：将根目录配置的 `triggers.crons` 改为 `[]` 后重新部署。

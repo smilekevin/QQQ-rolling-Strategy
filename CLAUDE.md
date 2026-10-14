@@ -28,6 +28,8 @@ QQQ / QLD **动态滚仓策略**:用 QQQ 的技术指标(MACD / RSI / Supertrend
 
 **Cloudflare 自动部署（2026-10-14，Worker + Wrangler + Workers Builds）**：`build_cloudflare.sh` 安装依赖，`scripts/build_report.py` 在临时目录运行原流水线，做最新行情与报告日期/序列检查，下载/行情校验最多三次尝试；成功后仅生成 `dist/` 静态发布文件（`index.html`、原报告 HTML、`report_data.js`、`_headers`）。根目录 `wrangler.jsonc` 绑定 `dist/`，一个 `qqq-strategy-auto-deploy` Worker 同时托管静态报告并定时 POST 自己的 Workers Builds Hook；`cloudflare/worker.mjs` 验证 Secret `DEPLOY_HOOK_URL` 为 Workers Builds 地址及 API 返回的构建 ID，HTTP 请求只读取 ASSETS。默认静态资源优先返回，保留 `_headers` 缓存规则。`package.json` 固定 Wrangler 版本，部署命令 `npm run deploy`；Workers Builds 中另设构建命令 `bash build_cloudflare.sh`。Cron `30 22 * * MON-FRI` 为北京时间周二至周六 06:30；当日日线校验门槛为纽约时间 17:00，冬令时调度为 17:30、夏令时为 18:30。原 Pages 配置已替换，旧 Pages Hook 必须换成此 Worker 的 Builds Hook。具体配置见 [`CLOUDFLARE_DEPLOY.md`](./CLOUDFLARE_DEPLOY.md)。这是部署辅助文件，未改策略、参数、执行或原数据填充口径；宽松的七天过期检查不是交易所日历。远程需配置 Git 集成和 Hook 并验证首次构建。
 
+**Cloudflare SQLite 兼容修复（2026-10-14）**：首次 Workers Builds 日志确认 Python 3.12.10 已安装，但 yfinance/Peewee 因无可用 SQLite 驱动导致五个标的全部下载失败，随后空数据引发 IndexError。`requirements.txt` 为 Linux x86_64 固定增加 `pysqlite3-binary==0.5.4.post2`；Peewee 原生支持该备用驱动，无需改写标准库或第三方源码。`build_cloudflare.sh` 在下载前运行 `scripts/check_build_runtime.py`，验证实际缓存后端能建表、写入和读取并打印版本；驱动缺失时立即失败，避免三次无效下载重试。仅修复构建依赖，不改变行情处理、策略或执行口径。
+
 ## 3. 当前策略 V1.6.1(完整规则)
 
 决策链(信号 T 日收盘生成、T+1 开盘执行,无未来函数):
