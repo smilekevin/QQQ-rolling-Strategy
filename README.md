@@ -92,7 +92,7 @@ V1.6.1 changes no signal or allocation parameters. It corrects execution: multip
 
 V1.7.0 adds the SMA250 +15% overextension cap after volatility scaling and before the existing three-day confirmation and deadband. At the same 2026-09-25 research cutoff, full-history rebalances fall from 359 to 334; recent five-year rebalances fall from 69 to 64. This is not an immediate next-open overlay: skipping confirmation increases recent rebalances to 100. The user selected the confirmed version. The threshold is exploratory and was compared on already-researched history.
 
-> **Rebalancing:** QQQ/QLD weights drift freely while a tier is held. Rebalance only when the strategy changes its allocation, charging 5bp on actual trades. This matches the intended live process and minimizes turnover. Tests found a long-term difference of <0.03pp versus daily rebalancing to target weights, which is negligible.
+> **Rebalancing:** QQQ/QLD weights drift freely while the target allocation is unchanged. Rebalance only when the strategy changes its allocation, charging 5bp on actual trades. This matches the intended live process and minimizes turnover. Tests found a long-term difference of <0.03pp versus daily rebalancing to target weights, which is negligible.
 
 ## 5. Parameter research and overfitting
 

@@ -120,7 +120,7 @@ html[lang=en] .language-switch [lang=en],html[lang=zh] .language-switch [lang=zh
 <div class="header-tools"><span data-i18n="140">Language</span><button id="language-switch" class="language-switch" type="button" role="switch" aria-checked="false" aria-label="Display in Chinese"><span lang="en">EN</span><span lang="zh">中文</span></button></div>
 <div class="eyebrow"><span data-i18n="1">QQQ · QLD — Indicator-driven leveraged allocation · V1.7.0</span></div>
 <h1><span data-i18n="2">Dynamic Allocation Backtest (V1.7.0)</span></h1>
-<p class="sub"><span data-i18n="3">QQQ’s </span><b>MACD / RSI / Supertrend</b><span data-i18n="4"> + a 250-day trend gate determine the allocation tier. Risk controls include a </span><b><span data-i18n="5">20% volatility target</span></b><span data-i18n="6">, a </span><b><span data-i18n="7">deep-bear cash exit</span></b><span data-i18n="8"> and the V1.7.0 overextension cap: when QQQ closes more than 15% above SMA250, cap the volatility-scaled raw target at 1x before the existing three-day confirmation and deadband. Execution remains </span><b><span data-i18n="9">signals at the close of day T, rebalancing at the T+1 open</span></b><span data-i18n="10">: existing holdings absorb overnight moves, and new holdings earn intraday returns. Performance below includes trading costs. Net exposure varies from </span><b><span data-i18n="11">0 (cash) → 1.5x (QQQ+QLD)</span></b><span data-i18n="12">, with defensive cash earning short-term Treasury interest. </span><b><span data-i18n="13">No rebalancing while the allocation tier is held</span></b><span data-i18n="14">, with a </span><b><span data-i18n="15">0.15x deadband</span></b><span data-i18n="141">.</span></p>
+<p class="sub"><span data-i18n="3">QQQ’s </span><b>MACD / RSI / Supertrend</b><span data-i18n="4"> + a 250-day trend gate determine the allocation tier. Risk controls include a </span><b><span data-i18n="5">20% volatility target</span></b><span data-i18n="6">, a </span><b><span data-i18n="7">deep-bear cash exit</span></b><span data-i18n="8"> and the V1.7.0 overextension cap: when QQQ closes more than 15% above SMA250, cap the volatility-scaled raw target at 1x before the existing three-day confirmation and deadband. Execution remains </span><b><span data-i18n="9">signals at the close of day T, rebalancing at the T+1 open</span></b><span data-i18n="10">: existing holdings absorb overnight moves, and new holdings earn intraday returns. Performance below includes trading costs. Net exposure varies from </span><b><span data-i18n="11">0 (cash) → 1.5x (QQQ+QLD)</span></b><span data-i18n="12">, with defensive cash earning short-term Treasury interest. </span><b><span data-i18n="13">No rebalancing while the target allocation is unchanged</span></b><span data-i18n="14">, with a </span><b><span data-i18n="15">0.15x deadband</span></b><span data-i18n="141">.</span></p>
 
 <details class="versions">
 <summary><span data-i18n="16">Version history</span></summary>
@@ -320,8 +320,8 @@ const REPORT_TRANSLATIONS = [
     "zh": " 间连续调节,避险现金赚取短端国债收益。"
   },
   {
-    "en": "No rebalancing while the allocation tier is held",
-    "zh": "档位持有期内不做再平衡"
+    "en": "No rebalancing while the target allocation is unchanged",
+    "zh": "目标配置不变时不做再平衡"
   },
   {
     "en": ", with a ",
@@ -1261,14 +1261,14 @@ function renderFoot(){
 document.getElementById('foot').innerHTML=
  '数据:QQQ / QLD / ^NDX / ^IRX / ^VIX(yfinance),区间 '+R.range[0]+' 至 '+R.range[1]+'。QQQ 上市前的 ^NDX OHLC 按 QQQ 首日收盘价缩放,<b>只用于指标暖机,不计入收益</b>。'+
  '2006-06 前 QLD 由「2×QQQ 日收益 − (0.95% 费率 + 短端利率融资成本)/252」合成,与真实 QLD 重叠期日收益相关性 0.996、CAGR 偏乐观约 0.8%/年。'+
- '<br>V1.7.0 回测含 5bps/边 交易成本;避险现金按 ^IRX 短端国债利率计息;夏普用 rf=0。指标在 QQQ 上计算(仅上市前暖机段使用 ^NDX),信号 T 日收盘生成;旧仓承担隔夜涨跌,T+1 开盘调仓,新仓承担日内收益。<b>档位持有期内不做再平衡</b>(QQQ/QLD 权重随行情漂移),仅在换档时按实际成交计成本。'+
+ '<br>V1.7.0 回测含 5bps/边 交易成本;避险现金按 ^IRX 短端国债利率计息;夏普用 rf=0。指标在 QQQ 上计算(仅上市前暖机段使用 ^NDX),信号 T 日收盘生成;旧仓承担隔夜涨跌,T+1 开盘调仓,新仓承担日内收益。<b>目标配置不变时不做再平衡</b>(QQQ/QLD 权重随行情漂移),仅在换档时按实际成交计成本。'+
  '<br>极端恐慌观察标记定义为 <b>RSI(14)≤25 且 VIX≥30</b>,仅用于标记历史与当前市场情绪,<b>不参与任何仓位、确认、死区或调仓计算</b>。'+
  '<br><b>重要:</b>历史回测不代表未来收益;杠杆 ETF 存在波动损耗与日度重置风险。本页面仅供研究与教育,非投资建议。';
  }else{
  document.getElementById('foot').innerHTML=
  'Data: QQQ / QLD / ^NDX / ^IRX / ^VIX (yfinance), '+R.range[0]+' to '+R.range[1]+'. Pre-listing ^NDX OHLC is scaled to QQQ’s first closing price and <b>used only for indicator warm-up, never for returns</b>. '+
  'Before 2006-06, QLD is synthesized as “2×QQQ daily return − (0.95% fee + short-term financing rate)/252”. Overlapping daily returns correlate 0.996 with actual QLD, with an optimistic CAGR bias of about 0.8%/year.'+
- '<br>V1.7.0 includes 5bps/side trading costs. Defensive cash earns ^IRX short-term Treasury interest; Sharpe uses rf=0. Indicators use QQQ (pre-listing warm-up only uses ^NDX). Signals form at the close of T; existing holdings absorb overnight moves, rebalance at the T+1 open, and new holdings earn intraday returns. <b>No rebalancing while a tier is held</b>: QQQ/QLD weights drift, and actual traded amounts incur costs only when the allocation changes.'+
+ '<br>V1.7.0 includes 5bps/side trading costs. Defensive cash earns ^IRX short-term Treasury interest; Sharpe uses rf=0. Indicators use QQQ (pre-listing warm-up only uses ^NDX). Signals form at the close of T; existing holdings absorb overnight moves, rebalance at the T+1 open, and new holdings earn intraday returns. <b>No rebalancing while the target allocation is unchanged</b>: QQQ/QLD weights drift, and actual traded amounts incur costs only when the allocation changes.'+
  '<br>Extreme-panic observation means <b>RSI(14)≤25 and VIX≥30</b>. It marks historical and current sentiment and <b>does not affect allocation, confirmation, deadband or rebalancing</b>.'+
  '<br><b>Important:</b> historical backtests do not guarantee future returns. Leveraged ETFs carry volatility-drag and daily-reset risks. This page is for research and education only, not investment advice.';
  }
