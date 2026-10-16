@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
-# V1.6.1 robustness / in-sample vs out-of-sample scan.
+# V1.7.0 robustness / in-sample vs out-of-sample scan.
 #
 # This script intentionally keeps indicator construction inline because it scans
-# indicator parameters. The strategy/execution defaults match 2_backtest.py V1.6.1:
+# indicator parameters. The strategy/execution defaults match 2_backtest.py V1.7.0:
 # 250d asymmetric hysteresis, VOL_CAP=1.0, MAX_EXPOSURE=1.5,
 # R=0.75x / D=0.5x * vol target, RSI<=25 then 0.15x floor,
-# 0.15x deadband, T+1 open execution, and no rebalancing.
+# SMA250 +15% raw-target cap before confirmation, 0.15x deadband, T+1 open execution, and no rebalancing.
 import os
 import sys
 import pandas as pd
 import numpy as np
 from execution import run_next_open, valid_trade_index
+from indicators import cap_overextension
 
 OUT = os.path.dirname(os.path.abspath(__file__)) + os.sep
 DATA = OUT + 'prices.csv'
@@ -21,7 +22,7 @@ df = pd.read_csv(DATA, parse_dates=['Date'], index_col='Date')
 px = df['signal_close']; high = df['signal_high']; low = df['signal_low']
 TRADE_INDEX = valid_trade_index(df)
 
-# ---------------- V1.6.1 baseline config ----------------
+# ---------------- V1.7.0 baseline config ----------------
 BASE_SMA = 250
 BASE_BEAR_EXIT = 0.04
 BASE_BULL_REENTRY = 0.01
@@ -31,6 +32,7 @@ BASE_MAXE = 1.5
 BASE_RECOVERY = 0.75
 BASE_RSI_OVERSOLD = 25
 BASE_OVERSOLD_FLOOR = 0.15
+BASE_EXTENSION_THRESHOLD = 0.15
 BASE_ST_P = 10
 BASE_ST_M = 3.0
 BASE_RVOL_WIN = 20
@@ -134,7 +136,8 @@ def build(ind, volt=BASE_VOLT, vcap=BASE_VCAP, max_exposure=BASE_MAXE,
           lev_volceil=BASE_LEV_CEIL, confirm_k=BASE_CONFIRM,
           deadband=BASE_DEADBAND, bear_exit_buffer=BASE_BEAR_EXIT,
           recovery_exposure=BASE_RECOVERY, rsi_oversold=BASE_RSI_OVERSOLD,
-          oversold_floor=BASE_OVERSOLD_FLOOR):
+          oversold_floor=BASE_OVERSOLD_FLOOR,
+          extension_threshold=BASE_EXTENSION_THRESHOLD):
     ml = ind['ml'].values
     mh = ind['mh'].values
     rsi = ind['rsi'].values
@@ -165,6 +168,7 @@ def build(ind, volt=BASE_VOLT, vcap=BASE_VCAP, max_exposure=BASE_MAXE,
     exp = np.where(recovery, r_exp, exp)
     floor_on = oversold_latch(macro, ind['sma'].values, rsi, rsi_oversold)
     exp = np.where(floor_on, np.maximum(exp, oversold_floor), exp)
+    exp = cap_overextension(exp, px.values, ind['sma'].values, extension_threshold)
 
     sig = np.round(exp * 20).astype(int)
     confsig = confirm(sig.tolist(), confirm_k)
@@ -209,7 +213,7 @@ def seg(e, a, b):
 base_ind = indicators()
 
 print("=" * 96)
-print(f"A) V1.6.1 波动率目标 volt × VOL_CAP 网格  —— 指标固定(SMA={BASE_SMA}), MAX_EXPOSURE={BASE_MAXE}")
+print(f"A) V1.7.0 波动率目标 volt × VOL_CAP 网格  —— 指标固定(SMA={BASE_SMA}), MAX_EXPOSURE={BASE_MAXE}")
 print("   每格显示 全周期Calmar / 训练段(≤2012) / 验证段(2013+)；VOL_CAP<=1 表示只降不升")
 print("=" * 96)
 volts = [0.14, 0.16, 0.18, 0.20, 0.22, 0.25]
@@ -233,7 +237,7 @@ for (vt, vc), (cf, ctr, cte, cg, md) in best:
     print(f"  volt={vt} cap={vc:<4} | 全周期 CAGR {cg*100:4.1f}% 回撤 {md*100:5.1f}% Calmar {cf:.2f} | 训练 {ctr:.2f} 验证 {cte:.2f}")
 
 print("\n" + "=" * 96)
-print(f"B) V1.6.1 1D 敏感性(每次只动一个)  基准 SMA={BASE_SMA} volt={BASE_VOLT} cap={BASE_VCAP} max={BASE_MAXE}")
+print(f"B) V1.7.0 1D 敏感性(每次只动一个)  基准 SMA={BASE_SMA} volt={BASE_VOLT} cap={BASE_VCAP} max={BASE_MAXE}")
 print("=" * 96)
 
 
@@ -264,7 +268,7 @@ for cz in [0.30, 0.35, 0.40, 0.50, 0.99]:
     one(f"lev_volceil={cz}", base_ind, lev_volceil=cz)
 
 print("\n" + "=" * 96)
-print("C) V1.6.1 宏观滞回缓冲  E清仓深度 × 多头再入场")
+print("C) V1.7.0 宏观滞回缓冲  E清仓深度 × 多头再入场")
 print("=" * 96)
 for reentry in [0.005, 0.010, 0.015]:
     ind_buffered = indicators(bull_reentry_buffer=reentry)
@@ -278,7 +282,7 @@ for reentry in [0.005, 0.010, 0.015]:
               f"Calmar {cal:.3f} 训练 {ctr:.3f} 验证 {cte:.3f} 换手 {ann_turn:.2f}")
 
 print("\n" + "=" * 96)
-print("D) V1.6.1 反转恢复档基础敞口敏感性")
+print("D) V1.7.0 反转恢复档基础敞口敏感性")
 print("=" * 96)
 for recovery_exp in [0.50, 0.60, 0.70, 0.75, 0.80, 0.90, 1.00]:
     e, _, turn = run(build(base_ind, recovery_exposure=recovery_exp))
@@ -290,7 +294,7 @@ for recovery_exp in [0.50, 0.60, 0.70, 0.75, 0.80, 0.90, 1.00]:
           f"训练 {ctr:.3f} 验证 {cte:.3f} 换手 {ann_turn:.2f}")
 
 print("\n" + "=" * 96)
-print("E) V1.6.1 RSI超跌阈值 × 无杠杆底仓")
+print("E) V1.7.0 RSI超跌阈值 × 无杠杆底仓")
 print("=" * 96)
 for threshold in [20, 23, 25, 27, 30]:
     for floor in [0.10, 0.15, 0.20, 0.30]:

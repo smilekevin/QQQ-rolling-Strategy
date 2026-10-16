@@ -2,7 +2,7 @@
 
 A strategy that uses technical indicators (MACD / RSI / Supertrend + a 250-day trend gate) to switch dynamically between **cash → a small QQQ allocation → all QQQ → QQQ+QLD (maximum target 1.5x)**, with a full historical backtest and an interactive HTML report.
 
-Current report version: **V1.6.1a**; current strategy version: **V1.6.1**. Report updates cover presentation and observation markers only, without changing strategy rules or backtest methodology.
+Current report and strategy version: **V1.7.0**. This minor release adds a 1x raw-target cap when QQQ closes more than 15% above SMA250, before the existing confirmation and execution process.
 
 ---
 
@@ -13,7 +13,7 @@ Current report version: **V1.6.1a**; current strategy version: **V1.6.1**. Repor
 | `1_prepare_data.py` | Download ^NDX/QQQ/QLD/^IRX/^VIX, warm up indicators with NDX and synthesize pre-2006 QLD | `prices.csv` |
 | `indicators.py` | Shared indicators (MACD/RSI/Supertrend/regime gate), decision tiers and panic observation markers, reused by the backtest and daily check | — |
 | `execution.py` | Shared T+1 opening execution engine, reused by backtesting, optimization and ablation | — |
-| `2_backtest.py` | Calculate indicators, run the V1.6.1 backtest and export results | `results.json` |
+| `2_backtest.py` | Calculate indicators, run the V1.7.0 backtest and export results | `results.json` |
 | `3_generate_report.py` | Generate data for the fixed interactive HTML shell | `report_data.js` |
 | `_headers` | Cloudflare static-asset cache rules to keep the HTML shell and daily data in sync | — |
 | `daily_check.py` | Calculate the post-close target exposure and suggest holding or rebalancing | Terminal output |
@@ -21,7 +21,7 @@ Current report version: **V1.6.1a**; current strategy version: **V1.6.1**. Repor
 
 > `opt.py` is an optional parameter-robustness and training/validation script; see Section 5.
 
-Historical research reports are indexed in [`research/`](./research/README.md), covering strategy reassessment, cross-asset allocation, market breadth, momentum and QLD exposure windows. Each report retains its own data cutoff. Research candidates have not been adopted into the production strategy.
+Historical research reports are indexed in [`research/`](./research/README.md), covering strategy reassessment, cross-asset allocation, market breadth, momentum and QLD exposure windows. Each report retains its own data cutoff. The SMA250 +15% cap was adopted in V1.7.0 on 2026-10-16; other research candidates remain unadopted.
 
 ## 2. Running the pipeline
 
@@ -38,13 +38,13 @@ python 3_generate_report.py   # Generate report_data.js (daily data; not committ
 open qqq_qld_report.html      # macOS; double-click the file on Windows
 ```
 
-Rerun these three steps to refresh the latest trading day. `qqq_qld_report.html` is a fixed page shell; daily data lives in the gitignored `report_data.js`, alongside the ignored `prices.csv` and `results.json`. Deploy `_headers` with the HTML so browsers and Cloudflare revalidate daily data. The page generates an hourly Shanghai-time cache key, `report_data.js?v=1.6.1a-YYYY-MM-DD-HH`. The HTML does not need an hourly update; keep the `1.6.1a` cache version synchronized when the report version changes.
+Rerun these three steps to refresh the latest trading day. `qqq_qld_report.html` is a fixed page shell; daily data lives in the gitignored `report_data.js`, alongside the ignored `prices.csv` and `results.json`. Deploy `_headers` with the HTML so browsers and Cloudflare revalidate daily data. The page generates an hourly Shanghai-time cache key, `report_data.js?v=1.7.0-YYYY-MM-DD-HH`. The HTML does not need an hourly update; keep the `1.7.0` cache version synchronized when the report version changes.
 
 The report defaults to English. On a first visit, a browser whose preferred language is Chinese (`zh`, including regional variants) sees Chinese. The **EN / Chinese switch at the top right** changes the whole report, including charts, tooltips, live indicators and explanatory text. A manual choice is remembered in local storage and takes priority on later visits. Switching languages preserves the selected periods and chart ranges. When storage is unavailable, the switch still works for the current page.
 
 See [`CLOUDFLARE_DEPLOY.md`](./CLOUDFLARE_DEPLOY.md) for daily updates. [GitHub Actions](./.github/workflows/update-report.yml) POSTs a Workers Builds Deploy Hook at 06:30 Beijing time Tuesday–Saturday (`30 22 * * 1-5` UTC), with a manual Run workflow option. Add one repository Actions Secret, `DEPLOY_HOOK_URL`, targeting this Worker's `main` branch. Cloudflare downloads prices, builds and deploys; inspect its Builds logs for the final result. Actions success only confirms the build request was accepted. After a successful manual request and Cloudflare deployment, remove the old Worker Cron and runtime Hook variable, keeping the Deploy Hook itself. Cloudflare push deployments, PR previews, `bash build_cloudflare.sh`, `npm run deploy` and `wrangler.jsonc` stay in place. Scheduled starts may be delayed by GitHub; strategy rules are unchanged.
 
-## 3. Strategy logic (V1.6.1)
+## 3. Strategy logic (V1.7.0)
 
 **Signals are generated at the close of T and executed at the T+1 open, without look-ahead.** Existing holdings first absorb overnight returns; the portfolio rebalances at the open, then new holdings earn intraday returns.
 
@@ -60,22 +60,27 @@ The report separately marks **RSI(14)≤25 and VIX≥30** as extreme panic. This
    - 0–2 points → **all QQQ (1.0x)**; 3–4 → **QQQ+QLD (1.5x)**.
    - **The highest base tier is 1.5x** (`MAX_EXPOSURE=1.5`). The former all-QLD 2x tier was removed after tests found no useful risk premium and no material return cost from removal.
    - 1.5x also requires **leverage eligibility**: a rising 250-day average **and** 20-day annualized volatility < 40%.
-4. **Volatility targeting (core risk control)**: final net exposure = tier exposure × `min(1.0, 20% / 20-day realized annualized volatility)`. The default target range is 0–1.5x; scaling only reduces exposure. Volatility spikes automatically cut leverage, which is central to reducing drawdowns.
-5. **Execution**: round exposure to 0.05 increments and require 3 consecutive days of confirmation; then apply a **0.15x deadband** (`DEADBAND`: no rebalance when target exposure differs from current holdings by <0.15x). Cash earns ^IRX interest; each rebalance costs 5bp per side. Full-period target exposure switches approximately 13.0 times/year.
+4. **Volatility targeting (core risk control)**: raw net exposure = tier exposure × `min(1.0, 20% / 20-day realized annualized volatility)`. The default target range is 0–1.5x; scaling only reduces exposure. Volatility spikes automatically cut leverage, which is central to reducing drawdowns.
+5. **Overextension cap (V1.7.0)**: if `QQQ close / SMA250 - 1 > EXTENSION_THRESHOLD` (default **15%**), cap the **volatility-scaled raw target** at **1x**, replacing leveraged allocation with QQQ. Lower raw targets stay unchanged. This is applied **before** rounding, three-day confirmation and deadband; confirmed targets may lag the condition. At 15% or less, the original leverage rules resume through the same confirmation process. B/C decision tiers and colors remain unchanged.
+6. **Execution**: round exposure to 0.05 increments and require 3 consecutive days of confirmation; then apply a **0.15x deadband** (`DEADBAND`: no rebalance when target exposure differs from current holdings by <0.15x). Cash earns ^IRX interest; each rebalance costs 5bp per side. Full-period target exposure switches approximately 12.1 times/year in the dated snapshot below.
 
 Volatility scaling makes actual net exposure **continuous from 0 (cash) to a 1.5x target**. The six B/C/R/D/F/E decision tiers alone do not describe the actual holdings.
 
 ## 4. Backtest results (1999-03 onward, including costs)
 
+Dated snapshot using local data through **2026-09-25**; the live report recalculates metrics from its latest downloaded prices. Existing production metric definitions are preserved (subperiods rebase at their first close).
+
 | Portfolio | CAGR | Total return | Maximum drawdown | Calmar | Sharpe |
-|---|---|---|---|---|---|
-| **V1.6.1 strategy** | **14.9%** | **4388%** | **−26.9%** | **0.55** | **0.82** |
-| QQQ buy and hold | 10.6% | 1466% | −83.0% | 0.13 | 0.51 |
-| QLD buy and hold | 9.9% | 1231% | −98.8% | 0.10 | 0.44 |
+|---|---:|---:|---:|---:|---:|
+| **V1.7.0 strategy** | **15.7%** | **5356%** | **−22.4%** | **0.70** | **0.91** |
+| QQQ buy and hold | 10.9% | 1632% | −83.0% | 0.13 | 0.52 |
+| QLD buy and hold | 10.6% | 1506% | −98.8% | 0.11 | 0.46 |
 
-**Higher historical total return with a lower drawdown than QQQ (−27% versus −83%).** Since 2006, using actual QLD data throughout, CAGR is 17.3%, maximum drawdown −26.9% and Calmar 0.64; the last five years are approximately 16.3%/−21.8%/0.74. With the 0.15x deadband, annualized target switching is about 13.0 times, one-way turnover 8.35x and average net exposure 0.97x.
+Since June 2006 (actual QLD), CAGR is approximately **18.1%**, maximum drawdown **−22.4%**, Calmar **0.81**. Last-five-year production metrics are **19.5% / −19.6% / 0.99**. Annualized allocation switching is about **12.1 times**, one-way turnover **7.60x**, and average net exposure **0.90x**. Historical results do not establish future returns.
 
-> **Warm-up methodology:** QQQ listed on 1999-03-10 and lacks 250 pre-listing trading days. ^NDX (Nasdaq-100 Index) OHLC from 1997-01 until listing is scaled to QQQ’s first closing price and used only to warm up SMA/MACD/RSI/Supertrend/volatility. All returns start with actual QQQ opening data on 1999-03-11. Waiting for QQQ’s own SMA250 to mature on 2000-03-03, without NDX, gives a conservative reference of CAGR 13.2%, drawdown −26.9% and Calmar 0.49. Consider both; differences in warm-up are not strategy improvements.
+The adoption study uses prior closing capital for each subperiod's first daily return, while the existing report rebases at its first close; its recent CAGR is therefore **19.27%** rather than the report's **19.46%** on the same cache. V1.7.0 changes the allocation rule only, preserving the production performance methodology. See [the adoption study](./research/SMA_EXTENSION_REVIEW_2026-10-16.md).
+
+> **Warm-up methodology:** QQQ listed on 1999-03-10 and lacks 250 pre-listing trading days. ^NDX (Nasdaq-100 Index) OHLC from 1997-01 until listing is scaled to QQQ’s first closing price and used only to warm up SMA/MACD/RSI/Supertrend/volatility. All returns start with actual QQQ opening data on 1999-03-11. Waiting for QQQ’s own SMA250 to mature on 2000-03-03, without NDX, gave a historical V1.6.1 reference of CAGR 13.2%, drawdown −26.9% and Calmar 0.49. Consider both; differences in warm-up are not strategy improvements.
 
 V1.4 added asymmetric hysteresis for the sideways period from 2015-06 to 2016-07. Its local maximum drawdown fell from approximately −25.3% to −17.3%. The full-period parameter plateau was roughly a 3.5%–4.75% deep-bear threshold and a 0.5%–1.5% bullish re-entry threshold; the chosen **4% / 1%** is easier to explain. Local drawdowns in 2018 and the 2020 pandemic became slightly worse, so the change does not dominate in every market regime.
 
@@ -84,6 +89,8 @@ V1.5 added R reversal recovery to address underexposure during V-shaped rebounds
 V1.6 added an oversold RSI floor in bearish macro regimes: RSI(14)≤25 latches a minimum 0.15x until the macro regime turns bullish. It retains unleveraged QQQ and does not replace the R tier. Structural comparisons improved with either R alone or the floor alone; together they reached 14.9% CAGR and −24.7% drawdown under the earlier execution model, indicating complementary roles. Results are stable around RSI thresholds 23–25 and a 0.15x floor; higher thresholds or floors above 0.30x substantially increase drawdowns.
 
 V1.6.1 changes no signal or allocation parameters. It corrects execution: multiplying a T+1 target by the previous-close-to-current-close return wrongly assigns an untradeable overnight gap to new holdings. The corrected order is existing holdings overnight → rebalance at the T+1 open → new holdings intraday. Full-period CAGR is largely unchanged, but maximum drawdown is honestly corrected from −24.7% to −26.9%.
+
+V1.7.0 adds the SMA250 +15% overextension cap after volatility scaling and before the existing three-day confirmation and deadband. At the same 2026-09-25 research cutoff, full-history rebalances fall from 359 to 334; recent five-year rebalances fall from 69 to 64. This is not an immediate next-open overlay: skipping confirmation increases recent rebalances to 100. The user selected the confirmed version. The threshold is exploratory and was compared on already-researched history.
 
 > **Rebalancing:** QQQ/QLD weights drift freely while a tier is held. Rebalance only when the strategy changes its allocation, charging 5bp on actual trades. This matches the intended live process and minimizes turnover. Tests found a long-term difference of <0.03pp versus daily rebalancing to target weights, which is negligible.
 
@@ -94,9 +101,9 @@ All tunable parameters are in `CONFIG` at the top of `2_backtest.py`.
 - **Train in-sample and validate out-of-sample:** `opt.py` reports each parameter set separately for training (≤2012) and validation (2013+). Both must perform reasonably.
 - **Find plateaus, not peaks:** neighboring values should work similarly. `SMA_LEN` performs well at 250/300, so 250 was chosen. `VOL_TARGET` from 0.14–0.25 produces similar results.
 - **Change little, with a reason:** stacking individually optimal parameters often performs worse than changing one; this is overfitting.
-- **Recognize limits:** maintaining leverage through both the 2000/2008 crashes while demanding high returns is unrealistic. V1.6.1’s approximately −27% drawdown relies heavily on the trend gate and volatility scaling working together.
+- **Recognize limits:** maintaining leverage through both the 2000/2008 crashes while demanding high returns is unrealistic. The current drawdown control relies on the trend gate, volatility scaling and exposure caps working together; its historical maximum is not a risk limit.
 
-Run `python opt.py` after generating `prices.csv`. It prints the volt×VOL_CAP grid under V1.6.1 opening execution, one-dimensional sensitivities, hysteresis scans around 4%/1%, R-tier exposure sensitivity and an RSI threshold×floor grid.
+Run `python opt.py` after generating `prices.csv`. It prints the volt×VOL_CAP grid under V1.7.0 opening execution, one-dimensional sensitivities, hysteresis scans around 4%/1%, R-tier exposure sensitivity and an RSI threshold×floor grid.
 
 ### Daily post-close execution (`daily_check.py`)
 

@@ -17,6 +17,15 @@ def extreme_panic(rsi_values, vix_values):
     """观察标记:RSI<=25 且 VIX>=30,不参与策略决策。"""
     return (rsi_values<=EXTREME_PANIC_RSI)&(vix_values>=EXTREME_PANIC_VIX)
 
+def cap_overextension(exposure, price, sma, threshold):
+    """Cap the volatility-scaled raw target at 1x above the SMA threshold.
+
+    Apply before rounding/confirmation/deadband, never to executed holdings.
+    Scalars and arrays are supported; an unavailable SMA leaves targets intact.
+    Decision tiers and leverage eligibility are independent of this cap.
+    """
+    return np.minimum(exposure, np.where(price / sma - 1 > threshold, 1.0, np.inf))
+
 def ema(s, n): return s.ewm(span=n, adjust=False).mean()
 
 def macd(px):

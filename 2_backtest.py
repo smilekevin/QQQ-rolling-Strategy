@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-第 2 步:回测 V1.6.1 动态滚仓策略  ->  results.json
+第 2 步:回测 V1.7.0 动态滚仓策略  ->  results.json
 
 策略(六个决策状态,连续杠杆;已去掉 QLD全仓2x 档,最高 1.5x):
   · 宏观闸门:多头跌破 250 日均线即退出;熊市后需站上均线 1% 才恢复多头。
@@ -12,6 +12,7 @@
              -> C=QQQ全仓(1x) / 3~4分=QQQ+QLD(1.5x);
              加杠杆还需"250日线上行 且 20日波动率<40%"的熔断许可。
   · 波动率目标:最终净敞口 = 档位敞口 × min(VOL_CAP, VOL_TARGET / 20日年化波动率),默认 0~1.5x。
+  · 过热限制(V1.7):高于 SMA250 15% 时,波动率缩放后原始目标封顶 1x,再确认。
   · 抗抖动:  净敞口按 0.05 档、连续 CONFIRM 日确认才切换;信号 T 日收盘生成、T+1 开盘执行。
   · 现金按 ^IRX 短端国债利率计息;每次调仓计 COST_BPS 单边成本。
 
@@ -29,6 +30,7 @@ BULL_REENTRY_BUFFER = 0.01 # 熊市后需高于 SMA250 1% 才恢复多头,避免
 VOL_TARGET  = 0.20    # 目标年化波动率(越低越保守;0.14~0.25 结果不敏感)
 VOL_CAP     = 1.0     # 波动目标只降不升(1.0=不在基础档位上再加杠杆);经验证比 1.15 回撤更低、收益持平
 MAX_EXPOSURE= 1.5     # 最高档位上限(1.5=去掉 QLD全仓2x 档;经验证 2x 档不赚风险溢价,砍掉零代价)
+EXTENSION_THRESHOLD = 0.15 # V1.7:高于 SMA250 15% 时,波动缩放后的原始目标封顶 1x,再确认
 RECOVERY_EXPOSURE = 0.75 # V1.5:空头区短期双反转时的基础敞口(0.70~0.80 为稳健区)
 RSI_OVERSOLD = 25     # V1.6:熊市 RSI 触发底仓锁定的阈值(23~26 为稳健区)
 OVERSOLD_FLOOR = 0.15 # V1.6:触发后最低净敞口,不加杠杆(0.15~0.20 为稳健区)
@@ -80,6 +82,7 @@ def targets(r):
         exp=1.0
     if r['rvol']>0 and not np.isnan(r['rvol']): # 波动率目标叠加
         exp=max(0.0,min(2.0, exp*min(VOL_CAP, VOL_TARGET/r['rvol'])))
+    exp=ta.cap_overextension(exp, px.loc[r.name], r['sma'], EXTENSION_THRESHOLD)
     return (exp,0.0,1-exp) if exp<=1.0 else (2-exp, exp-1, 0.0)
 
 W=pd.DataFrame([targets(r) for _,r in ind.iterrows()],index=ind.index,columns=['q','l','c'])
@@ -125,7 +128,7 @@ def metrics(e):
                 best_yr=yr.max(),worst_yr=yr.min())
 def rebased(s,start): s2=s[s.index>=start]; return s2/s2.iloc[0]
 
-series={'策略(V1.6.1超跌底仓)':eq,'QQQ半仓':st_half,'QQQ全仓(=买入持有QQQ)':bh_qqq,
+series={'策略(V1.7.0过热降杠杆)':eq,'QQQ半仓':st_half,'QQQ全仓(=买入持有QQQ)':bh_qqq,
         'QQQ+QLD(50/50)':st_blend,'QLD全仓(=买入持有QLD)':bh_qld}
 M ={k:metrics(v)            for k,v in series.items()}
 M2={k:metrics(rebased(v,'2006-06-22')) for k,v in series.items()}
@@ -160,7 +163,7 @@ print(f"\n平均净敞口 {exp.mean():.2f}x  年化换手(单边) {turn.sum()/(l
 # ---------------- 导出 results.json(供报告使用)----------------
 def samp(s): return s.dropna()          # 日线(每个交易日一个点),支持按日缩放
 export={
- 'variant':'V1.6.1',
+ 'variant':'V1.7.0',
  'dates':[d.strftime('%Y-%m-%d') for d in samp(eq).index],
  'equity':{'strategy':samp(eq).round(3).tolist(),'qqq':samp(bh_qqq).round(3).tolist(),
            'qld':samp(bh_qld).round(3).tolist(),'blend':samp(st_blend).round(3).tolist(),'half':samp(st_half).round(3).tolist()},
@@ -184,6 +187,9 @@ export={
            'st_level':round(float(st.iloc[-1]),2),'rvol':round(float(rvol.iloc[-1]),3),
            'vix':round(float(vix.iloc[-1]),1),'extreme_panic':bool(panic.iloc[-1]),
            'sma250':round(float(sma.iloc[-1]),2),'macro_bull':bool(macro_bull.iloc[-1]),
+           'sma250_extension':round(float(px.iloc[-1]/sma.iloc[-1]-1),6),
+           'extension_threshold':EXTENSION_THRESHOLD,
+           'extension_cap_active':bool(px.iloc[-1]/sma.iloc[-1]-1>EXTENSION_THRESHOLD),
            'deep_bear':bool(deep_bear.iloc[-1]),'oversold_latch':bool(floor_on.iloc[-1])},
 }
 json.dump(export,open(OUT+'results.json','w'),ensure_ascii=False)

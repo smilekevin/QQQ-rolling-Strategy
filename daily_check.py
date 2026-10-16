@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-每日盘后检查:算出 V1.6.1 策略今日的目标净敞口,并给出"持有/调仓"建议。
+每日盘后检查:算出 V1.7.0 策略今日的目标净敞口,并给出"持有/调仓"建议。
 
 用法:
   python daily_check.py                 # 只看今日目标敞口与持仓构成
@@ -19,6 +19,7 @@ SMA_LEN=250; VOLT=0.20; VCAP=1.0; MAXE=1.5; ST_P=10; ST_M=3.0; RVOL_WIN=20
 BEAR_EXIT_BUFFER=0.04; BULL_REENTRY_BUFFER=0.01
 RECOVERY_EXPOSURE=0.75; LEV_CEIL=0.40; CONFIRM=3; DEADBAND=0.15
 RSI_OVERSOLD=25; OVERSOLD_FLOOR=0.15
+EXTENSION_THRESHOLD=0.15
 
 ap=argparse.ArgumentParser()
 ap.add_argument('--current', type=float, default=None, help='你当前的净敞口(如 0.66)')
@@ -55,7 +56,7 @@ for i in range(n):
     e=MAXE if s>=3 else 1.0
     if e>1.0 and not (rising[i] and rvol[i]<LEV_CEIL): e=1.0
     if rvol[i]>0 and not np.isnan(rvol[i]): e=max(0.0,min(2.0,e*min(VCAP,VOLT/rvol[i])))
-    exp[i]=e
+    exp[i]=ta.cap_overextension(e,px.iloc[i],ind['sma'].iloc[i],EXTENSION_THRESHOLD)
 # 3 日确认(0.05 档)
 sb=np.round(exp*20).astype(int); res=np.empty(n,int); cur=sb[0]; rv=sb[0]; cnt=0
 for i in range(n):
@@ -77,9 +78,12 @@ q,l,cash=comp(target)
 last=px.index[-1].date()
 dec_last=ta.decide_tier(ind.iloc[-1])   # 最新决策档(与回测/报告同一实现)
 panic=bool(ta.extreme_panic(rsiv[-1],vix.iloc[-1]))
-print(f"\n===== V1.6.1 每日检查 · 基于 {last} 收盘 / 下个交易日开盘执行 =====")
+print(f"\n===== V1.7.0 每日检查 · 基于 {last} 收盘 / 下个交易日开盘执行 =====")
 print(f"决策档: {ta.DECNAME[dec_last]}   目标净敞口: {target:.2f}x")
 print(f"目标持仓构成: QQQ {q*100:.0f}%   QLD {l*100:.0f}%   现金 {cash*100:.0f}%")
+extension=px.iloc[-1]/ind['sma'].iloc[-1]-1
+print(f"SMA250 偏离 {extension:+.2%} | 过热限制 {'开启' if extension>EXTENSION_THRESHOLD else '关闭'}"
+      f"(>{EXTENSION_THRESHOLD:.0%} 时原始目标封顶 1x;仍须三日确认,下个开盘执行)")
 macro_text='多头' if macro[-1] else ('深空头区' if deep[-1] else '回调观察区')
 print(f"指标: 价格 {px.iloc[-1]:.1f} | 250日状态 {macro_text} | "
       f"Supertrend {'多' if stb[-1] else '空'} | MACD线 {mlv[-1]:+.1f} | RSI {rsiv[-1]:.0f} | 20日波动 {rvol[-1]*100:.0f}%")
