@@ -1,4 +1,4 @@
-name: Update and deploy report
+name: Trigger Cloudflare report build
 
 on:
   schedule:
@@ -9,16 +9,9 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/update-report.yml'
-      - 'cloudflare/**'
-      - 'scripts/**'
+      - 'scripts/trigger_deploy_hook.py'
       - 'tests/**'
-      - '*.py'
-      - 'build_cloudflare.sh'
-      - 'requirements.txt'
-      - 'package*.json'
-      - 'wrangler.jsonc'
-      - 'qqq_qld_report.html'
-      - '_headers'
+      - 'cloudflare/**'
 
 permissions:
   contents: read
@@ -29,12 +22,10 @@ concurrency:
 
 jobs:
   update-report:
-    name: Build and verify report
+    name: Validate or trigger Cloudflare build
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      WRANGLER_SEND_METRICS: 'false'
+    timeout-minutes: 5
 
     steps:
       - name: Check out the triggering commit
@@ -42,50 +33,15 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Check production credentials
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Test Hook triggering and Worker behavior
+        if: github.event_name == 'pull_request'
         run: |
-          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            echo '::error::Add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID to GitHub repository Actions secrets. See CLOUDFLARE_DEPLOY.md.'
-            exit 1
-          fi
-
-      - name: Set up Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
-        with:
-          python-version: '3.12.10'
-
-      - name: Set up Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
-        with:
-          node-version: '24'
-          package-manager-cache: false
-
-      - name: Install the pinned Wrangler version
-        run: npm ci
-
-      - name: Test deployment checks and Worker behavior
-        run: |
-          python -m unittest discover -s tests -p 'test_*.py'
+          python3 -m unittest discover -s tests -p 'test_*.py'
           node --test tests/worker.test.mjs
 
-      - name: Download prices, backtest and build static assets
-        run: npm run build
-
-      - name: Check deployment packaging
-        run: npm run check:deploy
-
-      # Pull requests only validate. Scheduled and manual production runs use main.
-      - name: Deploy production
+      # Cloudflare owns the build and deployment; GitHub only submits the request.
+      - name: Request a Cloudflare production build
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: npm run deploy
-
-      - name: Verify published report matches this build
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-        run: python scripts/verify_deployment.py
+          DEPLOY_HOOK_URL: ${{ secrets.DEPLOY_HOOK_URL }}
+        run: python3 scripts/trigger_deploy_hook.py

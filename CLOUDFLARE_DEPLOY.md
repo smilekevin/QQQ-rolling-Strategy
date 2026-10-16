@@ -1,53 +1,52 @@
-# Cloudflare Hosting with GitHub Actions Daily Updates
+# Cloudflare Hosting with GitHub Actions Scheduled Hooks
 
-Cloudflare hosts the static report. GitHub Actions downloads prices, runs the existing Python pipeline and deploys the result directly with Wrangler. Daily updates require no Deploy Hook URL and no Worker runtime credentials.
+Cloudflare downloads prices, runs the Python pipeline and deploys the report. GitHub Actions only sends a scheduled or manual POST request to a Workers Builds Deploy Hook. All build and deployment logs remain in Cloudflare.
 
 ```text
 06:30 Beijing time, Tuesday through Saturday
   → GitHub Actions schedule (UTC Monday-Friday 22:30)
-  → Check out main → Download prices → Backtest → Generate dist/
-  → Wrangler deploy → Verify the published report matches this build
+  → POST the main-branch Deploy Hook
+  → Cloudflare downloads prices → Backtests → Generates dist/ → Wrangler deploy
 ```
 
 Workflow: [`.github/workflows/update-report.yml`](./.github/workflows/update-report.yml). The strategy, bilingual page, report-data format, temporary-directory build and current price/series checks are unchanged.
 
-## 1. Add two GitHub repository secrets
+## 1. Configure one GitHub repository secret
 
-Create a Cloudflare API token using the **Edit Cloudflare Workers** template, scoped to the account hosting `qqq-strategy-auto-deploy`. Find the Cloudflare account ID in that account’s dashboard. See [Cloudflare’s GitHub Actions authentication guide](https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/#1-authentication).
+Open **Cloudflare → Workers & Pages → qqq-strategy-auto-deploy → Settings → Builds → Deploy Hooks**. Create a Hook named, for example, `github-daily-report`, select branch **main** and copy its URL. An existing Workers Builds Hook targeting this Worker and `main` can be reused. A Pages Hook is not compatible. See [Cloudflare Deploy Hooks](https://developers.cloudflare.com/workers/ci-cd/builds/deploy-hooks/).
 
 In the GitHub repository, open **Settings → Secrets and variables → Actions → Repository secrets → New repository secret** and add:
 
 | Secret | Value |
 |---|---|
-| `CLOUDFLARE_API_TOKEN` | The Cloudflare API token allowed to deploy this Worker |
-| `CLOUDFLARE_ACCOUNT_ID` | The account ID hosting this Worker |
+| `DEPLOY_HOOK_URL` | This Worker's Workers Builds Deploy Hook URL targeting `main` |
 
-Both credentials are stored in GitHub Actions secrets. They are not Worker runtime variables, Cloudflare Builds variables or committed files. The workflow checks for missing credentials before starting production work and exposes them only to the credential-check and production-deployment steps. Pull-request validation does not use them.
+Store the URL in GitHub Actions secrets, rather than Worker runtime or Cloudflare Builds variables. The Hook URL authenticates the request; no `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` or Authorization header is required. Do not commit or print the URL. Worker deployments cannot overwrite this GitHub Secret.
 
-A successful Cloudflare Workers Builds deployment does not prove these new GitHub secrets are configured: the two systems authenticate independently.
+## 2. Merge the PR, then trigger once manually
 
-## 2. Merge the PR, then run once manually
+1. Review the feature branch's checks and Cloudflare preview. The user merges the PR into `main`.
+2. Open **GitHub → Actions → Trigger Cloudflare report build → Run workflow** and choose **main**.
+3. Actions prints the accepted Cloudflare build ID. Open this Worker's **Builds** history, find the corresponding Deploy Hook build and inspect its build/deploy logs.
+4. Wait for Cloudflare to report deployment success, then open [qqq-strategy.kenzhu.link](https://qqq-strategy.kenzhu.link) and confirm the latest trading date and charts.
 
-1. Review the feature branch’s checks and Cloudflare preview. The user merges the PR into `main`.
-2. Open **GitHub → Actions → Update and deploy report → Run workflow** and choose **main**.
-3. Inspect the build, packaging, deployment and published-report verification steps.
-4. Open [qqq-strategy.kenzhu.link](https://qqq-strategy.kenzhu.link) and confirm the latest trading date. A successful run’s summary reports the verified date.
+**A successful Actions run means Cloudflare accepted a build request; it does not mean deployment completed or succeeded.** The workflow does not poll deployment status or verify the published report. Cloudflare Builds is the source for final results. A repeated request while a build is queued/initializing may return that same build ID.
 
-The workflow rebuilds the report using `npm run build`, which runs `bash build_cloudflare.sh`. This installs Python dependencies, validates SQLite, downloads prices with up to three attempts, runs the backtest/report pipeline in a temporary directory, and produces four static assets in `dist/`. `npm run check:deploy` validates packaging before `npm run deploy` publishes production.
+[`scripts/trigger_deploy_hook.py`](./scripts/trigger_deploy_hook.py) validates the Workers Builds URL, sends one POST with a 20-second timeout and rejects redirects, HTTP/network errors, invalid JSON or a response without success and a build ID. Error messages omit the secret URL. There are no automatic POST retries; inspect Cloudflare before manually retrying an uncertain request.
 
-After deployment, `scripts/verify_deployment.py` fetches `report_data.js` from the production domain using a unique cache-busting query and compares the entire parsed payload against this run’s `dist/report_data.js`. It retries six times for propagation/network delays and fails if the payload still differs, even when the trading date is the same. Verification failure marks the workflow failed; it does not automatically roll back the deployment.
+Scheduled/manual requests run only from `main`; choosing a feature branch skips the job. PR checks run mocked Hook and Worker tests without accessing the Secret or triggering production. Cloudflare continues building branch previews. The workflow does not install dependencies, build assets, run Wrangler, push generated data or merge PRs. Concurrent production workflow runs are serialized.
 
-Production runs are restricted to `main`. Choosing a feature branch for a manual run skips the job. Pull requests affecting the pipeline run tests, build the report and check packaging, without deploying production. The workflow does not push generated data, merge PRs or write commits. Concurrent production workflow runs are serialized.
+Cloudflare retains the existing `bash build_cloudflare.sh` pipeline: dependency installation, SQLite validation, price downloads with up to three attempts, temporary-directory backtest/report generation and four assets in `dist/`, followed by `npm run deploy`.
 
-## 3. Retire the old Cloudflare Cron and Hook
+## 3. Retire the old Worker Cron
 
-After a successful manual GitHub Actions deployment:
+After a successful manual Hook request **and Cloudflare deployment**:
 
 - Open **Cloudflare → Workers & Pages → qqq-strategy-auto-deploy → Settings → Triggers / Trigger Events** and remove the old `30 22 * * MON-FRI` Cron.
-- Remove unused `DEPLOY_HOOK_URL` entries from runtime variables/secrets and build variables. The old Deploy Hook can also be removed once no other integration uses it.
-- Leave the custom domain, Preview URL settings and Workers Builds Git connection in place.
+- Remove unused `DEPLOY_HOOK_URL` entries from Worker runtime variables/secrets and build variables. Keep the Deploy Hook whose URL is now stored in GitHub.
+- Leave the custom domain, Preview URL settings and Workers Builds Git connection in place. Previously configured GitHub `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` secrets are not used by this workflow and may be removed if unused elsewhere.
 
-For a safe transition, `cloudflare/worker.mjs` retains a no-op `scheduled()` handler. An old dashboard Cron only logs that updates moved to GitHub Actions; it never calls a Hook, requires credentials or starts another build. A successful legacy Cron event therefore does not mean a daily update ran; use GitHub Actions for daily-update status.
+For migration, `cloudflare/worker.mjs` retains a no-op `scheduled()` handler. An old dashboard Cron only logs that scheduling moved to GitHub Actions; it never calls a Hook or starts another build. A successful legacy Cron event does not mean a report update ran.
 
 Root `wrangler.jsonc` still omits `workers_dev`, `preview_urls` and `triggers`. The repository does not delete dashboard Cron settings automatically. Domain and preview routing remain managed by the user in Cloudflare.
 
@@ -96,7 +95,7 @@ npx wrangler login
 npm run preview
 ```
 
-Create a missing virtual environment with `python3 -m venv .venv`. `npm run preview` publishes the current feature branch’s preview. Production is published by Cloudflare on merges or by the scheduled/manual GitHub workflow; do not publish an unmerged feature branch to production. `npm run dev` previews locally.
+Create a missing virtual environment with `python3 -m venv .venv`. `npm run preview` publishes the current feature branch’s preview. Production is published by Cloudflare on merges or scheduled/manual Deploy Hook requests; do not publish an unmerged feature branch to production. `npm run dev` previews locally.
 
 Local regression checks:
 
@@ -107,10 +106,10 @@ node --test tests/worker.test.mjs
 
 Troubleshooting:
 
-- **Missing credentials:** add both repository Actions secrets from Section 1. GitHub names are case-sensitive. Setting variables in Cloudflare Builds or Worker runtime settings does not provide GitHub credentials.
+- **Missing Hook:** add `DEPLOY_HOOK_URL` to GitHub repository Actions secrets. Names are case-sensitive. Cloudflare runtime/build variables do not provide GitHub secrets.
 - **No scheduled run:** check that the workflow is on default `main`, Actions is enabled and the workflow is not disabled. Inspect GitHub Actions rather than Cloudflare Cron events.
-- **Authentication/deployment failure:** check token scope/account ID and confirm Wrangler `name` matches the existing Worker. Use the Edit Cloudflare Workers template scoped to the correct account.
+- **Hook request failure:** confirm the URL belongs to this Worker and targets `main`. Recreate a deleted Hook and replace the GitHub Secret. No API token or Authorization header is required.
 - **`SQLite driver not installed!`:** Linux x86_64 installs pinned `pysqlite3-binary`; the existing runtime check must succeed before downloads. This compatibility fallback is retained for Cloudflare Builds too.
-- **Download/backtest failure:** inspect the corresponding workflow step. Failed build/packaging steps prevent production deployment.
-- **Published report mismatch:** inspect deployment output and the production domain’s routing/cache. The verification step checks report values as well as date; rerun on `main` after resolving the cause.
+- **Download/backtest/deployment failure:** inspect Cloudflare Workers Builds logs using the build ID from Actions. Fix the cause and run the GitHub workflow again on `main`.
+- **Actions succeeded but the page is old:** Actions only confirms the build request was accepted. Check that the matching Cloudflare build completed successfully, then check the production report date and routing/cache.
 - **Preview 404/1042:** enable Preview URL routing in Cloudflare, then verify the actual page and report data.
