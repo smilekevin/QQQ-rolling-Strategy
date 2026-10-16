@@ -10,8 +10,9 @@ This directory preserves historical strategy research, organized by report date.
 | 2026-10-13 | [Momentum prediction and higher returns](./MOMENTUM_REVIEW_2026-10-13.md) | Momentum prediction and the risk/return tradeoff of higher exposure |
 | 2026-10-13 | [Shorter QLD exposure windows](./QLD_WINDOW_REVIEW_2026-10-13.md) | Leveraged holding-period limits and drawdown exits |
 | 2026-10-16 | [Initial SMA extension cap study](./SMA_EXTENSION_REVIEW_2026-10-16.md) | Historical stateless cap, shorter averages and trading frequency |
+| 2026-10-16 | [R recovery timing](./R_RECOVERY_REVIEW_2026-10-16.md) | V1.8.0 PR: R-only fast increases, 2005/2025 diagnostics and risk tradeoffs |
 | 2026-10-16 | [SMA hysteresis and confirmation](./SMA_HYSTERESIS_REVIEW_2026-10-16.md) | Final 15%/10% latch with fast overheat cuts; confirmed restoration, timing and cost comparisons |
 
-On 2026-10-13, the user decided to retain existing V1.6.1 rules and parameters. On 2026-10-16, the user initially adopted the confirmed SMA250 +15% cap, then selected 15%/10% hysteresis with fast overheat cuts and confirmed restoration as the final V1.7.0 rule. Other research candidates remain unadopted. See the root [CLAUDE.md](../CLAUDE.md) for the current strategy definition.
+On 2026-10-13, the user decided to retain existing V1.6.1 rules and parameters. On 2026-10-16, the user initially adopted the confirmed SMA250 +15% cap, then selected 15%/10% hysteresis with fast overheat cuts and confirmed restoration as the final V1.7.0 rule. The user subsequently requested a separate V1.8.0 PR for fast R-tier increases; R reductions, deadband, sizing and next-open execution remain unchanged. Other research candidates remain unadopted. See the root [CLAUDE.md](../CLAUDE.md) for the current strategy definition.
 
 Reproduction commands in the reports assume the repository root as the working directory. Related research scripts remain local; the archive commit included reports only. Market-data caches, temporary research outputs and daily report data do not belong in this directory. Use `TOPIC_REVIEW_YYYY-MM-DD.md` for future reports and update this index.

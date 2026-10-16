@@ -47,33 +47,38 @@ def cap_overextension(exposure, active):
     return np.minimum(exposure, np.where(active, 1.0, np.inf))
 
 
-def confirm_exposure(vals, k, extension_active=None):
-    """Confirm rounded 0.05 exposure signatures, with a fast overheat cut.
+def confirm_exposure(vals, k, extension_active=None, recovery_active=None):
+    """Confirm rounded 0.05 signatures, with fast overheat cuts and R increases.
 
     While the overheat latch is active, lower confirmation state to at most
     20 (1x) without waiting k days. Update that state itself so releasing the
-    latch cannot resurrect a stale leveraged target. Higher targets after
-    release and all other changes still need k identical raw signatures.
+    latch cannot resurrect a stale leveraged target. While the decision tier
+    is R, a higher raw signature raises confirmation state immediately; lower
+    R targets and all other changes still need k identical raw signatures.
     The caller retains the existing deadband and next-open execution.
     """
     if k < 1:
         raise ValueError('Confirmation requires at least one day')
     if extension_active is None:
         extension_active = [False] * len(vals)
-    if len(vals) != len(extension_active):
-        raise ValueError('Exposure signatures and extension state must align')
+    if recovery_active is None:
+        recovery_active = [False] * len(vals)
+    if len(vals) != len(extension_active) or len(vals) != len(recovery_active):
+        raise ValueError('Exposure signatures, extension and recovery state must align')
     if not len(vals):
         return []
     cur = run = vals[0]
     count = 0
     result = []
-    for value, active in zip(vals, extension_active):
+    for value, active, recovery in zip(vals, extension_active, recovery_active):
         if value == run:
             count += 1
         else:
             run, count = value, 1
         if count >= k:
             cur = run
+        if recovery:
+            cur = max(cur, value)
         if active:
             cur = min(cur, 20)
         result.append(cur)

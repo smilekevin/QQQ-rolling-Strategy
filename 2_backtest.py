@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-第 2 步:回测 V1.7.0 动态滚仓策略  ->  results.json
+第 2 步:回测 V1.8.0 动态滚仓策略  ->  results.json
 
 策略(六个决策状态,连续杠杆;已去掉 QLD全仓2x 档,最高 1.5x):
   · 宏观闸门:多头跌破 250 日均线即退出;熊市后需站上均线 1% 才恢复多头。
@@ -12,8 +12,8 @@
              -> C=QQQ全仓(1x) / 3~4分=QQQ+QLD(1.5x);
              加杠杆还需"250日线上行 且 20日波动率<40%"的熔断许可。
   · 波动率目标:最终净敞口 = 档位敞口 × min(VOL_CAP, VOL_TARGET / 20日年化波动率),默认 0~1.5x。
-  · 过热限制(V1.7):高于 SMA250 15% 开启,回到 10% 或以下解除;原始目标封顶 1x,过热降杠杆免三日确认,恢复及其他信号仍确认。
-  · 抗抖动:  净敞口按 0.05 档、连续 CONFIRM 日确认才切换;信号 T 日收盘生成、T+1 开盘执行。
+  · 过热限制(V1.7):高于 SMA250 15% 开启,回到 10% 或以下解除;原始目标封顶 1x,过热降杠杆及 R 档加仓免三日确认,其他变化仍确认。
+  · 抗抖动:  净敞口按 0.05 档、除过热降杠杆及 R 档加仓外,连续 CONFIRM 日确认才切换;信号 T 日收盘生成、T+1 开盘执行。
   · 现金按 ^IRX 短端国债利率计息;每次调仓计 COST_BPS 单边成本。
 
 运行:  python 2_backtest.py   (需先跑完 1_prepare_data.py 生成 prices.csv)
@@ -39,7 +39,7 @@ ST_PERIOD   = 10      # Supertrend ATR 周期
 ST_MULT     = 3.0     # Supertrend 倍数(2~4)
 RVOL_WIN    = 20      # 实际波动率回看窗口(交易日)
 LEVER_VOLCEIL = 0.40  # 允许加杠杆的波动率天花板
-CONFIRM     = 3       # 目标敞口需连续几日确认才切换(降低抖动)
+CONFIRM     = 3       # 普通变化连续确认天数(过热降杠杆及 R 档加仓除外)
 DEADBAND    = 0.15    # 死区:确认目标与"当前持有敞口"偏离≥此值才调仓,否则沿用前一日(0=不设死区;0.05~0.25 为高原,0.15 换手更低)
 COST_BPS    = 5/10000 # 单边交易成本(5bp)
 # ========================================================================
@@ -92,7 +92,8 @@ W=pd.DataFrame([targets(r) for _,r in ind.iterrows()],index=ind.index,columns=['
 # ---------------- 确认过滤 + T+1 开盘执行 ----------------
 sig=((W['q']+2*W['l'])*20).round().astype(int)     # 0.05 档的净敞口签名
 confirm=ta.confirm_exposure
-confsig=confirm(sig.tolist(),CONFIRM,ind['extension_cap_active'].tolist())
+confsig=confirm(sig.tolist(),CONFIRM,ind['extension_cap_active'].tolist(),
+                recovery_active=DEC.eq('R').tolist())
 # 死区:仅当确认目标与"当前持有档"偏离 ≥ DEADBAND 才调仓,否则沿用前一日敞口
 DB=int(round(DEADBAND*20)); held=confsig[0]; ded=[]
 for v in confsig:
@@ -123,7 +124,7 @@ def metrics(e):
                 best_yr=yr.max(),worst_yr=yr.min())
 def rebased(s,start): s2=s[s.index>=start]; return s2/s2.iloc[0]
 
-series={'策略(V1.7.0过热降杠杆)':eq,'QQQ半仓':st_half,'QQQ全仓(=买入持有QQQ)':bh_qqq,
+series={'策略(V1.8.0快速反转恢复)':eq,'QQQ半仓':st_half,'QQQ全仓(=买入持有QQQ)':bh_qqq,
         'QQQ+QLD(50/50)':st_blend,'QLD全仓(=买入持有QLD)':bh_qld}
 M ={k:metrics(v)            for k,v in series.items()}
 M2={k:metrics(rebased(v,'2006-06-22')) for k,v in series.items()}
@@ -158,7 +159,7 @@ print(f"\n平均净敞口 {exp.mean():.2f}x  年化换手(单边) {turn.sum()/(l
 # ---------------- 导出 results.json(供报告使用)----------------
 def samp(s): return s.dropna()          # 日线(每个交易日一个点),支持按日缩放
 export={
- 'variant':'V1.7.0',
+ 'variant':'V1.8.0',
  'dates':[d.strftime('%Y-%m-%d') for d in samp(eq).index],
  'equity':{'strategy':samp(eq).round(3).tolist(),'qqq':samp(bh_qqq).round(3).tolist(),
            'qld':samp(bh_qld).round(3).tolist(),'blend':samp(st_blend).round(3).tolist(),'half':samp(st_half).round(3).tolist()},

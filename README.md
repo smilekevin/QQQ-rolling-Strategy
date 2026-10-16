@@ -2,7 +2,7 @@
 
 A strategy that uses technical indicators (MACD / RSI / Supertrend + a 250-day trend gate) to switch dynamically between **cash → a small QQQ allocation → all QQQ → QQQ+QLD (maximum target 1.5x)**, with a full historical backtest and an interactive HTML report.
 
-Current report and strategy version: **V1.7.0**. User-approved minor release (2026-10-16): SMA250 +15% activation / +10% release hysteresis, with overheat cuts bypassing three-day confirmation and restoration/other signals retaining it.
+Current report and strategy version: **V1.8.0**. User-requested release PR (2026-10-16): R-tier exposure increases bypass three-day confirmation. R reductions and all other changes still confirm, except the existing fast overheat cut. Keep the V1.7.0 15%/10% overheat hysteresis, volatility scaling, rounding, deadband and next-open execution. The user merges manually.
 
 ---
 
@@ -13,7 +13,7 @@ Current report and strategy version: **V1.7.0**. User-approved minor release (20
 | `1_prepare_data.py` | Download ^NDX/QQQ/QLD/^IRX/^VIX, warm up indicators with NDX and synthesize pre-2006 QLD | `prices.csv` |
 | `indicators.py` | Shared indicators (MACD/RSI/Supertrend/regime gate), decision tiers and panic observation markers, reused by the backtest and daily check | — |
 | `execution.py` | Shared T+1 opening execution engine, reused by backtesting, optimization and ablation | — |
-| `2_backtest.py` | Calculate indicators, run the V1.7.0 backtest and export results | `results.json` |
+| `2_backtest.py` | Calculate indicators, run the V1.8.0 backtest and export results | `results.json` |
 | `3_generate_report.py` | Generate data for the fixed interactive HTML shell | `report_data.js` |
 | `_headers` | Cloudflare static-asset cache rules to keep the HTML shell and daily data in sync | — |
 | `daily_check.py` | Calculate the post-close target exposure and suggest holding or rebalancing | Terminal output |
@@ -21,7 +21,7 @@ Current report and strategy version: **V1.7.0**. User-approved minor release (20
 
 > `opt.py` is an optional parameter-robustness and training/validation script; see Section 5.
 
-Historical research reports are indexed in [`research/`](./research/README.md), covering strategy reassessment, cross-asset allocation, market breadth, momentum and QLD exposure windows. Each report retains its own data cutoff. The final V1.7.0 choice on 2026-10-16 is SMA250 15%/10% hysteresis with fast overheat cuts and confirmed restoration; other research candidates remain unadopted.
+Historical research reports are indexed in [`research/`](./research/README.md), covering strategy reassessment, cross-asset allocation, market breadth, momentum and QLD exposure windows. Each report retains its own data cutoff. The final V1.7.0 choice on 2026-10-16 is SMA250 15%/10% hysteresis with fast overheat cuts and confirmed restoration; V1.8.0 extends that rule with fast R-tier increases. Other research candidates remain unadopted. See [R recovery timing](./research/R_RECOVERY_REVIEW_2026-10-16.md).
 
 ## 2. Running the pipeline
 
@@ -38,13 +38,13 @@ python 3_generate_report.py   # Generate report_data.js (daily data; not committ
 open qqq_qld_report.html      # macOS; double-click the file on Windows
 ```
 
-Rerun these three steps to refresh the latest trading day. `qqq_qld_report.html` is a fixed page shell; daily data lives in the gitignored `report_data.js`, alongside the ignored `prices.csv` and `results.json`. Deploy `_headers` with the HTML so browsers and Cloudflare revalidate daily data. The page generates an hourly Shanghai-time cache key, `report_data.js?v=1.7.0-YYYY-MM-DD-HH`. The HTML does not need an hourly update; keep the `1.7.0` cache version synchronized when the report version changes.
+Rerun these three steps to refresh the latest trading day. `qqq_qld_report.html` is a fixed page shell; daily data lives in the gitignored `report_data.js`, alongside the ignored `prices.csv` and `results.json`. Deploy `_headers` with the HTML so browsers and Cloudflare revalidate daily data. The page generates an hourly Shanghai-time cache key, `report_data.js?v=1.8.0-YYYY-MM-DD-HH`. The HTML does not need an hourly update; keep the `1.8.0` cache version synchronized when the report version changes.
 
 The report defaults to English. On a first visit, a browser whose preferred language is Chinese (`zh`, including regional variants) sees Chinese. The **EN / Chinese switch at the top right** changes the whole report, including charts, tooltips, live indicators and explanatory text. A manual choice is remembered in local storage and takes priority on later visits. Switching languages preserves the selected periods and chart ranges. When storage is unavailable, the switch still works for the current page.
 
 See [`CLOUDFLARE_DEPLOY.md`](./CLOUDFLARE_DEPLOY.md) for daily updates. [GitHub Actions](./.github/workflows/update-report.yml) POSTs a Workers Builds Deploy Hook at 06:30 Beijing time Tuesday–Saturday (`30 22 * * 1-5` UTC), with a manual Run workflow option. Add one repository Actions Secret, `DEPLOY_HOOK_URL`, targeting this Worker's `main` branch. Cloudflare downloads prices, builds and deploys; inspect its Builds logs for the final result. Actions success only confirms the build request was accepted. After a successful manual request and Cloudflare deployment, remove the old Worker Cron and runtime Hook variable, keeping the Deploy Hook itself. Cloudflare push deployments, PR previews, `bash build_cloudflare.sh`, `npm run deploy` and `wrangler.jsonc` stay in place. Scheduled starts may be delayed by GitHub; strategy rules are unchanged.
 
-## 3. Strategy logic (V1.7.0)
+## 3. Strategy logic (V1.8.0)
 
 **Signals are generated at the close of T and executed at the T+1 open, without look-ahead.** Existing holdings first absorb overnight returns; the portfolio rebalances at the open, then new holdings earn intraday returns.
 
@@ -54,21 +54,37 @@ The report separately marks **RSI(14)≤25 and VIX≥30** as extreme panic. This
 2. **Bearish regime**:
    - **Deep bear**: price **4%** below the 250-day average, MACD line < 0 and bearish Supertrend → default **100% cash**, earning short-term Treasury interest.
    - **RSI(14)≤25** activates an oversold-floor latch in the bearish macro regime. Thereafter retain at least **0.15x QQQ** until the macro regime turns bullish. The floor is unleveraged; it is labeled F in a deep-bear state.
-   - Without deep-bear conditions, **bullish Supertrend and MACD histogram > 0** → **reversal-recovery R: base 0.75x, then volatility scaling**. Deep-bear conditions have priority, so R cannot override E/F.
+   - Without deep-bear conditions, **bullish Supertrend and MACD histogram > 0** → **reversal-recovery R: base 0.75x, then volatility scaling**. Since V1.8.0, a higher rounded R target immediately raises internal confirmation state, followed by the original deadband and next-open execution. R reductions still require three identical rounded targets. Deep-bear conditions have priority, so R cannot override E/F.
    - Otherwise use **mild-pullback D: base 0.5x (QQQ+cash), then volatility scaling**. Since V1.3, greater turbulence reduces exposure toward cash; actual exposure is approximately 0.15–0.5x.
 3. **Bullish regime**: momentum score (0–4) = `bullish Supertrend + positive MACD histogram + positive MACD line + RSI>50`.
    - 0–2 points → **all QQQ (1.0x)**; 3–4 → **QQQ+QLD (1.5x)**.
    - **The highest base tier is 1.5x** (`MAX_EXPOSURE=1.5`). The former all-QLD 2x tier was removed after tests found no useful risk premium and no material return cost from removal.
    - 1.5x also requires **leverage eligibility**: a rising 250-day average **and** 20-day annualized volatility < 40%.
 4. **Volatility targeting (core risk control)**: raw net exposure = tier exposure × `min(1.0, 20% / 20-day realized annualized volatility)`. The default target range is 0–1.5x; scaling only reduces exposure. Volatility spikes automatically cut leverage, which is central to reducing drawdowns.
-5. **Overextension cap (V1.7.0):** a close strictly above `SMA250 × 1.15` activates a restriction latch; release only at or below `SMA250 × 1.10`. Keep the previous state in between. Cap the volatility-scaled raw target at 1x without raising lower targets. The overheat reduction to at most 1x bypasses three-day confirmation by updating confirmation state itself; leverage restoration and all other target changes retain three identical rounded signatures. Apply the existing 0.05 rounding and 0.15x deadband, then execute at the next open. Release permits leverage under the original rules; it never forces 1.5x. B/C tiers and leverage eligibility are unchanged.
-6. **Execution**: round exposure to 0.05 increments and require 3 consecutive identical target signatures, except for the fast overheat cut; then apply a **0.15x deadband** (`DEADBAND`: no rebalance when target exposure differs from current holdings by <0.15x). Cash earns ^IRX interest; each rebalance costs 5bp per side. Full-period target exposure switches approximately 11.4 times/year in the dated snapshot below.
+5. **Overextension cap (V1.7.0):** a close strictly above `SMA250 × 1.15` activates a restriction latch; release only at or below `SMA250 × 1.10`. Keep the previous state in between. Cap the volatility-scaled raw target at 1x without raising lower targets. The overheat reduction to at most 1x bypasses three-day confirmation by updating confirmation state itself; R-tier increases also update confirmation state immediately; all remaining changes, including R reductions and leverage restoration, retain three identical rounded signatures. Apply the existing 0.05 rounding and 0.15x deadband, then execute at the next open. Release permits leverage under the original rules; it never forces 1.5x. B/C tiers and leverage eligibility are unchanged.
+6. **Execution**: round exposure to 0.05 increments and require 3 consecutive identical target signatures, except for fast overheat cuts and R-tier increases; then apply a **0.15x deadband** (`DEADBAND`: no rebalance when target exposure differs from current holdings by <0.15x). Cash earns ^IRX interest; each rebalance costs 5bp per side. Full-period target exposure switches approximately 11.4 times/year in the dated snapshot below.
 
 Volatility scaling makes actual net exposure **continuous from 0 (cash) to a 1.5x target**. The six B/C/R/D/F/E decision tiers alone do not describe the actual holdings.
 
 ## 4. Backtest results (1999-03 onward, including costs)
 
-Dated snapshot through **2026-10-15** using the final fast-cut rule; the live report recalculates metrics from its latest downloaded prices. Existing production metric definitions are preserved (subperiods rebase at their first close).
+Fresh V1.8.0 production export through **2026-10-15**: full CAGR **15.50%**, maximum drawdown **-22.97%**, Calmar **0.675**; recent-five-year CAGR **18.73%**, drawdown **-19.95%**. On the same fresh cache, research full CAGR is V1.7.0 **15.47%** versus V1.8.0 **15.50%**. Research recent CAGR is **18.93% → 18.88%**; the difference from production comes from first-day normalization, not different rules. See [same-cache comparison](./research/R_RECOVERY_REVIEW_2026-10-16.md).
+
+V1.8.0 changes only the timing of R increases. On one local cache through **2026-09-25**, compared with V1.7.0:
+
+| Metric | V1.7.0 | V1.8.0 |
+|---|---:|---:|
+| Full CAGR | 15.56% | 15.59% |
+| Full maximum drawdown | -22.44% | -22.97% |
+| Full Calmar | 0.693 | 0.679 |
+| Recent-five-year CAGR | 18.81% | 18.76% |
+| Recent-five-year maximum drawdown | -19.60% | -19.95% |
+| 2005 calendar-year return | -4.74% | -3.95% |
+| 2025 calendar-year return | 12.99% | 14.74% |
+
+These exploratory research comparisons include the first daily return of subperiods. The later V1.7.0 production snapshot below uses its original metric convention and a different data cutoff. Higher full-period and selected-year returns do not imply lower risk: full drawdown increases, recent CAGR falls slightly, and an extra execution day reverses the small full-CAGR advantage. See [reproduction and sensitivity checks](./research/R_RECOVERY_REVIEW_2026-10-16.md). The live report recalculates from newly downloaded data.
+
+Historical **V1.7.0** snapshot through **2026-10-15** using the final fast-cut rule; the live report recalculates metrics from its latest downloaded prices. Existing production metric definitions are preserved (subperiods rebase at their first close).
 
 | Portfolio | CAGR | Total return | Maximum drawdown | Calmar | Sharpe |
 |---|---:|---:|---:|---:|---:|
@@ -103,7 +119,7 @@ All tunable parameters are in `CONFIG` at the top of `2_backtest.py`.
 - **Change little, with a reason:** stacking individually optimal parameters often performs worse than changing one; this is overfitting.
 - **Recognize limits:** maintaining leverage through both the 2000/2008 crashes while demanding high returns is unrealistic. The current drawdown control relies on the trend gate, volatility scaling and exposure caps working together; its historical maximum is not a risk limit.
 
-Run `python opt.py` after generating `prices.csv`. It prints the volt×VOL_CAP grid under V1.7.0 opening execution, one-dimensional sensitivities, hysteresis scans around 4%/1%, R-tier exposure sensitivity and an RSI threshold×floor grid.
+Run `python opt.py` after generating `prices.csv`. It prints the volt×VOL_CAP grid under V1.8.0 opening execution, one-dimensional sensitivities, hysteresis scans around 4%/1%, R-tier exposure sensitivity and an RSI threshold×floor grid.
 
 ### Daily post-close execution (`daily_check.py`)
 
