@@ -34,7 +34,7 @@ Store the URL in GitHub Actions secrets, rather than Worker runtime or Cloudflar
 
 [`scripts/trigger_deploy_hook.py`](./scripts/trigger_deploy_hook.py) validates the Workers Builds URL, sends one POST with a 20-second timeout and rejects redirects, HTTP/network errors, invalid JSON or a response without success and a build ID. Error messages omit the secret URL. There are no automatic POST retries; inspect Cloudflare before manually retrying an uncertain request.
 
-Scheduled/manual requests run only from `main`; choosing a feature branch skips the job. PR checks run mocked Hook and Worker tests without accessing the Secret or triggering production. Cloudflare continues building branch previews. The workflow does not install dependencies, build assets, run Wrangler, push generated data or merge PRs. Concurrent production workflow runs are serialized.
+Scheduled/manual requests run only from `main`; choosing a feature branch skips the job. PR checks install Python test dependencies and run strategy-consistency, mocked Hook and Worker tests without accessing the Secret or triggering production. Cloudflare continues building branch previews. The scheduled/manual job does not install dependencies; no GitHub job builds assets, runs Wrangler, pushes generated data or merges PRs. Concurrent production workflow runs are serialized.
 
 Cloudflare retains the existing `bash build_cloudflare.sh` pipeline: dependency installation, SQLite validation, price downloads with up to three attempts, temporary-directory backtest/report generation and four assets in `dist/`, followed by `npm run deploy`.
 
