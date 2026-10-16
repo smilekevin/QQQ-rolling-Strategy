@@ -12,6 +12,9 @@ on:
       - 'scripts/trigger_deploy_hook.py'
       - 'tests/**'
       - 'cloudflare/**'
+      - '*.py'
+      - 'qqq_qld_report.html'
+      - 'requirements.txt'
 
 permissions:
   contents: read
@@ -33,7 +36,11 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Test Hook triggering and Worker behavior
+      - name: Install strategy test dependencies
+        if: github.event_name == 'pull_request'
+        run: python3 -m pip install -r requirements.txt
+
+      - name: Test strategy consistency, Hook triggering and Worker behavior
         if: github.event_name == 'pull_request'
         run: |
           python3 -m unittest discover -s tests -p 'test_*.py'

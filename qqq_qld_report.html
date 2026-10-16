@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title data-i18n="0">QQQ/QLD Dynamic Allocation Backtest V1.6.1a</title>
+<title data-i18n="0">QQQ/QLD Dynamic Allocation Backtest V1.7.0</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
 <script>
 (()=>{
  const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23'}).formatToParts().map(({type,value})=>[type,value]));
- const key=`1.6.1a-${parts.year}-${parts.month}-${parts.day}-${parts.hour}`;
+ const key=`1.7.0-${parts.year}-${parts.month}-${parts.day}-${parts.hour}`;
  const script=document.createElement('script');
  window.REPORT_DATA_URL=script.src=`report_data.js?v=${key}`;
  window.REPORT_DATA_READY=new Promise((resolve,reject)=>{script.onload=resolve;script.onerror=()=>reject(new Error('Failed to load '+window.REPORT_DATA_URL));});
@@ -118,9 +118,9 @@ html[lang=en] .language-switch [lang=en],html[lang=zh] .language-switch [lang=zh
 </style></head>
 <body><div class="wrap">
 <div class="header-tools"><span data-i18n="140">Language</span><button id="language-switch" class="language-switch" type="button" role="switch" aria-checked="false" aria-label="Display in Chinese"><span lang="en">EN</span><span lang="zh">中文</span></button></div>
-<div class="eyebrow"><span data-i18n="1">QQQ · QLD — Indicator-driven leveraged allocation · V1.6.1a</span></div>
-<h1><span data-i18n="2">Dynamic Allocation Backtest (V1.6.1a)</span></h1>
-<p class="sub"><span data-i18n="3">QQQ’s </span><b>MACD / RSI / Supertrend</b><span data-i18n="4"> + a 250-day trend gate determine the allocation tier, with two risk controls: a </span><b><span data-i18n="5">20% volatility target</span></b><span data-i18n="6"> and </span><b><span data-i18n="7">deep-bear cash exit</span></b><span data-i18n="8">. V1.6.1 keeps the V1.6 signals and allocation parameters, but corrects execution to </span><b><span data-i18n="9">signals at the close of day T, rebalancing at the T+1 open</span></b><span data-i18n="10">: existing holdings absorb overnight moves, and new holdings earn intraday returns. Full-period CAGR 14.9%, maximum drawdown −26.9%, Calmar 0.55, Sharpe 0.82. Net exposure varies continuously from </span><b><span data-i18n="11">0 (cash) → 1.5x (QQQ+QLD)</span></b><span data-i18n="12">, with defensive cash earning short-term Treasury interest. </span><b><span data-i18n="13">No rebalancing while the allocation tier is held</span></b><span data-i18n="14">, with a </span><b><span data-i18n="15">0.15x deadband</span></b><span data-i18n="141">.</span></p>
+<div class="eyebrow"><span data-i18n="1">QQQ · QLD — Indicator-driven leveraged allocation · V1.7.0</span></div>
+<h1><span data-i18n="2">Dynamic Allocation Backtest (V1.7.0)</span></h1>
+<p class="sub"><span data-i18n="3">QQQ’s </span><b>MACD / RSI / Supertrend</b><span data-i18n="4"> + a 250-day trend gate determine the allocation tier. Risk controls include a </span><b><span data-i18n="5">20% volatility target</span></b><span data-i18n="6">, a </span><b><span data-i18n="7">deep-bear cash exit</span></b><span data-i18n="8"> and the V1.7.0 overextension latch: a close more than 15% above SMA250 caps the volatility-scaled raw target at 1x until extension returns to 10% or less. Overheat cuts skip the three-day confirmation; leverage restoration and other signals retain it. The 10%–15% buffer preserves the previous state, and the existing deadband remains. Execution stays </span><b><span data-i18n="9">signals at the close of day T, rebalancing at the T+1 open</span></b><span data-i18n="10">: existing holdings absorb overnight moves, and new holdings earn intraday returns. Performance below includes trading costs. Net exposure varies from </span><b><span data-i18n="11">0 (cash) → 1.5x (QQQ+QLD)</span></b><span data-i18n="12">, with defensive cash earning short-term Treasury interest. </span><b><span data-i18n="13">No rebalancing while the target allocation is unchanged</span></b><span data-i18n="14">, with a </span><b><span data-i18n="15">0.15x deadband</span></b><span data-i18n="141">.</span></p>
 
 <details class="versions">
 <summary><span data-i18n="16">Version history</span></summary>
@@ -135,6 +135,7 @@ html[lang=en] .language-switch [lang=en],html[lang=zh] .language-switch [lang=zh
   <div class="version-row"><dt>V1.6</dt><dd><span data-i18n="26">Added an oversold RSI floor latch. After RSI(14)≤25 in a bearish macro regime, retain at least 0.15x unleveraged QQQ until the macro regime turns bullish. This complements the R tier.</span></dd></div>
   <div class="version-row"><dt>V1.6.1</dt><dd><span data-i18n="27">Corrected T+1 execution. Existing holdings absorb overnight moves after the signal, rebalancing occurs at the next trading open, and new holdings earn only intraday returns. Strategy rules and parameters are unchanged.</span></dd></div>
   <div class="version-row"><dt>V1.6.1a</dt><dd><span data-i18n="28">Report update: added VIX and extreme-panic observation markers. Strategy rules, parameters and backtest results remain V1.6.1.</span></dd></div>
+  <div class="version-row"><dt>V1.7.0</dt><dd><span data-i18n="144">Add a stateful overextension cap: above SMA250 +15%, cap the volatility-scaled raw target at 1x; release only at +10% or less. Preserve state in the buffer. Overheat cuts skip three-day confirmation, while leverage restoration and other signals retain it. Keep 0.05 rounding, the 0.15x deadband and next-open execution. Release permits leverage under the original rules; it does not force a 1.5x target. Decision tiers remain unchanged.</span></dd></div>
 </dl>
 </details>
 
@@ -232,15 +233,15 @@ html[lang=en] .language-switch [lang=en],html[lang=zh] .language-switch [lang=zh
 
 <!-- 杠杆暴露 -->
 <div class="card"><h2><span class="n">6</span><span data-i18n="73">Net exposure over time</span></h2>
-<div class="note"><span data-i18n="74">Exposure is the portfolio’s QQQ equivalent (0x cash → maximum target 1.5x), adjusted continuously by volatility targeting. Bear markets (2000, 2008, 2020, 2022) automatically reduce exposure to cash or low allocations.</span></div>
+<div class="note"><span data-i18n="74">Exposure is the portfolio’s QQQ equivalent (0x cash → maximum target 1.5x). More than 15% above SMA250 activates a 1x cap until extension returns to 10% or less. Overheat cuts skip three-day confirmation; restoration and other signals retain it. The existing deadband remains; holdings drift between rebalances.</span></div>
 <div class="chartbox sm"><canvas id="expchart"></canvas></div>
 </div>
 
 <!-- 策略规则 -->
 <div class="card"><h2><span class="n">7</span><span data-i18n="75">Allocation rules</span></h2>
-<div class="note"><span data-i18n="76">Decision chain: ① a 250-day moving average with hysteresis sets the macro regime → ② in bullish regimes, Supertrend/MACD/RSI scores (0–4) select the </span><b><span data-i18n="77">base tier</span></b><span data-i18n="78"> → ③ bearish regimes select E/R/D for deep bear, dual reversal or ordinary pullback → ④ RSI≤25 in a bearish macro regime latches a minimum 0.15x floor → ⑤ the 20% volatility target </span><b><span data-i18n="79">continuously scales</span></b><span data-i18n="80"> the base tier into final exposure. Defensive cash earns short-term Treasury interest. </span><b><span data-i18n="81">Maximum target 1.5x.</span></b><br><span style="color:#b06a2e"><span data-i18n="82">⚠ B/C/R/D/F/E are decision tiers; </span><b><span data-i18n="83">the equity curve is colored by decision tier</span></b><span data-i18n="84">, while </span><b><span data-i18n="85">actual net exposure</span></b><span data-i18n="86"> (after volatility scaling, the floor, confirmation and deadband) is shown in tooltips. F means the oversold floor latch is active in a deep-bear state, retaining at least 0.15x without leverage.</span></span></div>
+<div class="note"><span data-i18n="76">Decision chain: ① a 250-day moving average with hysteresis sets the macro regime → ② in bullish regimes, Supertrend/MACD/RSI scores (0–4) select the </span><b><span data-i18n="77">base tier</span></b><span data-i18n="78"> → ③ bearish regimes select E/R/D for deep bear, dual reversal or ordinary pullback → ④ RSI≤25 in a bearish macro regime latches a minimum 0.15x floor → ⑤ the 20% volatility target </span><b><span data-i18n="79">continuously scales</span></b><span data-i18n="80"> the base tier into a raw target → ⑥ activate the 1x cap above SMA250 +15%, release at +10% or less, and preserve state between them → ⑦ skip three-day confirmation only for overheat cuts; confirm restoration and other signals, apply the existing deadband, then execute at the next open. Defensive cash earns short-term Treasury interest. </span><b><span data-i18n="81">Maximum target 1.5x.</span></b><br><span style="color:#b06a2e"><span data-i18n="82">⚠ B/C/R/D/F/E are decision tiers; </span><b><span data-i18n="83">the equity curve is colored by decision tier</span></b><span data-i18n="84">, while </span><b><span data-i18n="85">actual net exposure</span></b><span data-i18n="86"> (after volatility scaling, the floor, the overextension cap, confirmation and deadband) is shown in tooltips. F means the oversold floor latch is active in a deep-bear state, retaining at least 0.15x without leverage.</span></span></div>
 <div class="rules">
- <div class="rule"><div class="lv" style="color:#6a9b3f"><span data-i18n="87">B · Uptrend (highest tier)</span></div><div class="ex"><span data-i18n="88">Actual 0.75–1.5x</span></div><div class="ds"><span data-i18n="89">Base 1.5x (QQQ+QLD); after volatility scaling, </span><b><span data-i18n="90">actual 0.75–1.5x, median 1.5x</span></b><span data-i18n="91">. Requires rising SMA250 and volatility </span>&lt;<span data-i18n="92">40% for leverage eligibility.</span></div></div>
+ <div class="rule"><div class="lv" style="color:#6a9b3f"><span data-i18n="87">B · Uptrend (highest tier)</span></div><div class="ex"><span data-i18n="88">Base up to 1.5x</span></div><div class="ds"><span data-i18n="89">Base 1.5x (QQQ+QLD), scaled down by volatility; </span><b><span data-i18n="90">1x raw-target cap: activate above +15%, release at +10% or less</span></b><span data-i18n="91">. Preserve cap state in the buffer. Overheat cuts skip three-day confirmation; leverage restoration and other signals retain it, followed by the existing deadband. Leverage also requires rising SMA250 and volatility </span>&lt;<span data-i18n="92">40% for leverage eligibility.</span></div></div>
  <div class="rule"><div class="lv" style="color:#b8912f"><span data-i18n="93">C · Neutral bullish</span></div><div class="ex"><span data-i18n="94">Actual 0.2–1.0x</span></div><div class="ds"><span data-i18n="95">Base 1.0x (all QQQ); after volatility scaling, </span><b><span data-i18n="96">actual 0.22–1.0x, median 1.0x</span></b><span data-i18n="97">. High volatility causes the largest cuts. Price is above SMA250 with modest momentum (0–2 points), or leverage eligibility is blocked.</span></div></div>
  <div class="rule"><div class="lv" style="color:#3f7fb8"><span data-i18n="98">R · Reversal recovery</span></div><div class="ex"><span data-i18n="99">Actual about 0.2–0.75x</span></div><div class="ds"><span data-i18n="100">The SMA250 macro regime is still bearish and deep-bear conditions are absent, but </span><b><span data-i18n="101">Supertrend is bullish and the MACD histogram is positive</span></b><span data-i18n="102">. Scale the 0.75x base by volatility targeting to participate gradually in V-shaped rebounds while retaining the long-term gate.</span></div></div>
  <div class="rule"><div class="lv" style="color:#c2453b"><span data-i18n="103">D · Mild pullback</span></div><div class="ex"><span data-i18n="104">Actual 0.15–0.5x</span></div><div class="ds"><span data-i18n="105">Price has exited the bullish regime below the 250-day average, but the 4% deep-bear breach or bearish indicator agreement is absent. Base 0.5x (QQQ+cash) </span><b><span data-i18n="106">is further scaled by volatility targeting</span></b><span data-i18n="107">; greater turbulence brings exposure closer to cash.</span></div></div>
@@ -249,11 +250,12 @@ html[lang=en] .language-switch [lang=en],html[lang=zh] .language-switch [lang=zh
  <div class="rule" style="background:#eef4ee;border-color:#c9e0c9"><div class="lv" style="color:#2f6f4f"><span data-i18n="115">★ Volatility targeting</span></div><div class="ex"><span data-i18n="116">×min(1.0, 20%÷realized vol)</span></div><div class="ds"><span data-i18n="117">Continuously scales the base tier. Volatility spikes cut leverage; scaling never increases it. Final exposure is continuous and can fall within any tier’s visual band.</span></div></div>
 </div>
 <ul class="rl">
+ <li><b><span data-i18n="145">Overextension cap (V1.7.0):</span></b><span data-i18n="146"> A close/SMA250 − 1 &gt; 15% activates the restriction; release only at 10% or less. Between 10% and 15%, preserve the previous state. Cap the volatility-scaled raw target at 1x without raising lower targets. Overheat cuts skip the three-day confirmation; leverage restoration and every other signal still require three identical rounded targets. Keep the existing 0.05 rounding and 0.15x deadband. Signals form at the close and execute at the next open. Release does not force 1.5x: original momentum and volatility rules still apply. B/C tiers and colors remain unchanged.</span></li>
 <li><b><span data-i18n="118">Macro gate:</span></b><span data-i18n="119"> Exit the bullish regime below the 250-day average; re-enter only 1% above it. Asymmetric hysteresis filters false breakouts near the average.</span></li>
  <li><b><span data-i18n="120">Reversal recovery (V1.5):</span></b><span data-i18n="121"> In a bearish regime, check deep-bear conditions (E/F) first. Otherwise, if Supertrend is bullish and the MACD histogram is </span>&gt;<span data-i18n="122">0, select R: base 0.75x × volatility scaling. This restores some exposure earlier than D, without restoring leverage.</span></li>
  <li><b><span data-i18n="123">Oversold floor (V1.6):</span></b><span data-i18n="124"> RSI(14)≤25 in a bearish macro regime activates a latch, keeping final net exposure at least 0.15x until the macro regime turns bullish. The floor buys only unleveraged QQQ; R/D targets above 0.15x remain unchanged.</span></li>
  <li><b><span data-i18n="125">Momentum score (bullish regime):</span></b><span data-i18n="126"> Bullish Supertrend +1, MACD histogram </span>&gt;<span data-i18n="127">0 +1, MACD line </span>&gt;<span data-i18n="142">0 +1, RSI</span>&gt;<span data-i18n="128">50 +1; 0–2 points → all QQQ, 3–4 → QQQ+QLD (1.5x cap, MAX_EXPOSURE=1.5).</span></li>
- <li><b><span data-i18n="129">Volatility targeting (core):</span></b><span data-i18n="130"> Final exposure = tier exposure ×min(1.0, 20%÷20-day annualized volatility), with a default target range of 0–1.5x (only scaled down). Volatility spikes in 2000/2008/2020 sharply reduced leverage and exposure to severe leveraged-ETF losses.</span></li>
+ <li><b><span data-i18n="129">Volatility targeting (core):</span></b><span data-i18n="130"> Raw target = tier exposure ×min(1.0, 20%÷20-day annualized volatility), with a default target range of 0–1.5x (only scaled down). Then apply the SMA250 overextension cap before rounding, confirmation and deadband.</span></li>
  <li><b><span data-i18n="131">Deep-bear handling:</span></b><span data-i18n="132"> E/F requires price 4% below the 250-day average, MACD </span>&lt;<span data-i18n="133">0 and bearish Supertrend. Without the oversold latch, hold 100% cash; with it, retain a 0.15x floor. Shallow breaches remain D/R.</span></li>
  <li><b><span data-i18n="134">Confirmation and execution:</span></b><span data-i18n="135"> Round exposure to 0.05 increments and require </span><code>3</code><span data-i18n="136"> consecutive days of confirmation, then apply a </span><code>0.15x</code><span data-i18n="137"> deadband (no change if target differs from current holdings by </span>&lt;<span data-i18n="138">0.15x). Generate the signal at the close of T; existing holdings absorb overnight moves, rebalance at the T+1 open, and new holdings earn intraday returns. Full-period switching is about </span><span id="turn"></span><span data-i18n="139"> times/year, with average net exposure </span><span id="avgexp"></span><span data-i18n="143">x.</span></li>
 </ul>
@@ -266,48 +268,48 @@ html[lang=en] .language-switch [lang=en],html[lang=zh] .language-switch [lang=zh
 // Language preferences affect presentation only; report-data keys stay unchanged.
 const REPORT_TRANSLATIONS = [
   {
-    "en": "QQQ/QLD Dynamic Allocation Backtest V1.6.1a",
-    "zh": "QQQ/QLD 动态滚仓策略回测 V1.6.1a"
+    "en": "QQQ/QLD Dynamic Allocation Backtest V1.7.0",
+    "zh": "QQQ/QLD 动态滚仓策略回测 V1.7.0"
   },
   {
-    "en": "QQQ · QLD — Indicator-driven leveraged allocation · V1.6.1a",
-    "zh": "QQQ · QLD — 技术指标驱动的杠杆滚仓 · V1.6.1a"
+    "en": "QQQ · QLD — Indicator-driven leveraged allocation · V1.7.0",
+    "zh": "QQQ · QLD — 技术指标驱动的杠杆滚仓 · V1.7.0"
   },
   {
-    "en": "Dynamic Allocation Backtest (V1.6.1a)",
-    "zh": "动态滚仓策略回测(V1.6.1a)"
+    "en": "Dynamic Allocation Backtest (V1.7.0)",
+    "zh": "动态滚仓策略回测(V1.7.0)"
   },
   {
     "en": "QQQ’s ",
     "zh": "基于 QQQ 的 "
   },
   {
-    "en": " + a 250-day trend gate determine the allocation tier, with two risk controls: a ",
-    "zh": " + 250 日趋势闸门决定仓位档位,叠加 "
+    "en": " + a 250-day trend gate determine the allocation tier. Risk controls include a ",
+    "zh": " + 250 日趋势闸门决定基础档位。风控包括"
   },
   {
     "en": "20% volatility target",
     "zh": "20% 波动率目标"
   },
   {
-    "en": " and ",
-    "zh": "与"
+    "en": ", a ",
+    "zh": "、"
   },
   {
     "en": "deep-bear cash exit",
     "zh": "强空头清仓"
   },
   {
-    "en": ". V1.6.1 keeps the V1.6 signals and allocation parameters, but corrects execution to ",
-    "zh": "两层风控。V1.6.1 不改变 V1.6 的信号与仓位参数,只把执行修正为"
+    "en": " and the V1.7.0 overextension latch: a close more than 15% above SMA250 caps the volatility-scaled raw target at 1x until extension returns to 10% or less. Overheat cuts skip the three-day confirmation; leverage restoration and other signals retain it. The 10%–15% buffer preserves the previous state, and the existing deadband remains. Execution stays ",
+    "zh": "以及 V1.7.0 过热限制：收盘价高于 SMA250 15% 开启原始目标 1x 上限，回到 10% 或以下解除。过热降杠杆不等三日确认；恢复杠杆及其他信号仍需三日确认。10%～15% 带内沿用此前状态，并保留原有死区。执行仍为"
   },
   {
     "en": "signals at the close of day T, rebalancing at the T+1 open",
     "zh": "信号 T 日收盘生成、T+1 开盘调仓"
   },
   {
-    "en": ": existing holdings absorb overnight moves, and new holdings earn intraday returns. Full-period CAGR 14.9%, maximum drawdown −26.9%, Calmar 0.55, Sharpe 0.82. Net exposure varies continuously from ",
-    "zh": ":旧仓承担隔夜波动,新仓承担日内收益。全周期年化 14.9%、最大回撤 −26.9%、Calmar 0.55、夏普 0.82。净敞口在 "
+    "en": ": existing holdings absorb overnight moves, and new holdings earn intraday returns. Performance below includes trading costs. Net exposure varies from ",
+    "zh": "：旧仓承担隔夜涨跌，新仓承担日内收益。以下绩效已计入交易成本。净敞口范围为"
   },
   {
     "en": "0 (cash) → 1.5x (QQQ+QLD)",
@@ -318,8 +320,8 @@ const REPORT_TRANSLATIONS = [
     "zh": " 间连续调节,避险现金赚取短端国债收益。"
   },
   {
-    "en": "No rebalancing while the allocation tier is held",
-    "zh": "档位持有期内不做再平衡"
+    "en": "No rebalancing while the target allocation is unchanged",
+    "zh": "目标配置不变时不做再平衡"
   },
   {
     "en": ", with a ",
@@ -562,8 +564,8 @@ const REPORT_TRANSLATIONS = [
     "zh": "净杠杆暴露随时间变化"
   },
   {
-    "en": "Exposure is the portfolio’s QQQ equivalent (0x cash → maximum target 1.5x), adjusted continuously by volatility targeting. Bear markets (2000, 2008, 2020, 2022) automatically reduce exposure to cash or low allocations.",
-    "zh": "数值 = 组合对 QQQ 的等效敞口(0x 现金 → 最高 1.5x),经波动率目标连续调节。可见熊市(2000、2008、2020、2022)自动降到现金或低敞口。"
+    "en": "Exposure is the portfolio’s QQQ equivalent (0x cash → maximum target 1.5x). More than 15% above SMA250 activates a 1x cap until extension returns to 10% or less. Overheat cuts skip three-day confirmation; restoration and other signals retain it. The existing deadband remains; holdings drift between rebalances.",
+    "zh": "敞口是组合的 QQQ 等效仓位（现金 0x → 最高目标 1.5x）。高于 SMA250 15% 开启 1x 上限，回到 10% 或以下解除。过热降杠杆不等三日确认，恢复杠杆及其他信号仍确认三日。保留原有死区；持有期间权重随价格漂移。"
   },
   {
     "en": "Allocation rules",
@@ -586,8 +588,8 @@ const REPORT_TRANSLATIONS = [
     "zh": "连续缩放"
   },
   {
-    "en": " the base tier into final exposure. Defensive cash earns short-term Treasury interest. ",
-    "zh": "成最终敞口。避险现金买短端国债生息。"
+    "en": " the base tier into a raw target → ⑥ activate the 1x cap above SMA250 +15%, release at +10% or less, and preserve state between them → ⑦ skip three-day confirmation only for overheat cuts; confirm restoration and other signals, apply the existing deadband, then execute at the next open. Defensive cash earns short-term Treasury interest. ",
+    "zh": "得到原始目标 → ⑥ 高于 SMA250 15% 开启 1x 上限，回到 10% 或以下解除，带内保留此前状态 → ⑦ 仅过热降杠杆免三日确认，恢复杠杆及其他信号仍确认，经过原有死区后于次日开盘执行。避险现金获得短端国债利息。"
   },
   {
     "en": "Maximum target 1.5x.",
@@ -610,28 +612,28 @@ const REPORT_TRANSLATIONS = [
     "zh": "实际净敞口"
   },
   {
-    "en": " (after volatility scaling, the floor, confirmation and deadband) is shown in tooltips. F means the oversold floor latch is active in a deep-bear state, retaining at least 0.15x without leverage.",
-    "zh": "(经波动率目标、底仓、确认与死区处理后连续变化)见悬浮提示。F 只表示深空头时超跌底仓锁存已开启,固定最低 0.15x、不使用杠杆。"
+    "en": " (after volatility scaling, the floor, the overextension cap, confirmation and deadband) is shown in tooltips. F means the oversold floor latch is active in a deep-bear state, retaining at least 0.15x without leverage.",
+    "zh": "（经过波动率缩放、底仓、过热限制、确认和死区）显示在悬浮提示中。F 表示深空头状态下超跌底仓锁存开启，保留至少 0.15x，不使用杠杆。"
   },
   {
     "en": "B · Uptrend (highest tier)",
     "zh": "B · 趋势向上(最高档)"
   },
   {
-    "en": "Actual 0.75–1.5x",
-    "zh": "实际 0.75–1.5x"
+    "en": "Base up to 1.5x",
+    "zh": "基础最高 1.5x"
   },
   {
-    "en": "Base 1.5x (QQQ+QLD); after volatility scaling, ",
-    "zh": "基础 1.5x(QQQ+QLD),经波动率目标后"
+    "en": "Base 1.5x (QQQ+QLD), scaled down by volatility; ",
+    "zh": "基础 1.5x（QQQ+QLD），经波动率向下缩放；"
   },
   {
-    "en": "actual 0.75–1.5x, median 1.5x",
-    "zh": "实际 0.75–1.5x,中位 1.5x"
+    "en": "1x raw-target cap: activate above +15%, release at +10% or less",
+    "zh": "原始目标 1x 上限：高于 +15% 开启，回到 +10% 或以下解除"
   },
   {
-    "en": ". Requires rising SMA250 and volatility ",
-    "zh": "。需 SMA250 上行 + 波动率"
+    "en": ". Preserve cap state in the buffer. Overheat cuts skip three-day confirmation; leverage restoration and other signals retain it, followed by the existing deadband. Leverage also requires rising SMA250 and volatility ",
+    "zh": "。缓冲区内沿用此前限制状态。过热降杠杆免三日确认，恢复杠杆及其他信号仍确认，再经过原有死区。加杠杆还需均线上行、波动率 "
   },
   {
     "en": "40% for leverage eligibility.",
@@ -786,8 +788,8 @@ const REPORT_TRANSLATIONS = [
     "zh": "波动率目标(核心):"
   },
   {
-    "en": " Final exposure = tier exposure ×min(1.0, 20%÷20-day annualized volatility), with a default target range of 0–1.5x (only scaled down). Volatility spikes in 2000/2008/2020 sharply reduced leverage and exposure to severe leveraged-ETF losses.",
-    "zh": " 最终敞口 = 档位敞口 ×min(1.0, 20%÷近20日年化波动率),当前版本默认 0–1.5x(只降不升)。2000/2008/2020 波动暴涨时自动大幅降杠杆,躲开杠杆 ETF 最致命的深亏。"
+    "en": " Raw target = tier exposure ×min(1.0, 20%÷20-day annualized volatility), with a default target range of 0–1.5x (only scaled down). Then apply the SMA250 overextension cap before rounding, confirmation and deadband.",
+    "zh": " 原始目标 = 档位敞口 ×min(1.0, 20%÷20日年化波动率)，默认目标范围 0–1.5x，只降不升。随后应用 SMA250 过热限制，再取整、确认和死区。"
   },
   {
     "en": "Deep-bear handling:",
@@ -840,6 +842,18 @@ const REPORT_TRANSLATIONS = [
   {
     "en": "x.",
     "zh": "x。"
+  },
+  {
+    "en": "Add a stateful overextension cap: above SMA250 +15%, cap the volatility-scaled raw target at 1x; release only at +10% or less. Preserve state in the buffer. Overheat cuts skip three-day confirmation, while leverage restoration and other signals retain it. Keep 0.05 rounding, the 0.15x deadband and next-open execution. Release permits leverage under the original rules; it does not force a 1.5x target. Decision tiers remain unchanged.",
+    "zh": "新增有状态的过热限制：高于 SMA250 15% 开启波动率缩放后原始目标 1x 上限，回到 10% 或以下解除，带内保留此前状态。过热降杠杆不等三日确认，恢复杠杆及其他信号仍确认三日。保留 0.05 档取整、0.15x 死区和次日开盘执行。解除只恢复原规则下的杠杆资格，不强制回到 1.5x；决策档不变。"
+  },
+  {
+    "en": "Overextension cap (V1.7.0):",
+    "zh": "过热限制（V1.7.0）："
+  },
+  {
+    "en": " A close/SMA250 − 1 > 15% activates the restriction; release only at 10% or less. Between 10% and 15%, preserve the previous state. Cap the volatility-scaled raw target at 1x without raising lower targets. Overheat cuts skip the three-day confirmation; leverage restoration and every other signal still require three identical rounded targets. Keep the existing 0.05 rounding and 0.15x deadband. Signals form at the close and execute at the next open. Release does not force 1.5x: original momentum and volatility rules still apply. B/C tiers and colors remain unchanged.",
+    "zh": " 收盘价/SMA250 − 1 > 15% 开启限制，只在回到 10% 或以下时解除；10%～15% 带内保留此前状态。将波动率缩放后的原始目标封顶为 1x，不抬高更低目标。过热降杠杆不等三日确认；恢复杠杆及其他信号仍须连续三日出现相同的取整目标。保留 0.05 档取整及 0.15x 死区。收盘生成信号，下个开盘执行。解除不强制回到 1.5x，仍须满足原有动量和波动率规则。B/C 档和颜色不变。"
   }
 ];
 const REPORT_LANGUAGE_KEY = 'qqq-report-language';
@@ -906,7 +920,7 @@ const DECNM ={'B':'趋势向上','C':'中性偏多','R':'反转恢复','D':'温�
 const STATEEN={'趋势向上':'Uptrend','中性偏多':'Neutral bullish','反转恢复':'Reversal recovery','温和回调':'Mild pullback','超跌底仓':'Oversold floor','强空头/现金':'Deep bear / cash'};
 function displayName(name){
   if(reportLanguage==='zh') return name;
-  if(name===STRATEGY) return 'Strategy ('+(STRATEGY.match(/V[\d.]+/)||['V1.6.1'])[0]+')';
+  if(name===STRATEGY) return 'Strategy ('+(STRATEGY.match(/V[\d.]+/)||[R.variant||'Strategy'])[0]+')';
   return STATEEN[name]||({'策略':'Strategy','QQQ半仓':'50% QQQ + cash','QQQ全仓(=买入持有QQQ)':'QQQ buy & hold',
     'QLD全仓(=买入持有QLD)':'QLD buy & hold','QQQ+QLD(50/50)':'QQQ+QLD (50/50)'}[name])||name;
 }
@@ -923,10 +937,16 @@ function renderLatest(){
  const executedExp=L.executed_exp??L.prev_exp;
  document.getElementById('lreb').innerHTML=
    t('Last opening rebalance: <b>','上次开盘调仓:<b>')+L.last_reb+'</b>'+t(' (','(距今 ')+L.days_since+t(' days ago)<br>',' 天)<br>')+
-   t('Currently executed: ','当前已执行:')+executedExp.toFixed(2)+'x → '+t('Next-open target ','下个开盘建议 ')+L.exp.toFixed(2)+'x';
+   t('Last target change: ','上次目标调整:')+L.prev_exp.toFixed(2)+'x → '+executedExp.toFixed(2)+'x<br>'+
+   t('Currently executed: ','当前已执行:')+executedExp.toFixed(2)+'x → '+t('Next-open target ','下个开盘建议 ')+L.exp.toFixed(2)+'x'+
+   (L.extension_cap_active?'<br>'+t('Overheat latch: release at SMA250 extension ≤','过热锁存:偏离 SMA250 回到 ≤')+((L.extension_release_threshold??0.10)*100).toFixed(0)+t('% before leverage restoration can confirm over three days.','% 后，恢复杠杆仍需三日确认。'):'');
  const macroState=L.macro_bull?t('Bullish','多头'):(L.deep_bear?t('Deep bear','深空头'):t('Pullback watch','回调观察'));
  const vixText=Number.isFinite(L.vix)?L.vix.toFixed(1):'--';
+ const extension=L.sma250_extension??(L.price/L.sma250-1);
+ const capText=typeof L.extension_cap_active==='boolean'?(L.extension_cap_active?t('Latched · 1x','已锁存 · 1x'):t('Off','关闭')):'--';
  const ind=[[t('Price','价格'),L.price.toFixed(0),''],['SMA250',L.sma250.toFixed(0),''],[t('250-day regime','250日状态'),macroState,L.macro_bull?'up':'dn'],
+   [t('SMA250 extension','SMA250 偏离'),(extension*100).toFixed(2)+'%',L.extension_cap_active?'dn':''],
+   [t('Overheat latch','过热锁存'),capText,L.extension_cap_active?'dn':''],
    ['Supertrend',L.st_level.toFixed(0),L.st_bull?'up':'dn'],
    [t('MACD histogram','MACD 柱'),L.macd_hist.toFixed(2),L.macd_hist>0?'up':'dn'],[t('MACD line','MACD 线'),L.macd_line.toFixed(2),L.macd_line>0?'up':'dn'],
    ['RSI(14)',L.rsi.toFixed(1),L.rsi>50?'up':'dn'],['VIX',vixText,L.vix>=30?'dn':''],
@@ -964,8 +984,8 @@ function renderKPI(period){
  document.getElementById('kpi').innerHTML=boxes.map(([k,v,ss])=>'<div class="box"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="s">'+ss+'</div></div>').join('');
  let note=t('Period ','区间 ')+periodLabel(meta)+t(': strategy CAGR ',':策略 年化 ')+fmtP(s.cagr)+t(', drawdown ','、回撤 ')+fmtP0(s.mdd)+', Calmar '+s.calmar.toFixed(2)
    +t('; buy & hold QQQ ',';同期买入持有 QQQ ')+fmtP(qqq.cagr)+' / '+fmtP0(qqq.mdd)+', QLD '+fmtP(qld.cagr)+' / '+fmtP0(qld.mdd)+'.';
- if(period==='full') note+=t(' Note: includes the 2000–2002 dot-com crash. Scaled pre-listing ^NDX warms up indicators, but returns start with actual QQQ opening data. Starting only after QQQ’s own SMA250 matures gives a conservative reference: CAGR 13.2%, drawdown −26.9%, Calmar 0.49.',
-   ' 注:含 2000–2002 泡沫破裂;1999 上市前用缩放后的 ^NDX 暖机指标,收益仍从真实 QQQ 开盘数据开始。若从 QQQ 自身 SMA250 成熟后才计绩效,保守参考为年化 13.2%、回撤 −26.9%、Calmar 0.49。');
+ if(period==='full') note+=t(' Note: includes the 2000–2002 dot-com crash. Scaled pre-listing ^NDX warms up indicators, but returns start with actual QQQ opening data. Starting only after QQQ’s own SMA250 matures changes the evaluation window; warm-up differences are not strategy improvements.',
+   ' 注:含 2000–2002 泡沫破裂;1999 上市前用缩放后的 ^NDX 暖机指标,收益仍从真实 QQQ 开盘数据开始。若从 QQQ 自身 SMA250 成熟后才计绩效，会改变评估区间；暖机差异不代表策略改进。');
  document.getElementById('kpinote').textContent=note;
  renderTable(M, period);
 }
@@ -1242,14 +1262,14 @@ function renderFoot(){
 document.getElementById('foot').innerHTML=
  '数据:QQQ / QLD / ^NDX / ^IRX / ^VIX(yfinance),区间 '+R.range[0]+' 至 '+R.range[1]+'。QQQ 上市前的 ^NDX OHLC 按 QQQ 首日收盘价缩放,<b>只用于指标暖机,不计入收益</b>。'+
  '2006-06 前 QLD 由「2×QQQ 日收益 − (0.95% 费率 + 短端利率融资成本)/252」合成,与真实 QLD 重叠期日收益相关性 0.996、CAGR 偏乐观约 0.8%/年。'+
- '<br>V1.6.1 回测含 5bps/边 交易成本;避险现金按 ^IRX 短端国债利率计息;夏普用 rf=0。指标在 QQQ 上计算(仅上市前暖机段使用 ^NDX),信号 T 日收盘生成;旧仓承担隔夜涨跌,T+1 开盘调仓,新仓承担日内收益。<b>档位持有期内不做再平衡</b>(QQQ/QLD 权重随行情漂移),仅在换档时按实际成交计成本。'+
+ '<br>V1.7.0 回测含 5bps/边 交易成本;避险现金按 ^IRX 短端国债利率计息;夏普用 rf=0。指标在 QQQ 上计算(仅上市前暖机段使用 ^NDX),信号 T 日收盘生成;旧仓承担隔夜涨跌,T+1 开盘调仓,新仓承担日内收益。<b>目标配置不变时不做再平衡</b>(QQQ/QLD 权重随行情漂移),仅在换档时按实际成交计成本。'+
  '<br>极端恐慌观察标记定义为 <b>RSI(14)≤25 且 VIX≥30</b>,仅用于标记历史与当前市场情绪,<b>不参与任何仓位、确认、死区或调仓计算</b>。'+
  '<br><b>重要:</b>历史回测不代表未来收益;杠杆 ETF 存在波动损耗与日度重置风险。本页面仅供研究与教育,非投资建议。';
  }else{
  document.getElementById('foot').innerHTML=
  'Data: QQQ / QLD / ^NDX / ^IRX / ^VIX (yfinance), '+R.range[0]+' to '+R.range[1]+'. Pre-listing ^NDX OHLC is scaled to QQQ’s first closing price and <b>used only for indicator warm-up, never for returns</b>. '+
  'Before 2006-06, QLD is synthesized as “2×QQQ daily return − (0.95% fee + short-term financing rate)/252”. Overlapping daily returns correlate 0.996 with actual QLD, with an optimistic CAGR bias of about 0.8%/year.'+
- '<br>V1.6.1 includes 5bps/side trading costs. Defensive cash earns ^IRX short-term Treasury interest; Sharpe uses rf=0. Indicators use QQQ (pre-listing warm-up only uses ^NDX). Signals form at the close of T; existing holdings absorb overnight moves, rebalance at the T+1 open, and new holdings earn intraday returns. <b>No rebalancing while a tier is held</b>: QQQ/QLD weights drift, and actual traded amounts incur costs only when the allocation changes.'+
+ '<br>V1.7.0 includes 5bps/side trading costs. Defensive cash earns ^IRX short-term Treasury interest; Sharpe uses rf=0. Indicators use QQQ (pre-listing warm-up only uses ^NDX). Signals form at the close of T; existing holdings absorb overnight moves, rebalance at the T+1 open, and new holdings earn intraday returns. <b>No rebalancing while the target allocation is unchanged</b>: QQQ/QLD weights drift, and actual traded amounts incur costs only when the allocation changes.'+
  '<br>Extreme-panic observation means <b>RSI(14)≤25 and VIX≥30</b>. It marks historical and current sentiment and <b>does not affect allocation, confirmation, deadband or rebalancing</b>.'+
  '<br><b>Important:</b> historical backtests do not guarantee future returns. Leveraged ETFs carry volatility-drag and daily-reset risks. This page is for research and education only, not investment advice.';
  }

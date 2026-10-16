@@ -4,7 +4,7 @@
 
 被 2_backtest.py、daily_check.py 共用,确保"指标 + 决策逻辑"只有一份实现,
 避免改一处忘改另一处(见 CLAUDE.md 第 9 节)。opt.py / ablation.py 因需要
-扫描不同参数、各自内联了指标,不依赖本模块。
+扫描不同参数、各自内联了指标,但复用本模块的过热锁存、敞口上限及确认过滤。
 
 约定:所有指标基于 QQQ 收盘价;需要 high/low 计算 Supertrend 的真实 ATR。
 """
@@ -16,6 +16,68 @@ EXTREME_PANIC_VIX = 30
 def extreme_panic(rsi_values, vix_values):
     """观察标记:RSI<=25 且 VIX>=30,不参与策略决策。"""
     return (rsi_values<=EXTREME_PANIC_RSI)&(vix_values>=EXTREME_PANIC_VIX)
+
+def overextension_latch(px, sma, threshold, release_threshold):
+    """Arm above the upper SMA extension; release at/below the lower one.
+
+    Evolve on full signal history before rounding/confirmation. A single upper
+    crossing arms the raw state; staying in the buffer preserves that state.
+    No state is carried through invalid SMA warm-up. Decision tiers are separate.
+    """
+    if not 0 <= release_threshold <= threshold:
+        raise ValueError('Extension thresholds require 0 <= release <= activation')
+    active = False
+    result = []
+    for price, average in zip(px, sma):
+        if not np.isfinite(price) or not np.isfinite(average) or average <= 0:
+            active = False
+        # Compare the price difference to avoid ratio cancellation at exact bounds.
+        elif active and price - average <= average * release_threshold:
+            active = False
+        elif not active and price - average > average * threshold:
+            active = True
+        result.append(active)
+    return pd.Series(result, index=px.index, dtype=bool)
+
+def cap_overextension(exposure, active):
+    """Apply the latched 1x cap to raw exposure, before confirmation/deadband.
+
+    Supports scalars/vectors and never raises targets below 1x or blocks exits.
+    """
+    return np.minimum(exposure, np.where(active, 1.0, np.inf))
+
+
+def confirm_exposure(vals, k, extension_active=None):
+    """Confirm rounded 0.05 exposure signatures, with a fast overheat cut.
+
+    While the overheat latch is active, lower confirmation state to at most
+    20 (1x) without waiting k days. Update that state itself so releasing the
+    latch cannot resurrect a stale leveraged target. Higher targets after
+    release and all other changes still need k identical raw signatures.
+    The caller retains the existing deadband and next-open execution.
+    """
+    if k < 1:
+        raise ValueError('Confirmation requires at least one day')
+    if extension_active is None:
+        extension_active = [False] * len(vals)
+    if len(vals) != len(extension_active):
+        raise ValueError('Exposure signatures and extension state must align')
+    if not len(vals):
+        return []
+    cur = run = vals[0]
+    count = 0
+    result = []
+    for value, active in zip(vals, extension_active):
+        if value == run:
+            count += 1
+        else:
+            run, count = value, 1
+        if count >= k:
+            cur = run
+        if active:
+            cur = min(cur, 20)
+        result.append(cur)
+    return result
 
 def ema(s, n): return s.ewm(span=n, adjust=False).mean()
 
@@ -73,10 +135,11 @@ def oversold_latch(macro_bull, sma, rsi_values, threshold=25):
 
 def compute(px, high, low, sma_len=250, st_period=10, st_mult=3.0,
             rvol_win=20, lever_volceil=0.40, bear_exit_buffer=0.04,
-            bull_reentry_buffer=0.01, rsi_oversold=25):
+            bull_reentry_buffer=0.01, rsi_oversold=25,
+            extension_threshold=0.15, extension_release=0.10):
     """一次性算全套指标,返回 DataFrame:
        macd_line, macd_hist, rsi, st, st_bull, sma, macro_bull, deep_bear,
-       oversold_latch, sma_rising, lever_ok, rvol"""
+       oversold_latch, extension_cap_active, sma_rising, lever_ok, rvol"""
     macd_line, macd_hist = macd(px)
     st, st_bull = supertrend(px, high, low, st_period, st_mult)
     rsi_values=rsi(px)
@@ -84,12 +147,14 @@ def compute(px, high, low, sma_len=250, st_period=10, st_mult=3.0,
     macro_bull=macro_regime(px,sma,bull_reentry_buffer)
     deep_bear=(px<sma*(1-bear_exit_buffer)).fillna(False)
     floor_on=oversold_latch(macro_bull,sma,rsi_values,rsi_oversold)
+    extension_on=overextension_latch(px,sma,extension_threshold,extension_release)
     sma_rising=(sma>sma.shift(20)).fillna(False)
     rvol=px.pct_change().rolling(rvol_win).std()*np.sqrt(252)
     lever_ok=sma_rising&(rvol<lever_volceil)
     return pd.DataFrame({'macd_line':macd_line,'macd_hist':macd_hist,'rsi':rsi_values,
                          'st':st,'st_bull':st_bull,'sma':sma,'macro_bull':macro_bull,
                          'deep_bear':deep_bear,'oversold_latch':floor_on,
+                         'extension_cap_active':extension_on,
                          'sma_rising':sma_rising,'lever_ok':lever_ok,'rvol':rvol})
 
 # ---------------- 决策档(基础/名义仓位)----------------
