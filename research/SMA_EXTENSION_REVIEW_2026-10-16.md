@@ -1,8 +1,10 @@
-# SMA Extension Cap Adoption Study
+# Initial SMA Extension Cap Adoption Study
 
 Study date: 2026-10-16. Research price cutoff: **2026-09-25**. The user adopted the **SMA250 +15% cap with existing confirmation** as strategy/report **V1.7.0**. This supersedes the earlier decision to retain V1.6.1 only for this rule; other research candidates remain unadopted.
 
-## Adopted rule
+> Historical initial candidate: the final V1.7.0 choice supersedes this stateless 15%/15% release and fully confirmed cut. Final rules use 15%/10% hysteresis with fast overheat cuts and confirmed restoration. This report preserves the original September 25 data, comparisons and initial adoption decision. See [the final study](./SMA_HYSTERESIS_REVIEW_2026-10-16.md).
+
+## Initially adopted rule
 
 Calculate extension as `QQQ adjusted close / SMA250 - 1`. If it is **strictly greater than 15%**, cap the existing **volatility-scaled raw target** at **1x**, then run the original 0.05 rounding, three-consecutive-day confirmation and 0.15x deadband. Raw targets at or below 1x stay unchanged at this stage. When extension returns to 15% or less, the original leverage rules resume through the same confirmation process.
 

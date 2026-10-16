@@ -3,13 +3,13 @@
 #
 # 默认逻辑与 2_backtest.py V1.7.0 对齐:4%/1% 宏观滞回、VOL_CAP=1.0、
 # MAX_EXPOSURE=1.5、R=0.75x / D=0.5x * 波动率目标、RSI<=25 后 0.15x 底仓、
-# SMA250 +15% 原始目标封顶 1x 后确认、0.15x 死区、T+1 开盘执行、不再平衡。
+# SMA250 15%/10% 过热锁存,过热降杠杆免三日确认,恢复及其他信号仍确认、0.15x 死区、T+1 开盘执行、不再平衡。
 import os
 import sys
 import pandas as pd
 import numpy as np
 from execution import run_next_open, valid_trade_index
-from indicators import cap_overextension
+from indicators import cap_overextension, overextension_latch, confirm_exposure as confirm
 
 OUT = os.path.dirname(os.path.abspath(__file__)) + os.sep
 DATA = OUT + 'prices.csv'
@@ -30,6 +30,7 @@ RECOVERY_EXPOSURE = 0.75
 RSI_OVERSOLD = 25
 OVERSOLD_FLOOR = 0.15
 EXTENSION_THRESHOLD = 0.15
+EXTENSION_RELEASE = 0.10
 LEV_VOLCEIL = 0.40
 CONFIRM = 3
 DEADBAND = 0.15
@@ -81,27 +82,12 @@ deep_bear = (px < sma * (1 - BEAR_EXIT_BUFFER)).fillna(False)
 rising = (sma > sma.shift(20)).fillna(False)
 rvol = px.pct_change().rolling(20).std() * np.sqrt(252)
 lever_ok = rising & (rvol < LEV_VOLCEIL)
+extension_on = overextension_latch(px, sma, EXTENSION_THRESHOLD, EXTENSION_RELEASE)
 ind = pd.DataFrame({
     'ml': macd_line, 'mh': macd_hist, 'rsi': rsi, 'stb': st_bull,
-    'macro': macro, 'deep': deep_bear, 'sma': sma, 'lok': lever_ok, 'rvol': rvol
+    'macro': macro, 'deep': deep_bear, 'sma': sma, 'lok': lever_ok, 'rvol': rvol,
+    'extension_cap_active': extension_on
 })
-
-
-def confirm(vals, k):
-    cur = vals[0]
-    run = vals[0]
-    cnt = 0
-    res = []
-    for v in vals:
-        if v == run:
-            cnt += 1
-        else:
-            run = v
-            cnt = 1
-        if cnt >= k:
-            cur = run
-        res.append(cur)
-    return np.array(res)
 
 
 def build(use_macd=True, use_rsi=True, use_st=True):
@@ -157,11 +143,11 @@ def build(use_macd=True, use_rsi=True, use_st=True):
         e = min(e, MAX_EXPOSURE)
         if valid:
             e = max(0.0, min(2.0, e * scale))
-        e = cap_overextension(e, px.loc[r.name], r['sma'], EXTENSION_THRESHOLD)
+        e = cap_overextension(e, r['extension_cap_active'])
         exp.append(e)
 
     sig = np.round(np.array(exp) * 20).astype(int)
-    confsig = confirm(sig.tolist(), CONFIRM)
+    confsig = confirm(sig.tolist(), CONFIRM, ind['extension_cap_active'].tolist())
     db = int(round(DEADBAND * 20))
     held = confsig[0]
     ded = []

@@ -12,7 +12,7 @@
              -> C=QQQ全仓(1x) / 3~4分=QQQ+QLD(1.5x);
              加杠杆还需"250日线上行 且 20日波动率<40%"的熔断许可。
   · 波动率目标:最终净敞口 = 档位敞口 × min(VOL_CAP, VOL_TARGET / 20日年化波动率),默认 0~1.5x。
-  · 过热限制(V1.7):高于 SMA250 15% 时,波动率缩放后原始目标封顶 1x,再确认。
+  · 过热限制(V1.7):高于 SMA250 15% 开启,回到 10% 或以下解除;原始目标封顶 1x,过热降杠杆免三日确认,恢复及其他信号仍确认。
   · 抗抖动:  净敞口按 0.05 档、连续 CONFIRM 日确认才切换;信号 T 日收盘生成、T+1 开盘执行。
   · 现金按 ^IRX 短端国债利率计息;每次调仓计 COST_BPS 单边成本。
 
@@ -30,7 +30,8 @@ BULL_REENTRY_BUFFER = 0.01 # 熊市后需高于 SMA250 1% 才恢复多头,避免
 VOL_TARGET  = 0.20    # 目标年化波动率(越低越保守;0.14~0.25 结果不敏感)
 VOL_CAP     = 1.0     # 波动目标只降不升(1.0=不在基础档位上再加杠杆);经验证比 1.15 回撤更低、收益持平
 MAX_EXPOSURE= 1.5     # 最高档位上限(1.5=去掉 QLD全仓2x 档;经验证 2x 档不赚风险溢价,砍掉零代价)
-EXTENSION_THRESHOLD = 0.15 # V1.7:高于 SMA250 15% 时,波动缩放后的原始目标封顶 1x,再确认
+EXTENSION_THRESHOLD = 0.15 # V1.7:高于 SMA250 15% 时,波动缩放后的原始目标封顶 1x,降杠杆免确认
+EXTENSION_RELEASE = 0.10 # 过热状态锁存至偏离回到 10% 或以下,带内沿用此前状态
 RECOVERY_EXPOSURE = 0.75 # V1.5:空头区短期双反转时的基础敞口(0.70~0.80 为稳健区)
 RSI_OVERSOLD = 25     # V1.6:熊市 RSI 触发底仓锁定的阈值(23~26 为稳健区)
 OVERSOLD_FLOOR = 0.15 # V1.6:触发后最低净敞口,不加杠杆(0.15~0.20 为稳健区)
@@ -53,7 +54,8 @@ import indicators as ta
 ind=ta.compute(px, high, low, sma_len=SMA_LEN, st_period=ST_PERIOD, st_mult=ST_MULT,
                rvol_win=RVOL_WIN, lever_volceil=LEVER_VOLCEIL,
                bear_exit_buffer=BEAR_EXIT_BUFFER, bull_reentry_buffer=BULL_REENTRY_BUFFER,
-               rsi_oversold=RSI_OVERSOLD)
+               rsi_oversold=RSI_OVERSOLD,
+               extension_threshold=EXTENSION_THRESHOLD, extension_release=EXTENSION_RELEASE)
 macd_line=ind['macd_line']; macd_hist=ind['macd_hist']; rsi=ind['rsi']
 st=ind['st']; st_bull=ind['st_bull']; sma=ind['sma']; macro_bull=ind['macro_bull']
 deep_bear=ind['deep_bear']; floor_on=ind['oversold_latch']; rvol=ind['rvol']
@@ -82,22 +84,15 @@ def targets(r):
         exp=1.0
     if r['rvol']>0 and not np.isnan(r['rvol']): # 波动率目标叠加
         exp=max(0.0,min(2.0, exp*min(VOL_CAP, VOL_TARGET/r['rvol'])))
-    exp=ta.cap_overextension(exp, px.loc[r.name], r['sma'], EXTENSION_THRESHOLD)
+    exp=ta.cap_overextension(exp, r['extension_cap_active'])
     return (exp,0.0,1-exp) if exp<=1.0 else (2-exp, exp-1, 0.0)
 
 W=pd.DataFrame([targets(r) for _,r in ind.iterrows()],index=ind.index,columns=['q','l','c'])
 
 # ---------------- 确认过滤 + T+1 开盘执行 ----------------
 sig=((W['q']+2*W['l'])*20).round().astype(int)     # 0.05 档的净敞口签名
-def confirm(vals,k):
-    cur=vals[0]; run=vals[0]; cnt=0; res=[]
-    for v in vals:
-        if v==run: cnt+=1
-        else: run=v; cnt=1
-        if cnt>=k: cur=run
-        res.append(cur)
-    return res
-confsig=confirm(sig.tolist(),CONFIRM)              # 0.05 档、经确认的目标净敞口(单位=0.05)
+confirm=ta.confirm_exposure
+confsig=confirm(sig.tolist(),CONFIRM,ind['extension_cap_active'].tolist())
 # 死区:仅当确认目标与"当前持有档"偏离 ≥ DEADBAND 才调仓,否则沿用前一日敞口
 DB=int(round(DEADBAND*20)); held=confsig[0]; ded=[]
 for v in confsig:
@@ -189,7 +184,8 @@ export={
            'sma250':round(float(sma.iloc[-1]),2),'macro_bull':bool(macro_bull.iloc[-1]),
            'sma250_extension':round(float(px.iloc[-1]/sma.iloc[-1]-1),6),
            'extension_threshold':EXTENSION_THRESHOLD,
-           'extension_cap_active':bool(px.iloc[-1]/sma.iloc[-1]-1>EXTENSION_THRESHOLD),
+           'extension_release_threshold':EXTENSION_RELEASE,
+           'extension_cap_active':bool(ind['extension_cap_active'].iloc[-1]),
            'deep_bear':bool(deep_bear.iloc[-1]),'oversold_latch':bool(floor_on.iloc[-1])},
 }
 json.dump(export,open(OUT+'results.json','w'),ensure_ascii=False)

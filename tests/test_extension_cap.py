@@ -70,18 +70,58 @@ def fixture_prices():
 
 
 class ExtensionCapTests(unittest.TestCase):
-    def test_strict_threshold_and_cap_after_volatility_scaling(self):
-        self.assertEqual(ta.cap_overextension(1.5, 115., 100., .15), 1.5)
-        self.assertEqual(ta.cap_overextension(1.5, 115.01, 100., .15), 1.)
-        self.assertEqual(ta.cap_overextension(1.2, 120., 100., .15), 1.)
+    def test_strict_thresholds_and_buffer_memory(self):
+        px = pd.Series([114., 115., 115.01, 114., 110.01, 110., 114., 116.])
+        sma = pd.Series(100., index=px.index)
+        state = ta.overextension_latch(px, sma, .15, .10)
+        self.assertEqual(state.tolist(), [False, False, True, True, True, False, False, True])
+        # The same 14% extension permits leverage before entry and caps it afterward.
+        self.assertFalse(state.iloc[0])
+        self.assertTrue(state.iloc[3])
+        pd.testing.assert_series_equal(
+            ta.overextension_latch(px.iloc[:5], sma.iloc[:5], .15, .10), state.iloc[:5])
+
+    def test_warmup_and_rising_average_release(self):
+        px = pd.Series([120., 120., 120., 120., 120.])
+        sma = pd.Series([np.nan, np.nan, 100., 105., 110.])
+        self.assertEqual(ta.overextension_latch(px, sma, .15, .10).tolist(),
+                         [False, False, True, True, False])
+        with self.assertRaises(ValueError):
+            ta.overextension_latch(px, sma, .10, .15)
+
+    def test_cap_after_volatility_scaling_preserves_protective_exits(self):
+        self.assertEqual(ta.cap_overextension(1.5, False), 1.5)
+        self.assertEqual(ta.cap_overextension(1.5, True), 1.)
+        self.assertEqual(ta.cap_overextension(1.2, True), 1.)
         # It must not reduce the base to 1x and then multiply by volatility.
-        self.assertEqual(ta.cap_overextension(.8, 120., 100., .15), .8)
-        self.assertEqual(ta.cap_overextension(0., 120., 100., .15), 0.)
-        self.assertEqual(ta.cap_overextension(1.5, 120., np.nan, .15), 1.5)
+        self.assertEqual(ta.cap_overextension(.8, True), .8)
+        self.assertEqual(ta.cap_overextension(.15, True), .15)
+        self.assertEqual(ta.cap_overextension(0., True), 0.)
         np.testing.assert_array_equal(
-            ta.cap_overextension(np.array([1.5, 1.2, .75]),
-                                 np.array([114., 116., 120.]), 100., .15),
+            ta.cap_overextension(np.array([1.5, 1.2, .75]), [False, True, True]),
             [1.5, 1., .75])
+
+    def test_fast_cut_and_confirmed_restoration(self):
+        # A single hot close cuts 1.5x to 1x. Even immediate latch release
+        # cannot restore the stale 1.5x state before three new signatures.
+        values = [30, 30, 20, 30, 30, 30]
+        active = [False, False, True, False, False, False]
+        self.assertEqual(ta.confirm_exposure(values, 3, active),
+                         [30, 30, 20, 20, 20, 30])
+        self.assertEqual(ta.confirm_exposure(values[:4], 3, active[:4]),
+                         ta.confirm_exposure(values, 3, active)[:4])
+        # In the buffer, a separate three-day reduction below 1x still works.
+        self.assertEqual(ta.confirm_exposure([30, 30, 10, 10, 10], 3,
+                                            [False, False, True, True, True]),
+                         [30, 30, 20, 20, 10])
+        # The fast cap never increases an already protective allocation.
+        self.assertEqual(ta.confirm_exposure([10, 10, 16, 16, 16], 3,
+                                            [False, False, True, True, True]),
+                         [10, 10, 10, 10, 16])
+        self.assertEqual(ta.confirm_exposure([30, 20, 20, 20], 3),
+                         [30, 30, 30, 20])
+        with self.assertRaises(ValueError):
+            ta.confirm_exposure([30, 20], 3, [True])
 
     def test_full_history_entrypoint_parity_and_confirmation(self):
         data = fixture_prices()
@@ -95,9 +135,18 @@ class ExtensionCapTests(unittest.TestCase):
         old_raw = old['W'].q + 2 * old['W'].l
         raw = bt['W'].q + 2 * bt['W'].l
         extension = data.signal_close / bt['sma'] - 1
-        expected = old_raw.where(extension <= .15, old_raw.clip(upper=1.))
-        expected = expected.where(bt['sma'].notna(), old_raw)
+        active = False
+        reference = []
+        for gap in extension:
+            if not np.isfinite(gap) or gap <= .10:
+                active = False
+            elif gap > .15:
+                active = True
+            reference.append(active)
+        expected = old_raw.mask(reference, old_raw.clip(upper=1.))
         np.testing.assert_allclose(raw, expected)
+        self.assertTrue(any(reference[i] and .10 < gap <= .15
+                            for i, gap in enumerate(extension)))
         self.assertGreater(int(((extension > .15) & (old_raw > 1.)).sum()), 20)
         np.testing.assert_allclose(daily['exp'], raw)
         np.testing.assert_allclose(daily['ded'] / 20., bt['e_exec'])
@@ -105,7 +154,7 @@ class ExtensionCapTests(unittest.TestCase):
         for weights in [opt['build'](opt['indicators']()), abl['build']()]:
             pd.testing.assert_frame_equal(weights.loc[expected_weights.index],
                                           expected_weights, check_dtype=False)
-        # Both exit and restoration go through the original three-day filter.
+        # Other changes retain the original three-day filter without a hot flag.
         self.assertEqual(bt['confirm']([30, 30, 30, 20, 20, 30], 3),
                          [30, 30, 30, 30, 30, 30])
         self.assertEqual(bt['confirm']([30, 20, 20, 20, 30, 30, 30], 3),
@@ -120,6 +169,19 @@ class ExtensionCapTests(unittest.TestCase):
                                 (opt, 'BASE_EXTENSION_THRESHOLD'),
                                 (abl, 'EXTENSION_THRESHOLD')]:
             self.assertEqual(namespace[name], bt['EXTENSION_THRESHOLD'])
+        for namespace, name in [(daily, 'EXTENSION_RELEASE'),
+                                (opt, 'BASE_EXTENSION_RELEASE'), (abl, 'EXTENSION_RELEASE')]:
+            self.assertEqual(namespace[name], bt['EXTENSION_RELEASE'])
+
+    def test_equal_thresholds_reproduce_previous_stateless_raw_cap(self):
+        data = fixture_prices()
+        previous = load_prefix('2_backtest.py', '# 基准', data, EXTENSION_RELEASE=.15)
+        old = load_prefix('2_backtest.py', '# 基准', data,
+                          EXTENSION_THRESHOLD=float('inf'))
+        old_raw = old['W'].q + 2 * old['W'].l
+        gap = data.signal_close / previous['sma'] - 1
+        expected = old_raw.mask(gap > .15, old_raw.clip(upper=1.))
+        np.testing.assert_allclose(previous['W'].q + 2 * previous['W'].l, expected)
 
 
 if __name__ == '__main__':

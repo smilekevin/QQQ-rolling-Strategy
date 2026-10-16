@@ -5,13 +5,14 @@
 # indicator parameters. The strategy/execution defaults match 2_backtest.py V1.7.0:
 # 250d asymmetric hysteresis, VOL_CAP=1.0, MAX_EXPOSURE=1.5,
 # R=0.75x / D=0.5x * vol target, RSI<=25 then 0.15x floor,
-# SMA250 +15% raw-target cap before confirmation, 0.15x deadband, T+1 open execution, and no rebalancing.
+# SMA250 15%/10% hysteresis, fast overheat cuts, confirmed restoration,
+# 0.15x deadband, T+1 open execution, and no rebalancing.
 import os
 import sys
 import pandas as pd
 import numpy as np
 from execution import run_next_open, valid_trade_index
-from indicators import cap_overextension
+from indicators import cap_overextension, overextension_latch, confirm_exposure as confirm
 
 OUT = os.path.dirname(os.path.abspath(__file__)) + os.sep
 DATA = OUT + 'prices.csv'
@@ -33,6 +34,7 @@ BASE_RECOVERY = 0.75
 BASE_RSI_OVERSOLD = 25
 BASE_OVERSOLD_FLOOR = 0.15
 BASE_EXTENSION_THRESHOLD = 0.15
+BASE_EXTENSION_RELEASE = 0.10
 BASE_ST_P = 10
 BASE_ST_M = 3.0
 BASE_RVOL_WIN = 20
@@ -101,23 +103,6 @@ def indicators(sma_len=BASE_SMA, st_p=BASE_ST_P, st_m=BASE_ST_M,
     })
 
 
-def confirm(vals, k):
-    cur = vals[0]
-    run = vals[0]
-    cnt = 0
-    res = []
-    for v in vals:
-        if v == run:
-            cnt += 1
-        else:
-            run = v
-            cnt = 1
-        if cnt >= k:
-            cur = run
-        res.append(cur)
-    return np.array(res)
-
-
 def oversold_latch(macro, sma, rsi, threshold):
     active = False
     result = []
@@ -137,7 +122,8 @@ def build(ind, volt=BASE_VOLT, vcap=BASE_VCAP, max_exposure=BASE_MAXE,
           deadband=BASE_DEADBAND, bear_exit_buffer=BASE_BEAR_EXIT,
           recovery_exposure=BASE_RECOVERY, rsi_oversold=BASE_RSI_OVERSOLD,
           oversold_floor=BASE_OVERSOLD_FLOOR,
-          extension_threshold=BASE_EXTENSION_THRESHOLD):
+          extension_threshold=BASE_EXTENSION_THRESHOLD,
+          extension_release=BASE_EXTENSION_RELEASE):
     ml = ind['ml'].values
     mh = ind['mh'].values
     rsi = ind['rsi'].values
@@ -168,10 +154,11 @@ def build(ind, volt=BASE_VOLT, vcap=BASE_VCAP, max_exposure=BASE_MAXE,
     exp = np.where(recovery, r_exp, exp)
     floor_on = oversold_latch(macro, ind['sma'].values, rsi, rsi_oversold)
     exp = np.where(floor_on, np.maximum(exp, oversold_floor), exp)
-    exp = cap_overextension(exp, px.values, ind['sma'].values, extension_threshold)
+    extension_on = overextension_latch(px, ind['sma'], extension_threshold, extension_release)
+    exp = cap_overextension(exp, extension_on.to_numpy())
 
     sig = np.round(exp * 20).astype(int)
-    confsig = confirm(sig.tolist(), confirm_k)
+    confsig = confirm(sig.tolist(), confirm_k, extension_on.tolist())
 
     db = int(round(deadband * 20))
     held = confsig[0]

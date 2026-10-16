@@ -20,6 +20,7 @@ BEAR_EXIT_BUFFER=0.04; BULL_REENTRY_BUFFER=0.01
 RECOVERY_EXPOSURE=0.75; LEV_CEIL=0.40; CONFIRM=3; DEADBAND=0.15
 RSI_OVERSOLD=25; OVERSOLD_FLOOR=0.15
 EXTENSION_THRESHOLD=0.15
+EXTENSION_RELEASE=0.10
 
 ap=argparse.ArgumentParser()
 ap.add_argument('--current', type=float, default=None, help='你当前的净敞口(如 0.66)')
@@ -33,7 +34,8 @@ import indicators as ta
 ind=ta.compute(px, high, low, sma_len=SMA_LEN, st_period=ST_P, st_mult=ST_M,
                rvol_win=RVOL_WIN, lever_volceil=LEV_CEIL,
                bear_exit_buffer=BEAR_EXIT_BUFFER, bull_reentry_buffer=BULL_REENTRY_BUFFER,
-               rsi_oversold=RSI_OVERSOLD)
+               rsi_oversold=RSI_OVERSOLD,
+               extension_threshold=EXTENSION_THRESHOLD, extension_release=EXTENSION_RELEASE)
 n=len(px)
 stb=ind['st_bull'].values; macro=ind['macro_bull'].values; deep=ind['deep_bear'].values
 floor_on=ind['oversold_latch'].values
@@ -56,15 +58,10 @@ for i in range(n):
     e=MAXE if s>=3 else 1.0
     if e>1.0 and not (rising[i] and rvol[i]<LEV_CEIL): e=1.0
     if rvol[i]>0 and not np.isnan(rvol[i]): e=max(0.0,min(2.0,e*min(VCAP,VOLT/rvol[i])))
-    exp[i]=ta.cap_overextension(e,px.iloc[i],ind['sma'].iloc[i],EXTENSION_THRESHOLD)
-# 3 日确认(0.05 档)
-sb=np.round(exp*20).astype(int); res=np.empty(n,int); cur=sb[0]; rv=sb[0]; cnt=0
-for i in range(n):
-    v=sb[i]
-    if v==rv: cnt+=1
-    else: rv=v; cnt=1
-    if cnt>=CONFIRM: cur=rv
-    res[i]=cur
+    exp[i]=ta.cap_overextension(e,ind['extension_cap_active'].iloc[i])
+# 0.05 档:过热降杠杆免三日确认,恢复杠杆及其他信号仍确认。
+sb=np.round(exp*20).astype(int)
+res=np.array(ta.confirm_exposure(sb.tolist(),CONFIRM,ind['extension_cap_active'].tolist()))
 db=int(round(DEADBAND*20)); held=res[0]; ded=np.empty(n,int)
 for i,v in enumerate(res):
     if abs(v-held)>=db: held=v
@@ -82,8 +79,9 @@ print(f"\n===== V1.7.0 每日检查 · 基于 {last} 收盘 / 下个交易日开
 print(f"决策档: {ta.DECNAME[dec_last]}   目标净敞口: {target:.2f}x")
 print(f"目标持仓构成: QQQ {q*100:.0f}%   QLD {l*100:.0f}%   现金 {cash*100:.0f}%")
 extension=px.iloc[-1]/ind['sma'].iloc[-1]-1
-print(f"SMA250 偏离 {extension:+.2%} | 过热限制 {'开启' if extension>EXTENSION_THRESHOLD else '关闭'}"
-      f"(>{EXTENSION_THRESHOLD:.0%} 时原始目标封顶 1x;仍须三日确认,下个开盘执行)")
+print(f"SMA250 偏离 {extension:+.2%} | 过热限制 {'开启' if ind['extension_cap_active'].iloc[-1] else '关闭'}"
+      f"(>{EXTENSION_THRESHOLD:.0%} 开启,≤{EXTENSION_RELEASE:.0%} 解除;带内沿用此前状态;"
+      f"过热降杠杆不等三日,恢复杠杆及其他信号仍三日确认;下个开盘执行)")
 macro_text='多头' if macro[-1] else ('深空头区' if deep[-1] else '回调观察区')
 print(f"指标: 价格 {px.iloc[-1]:.1f} | 250日状态 {macro_text} | "
       f"Supertrend {'多' if stb[-1] else '空'} | MACD线 {mlv[-1]:+.1f} | RSI {rsiv[-1]:.0f} | 20日波动 {rvol[-1]*100:.0f}%")

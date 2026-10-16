@@ -2,7 +2,7 @@
 
 A strategy that uses technical indicators (MACD / RSI / Supertrend + a 250-day trend gate) to switch dynamically between **cash → a small QQQ allocation → all QQQ → QQQ+QLD (maximum target 1.5x)**, with a full historical backtest and an interactive HTML report.
 
-Current report and strategy version: **V1.7.0**. This minor release adds a 1x raw-target cap when QQQ closes more than 15% above SMA250, before the existing confirmation and execution process.
+Current report and strategy version: **V1.7.0**. User-approved minor release (2026-10-16): SMA250 +15% activation / +10% release hysteresis, with overheat cuts bypassing three-day confirmation and restoration/other signals retaining it.
 
 ---
 
@@ -21,7 +21,7 @@ Current report and strategy version: **V1.7.0**. This minor release adds a 1x ra
 
 > `opt.py` is an optional parameter-robustness and training/validation script; see Section 5.
 
-Historical research reports are indexed in [`research/`](./research/README.md), covering strategy reassessment, cross-asset allocation, market breadth, momentum and QLD exposure windows. Each report retains its own data cutoff. The SMA250 +15% cap was adopted in V1.7.0 on 2026-10-16; other research candidates remain unadopted.
+Historical research reports are indexed in [`research/`](./research/README.md), covering strategy reassessment, cross-asset allocation, market breadth, momentum and QLD exposure windows. Each report retains its own data cutoff. The final V1.7.0 choice on 2026-10-16 is SMA250 15%/10% hysteresis with fast overheat cuts and confirmed restoration; other research candidates remain unadopted.
 
 ## 2. Running the pipeline
 
@@ -61,24 +61,24 @@ The report separately marks **RSI(14)≤25 and VIX≥30** as extreme panic. This
    - **The highest base tier is 1.5x** (`MAX_EXPOSURE=1.5`). The former all-QLD 2x tier was removed after tests found no useful risk premium and no material return cost from removal.
    - 1.5x also requires **leverage eligibility**: a rising 250-day average **and** 20-day annualized volatility < 40%.
 4. **Volatility targeting (core risk control)**: raw net exposure = tier exposure × `min(1.0, 20% / 20-day realized annualized volatility)`. The default target range is 0–1.5x; scaling only reduces exposure. Volatility spikes automatically cut leverage, which is central to reducing drawdowns.
-5. **Overextension cap (V1.7.0)**: if `QQQ close / SMA250 - 1 > EXTENSION_THRESHOLD` (default **15%**), cap the **volatility-scaled raw target** at **1x**, replacing leveraged allocation with QQQ. Lower raw targets stay unchanged. This is applied **before** rounding, three-day confirmation and deadband; confirmed targets may lag the condition. At 15% or less, the original leverage rules resume through the same confirmation process. B/C decision tiers and colors remain unchanged.
-6. **Execution**: round exposure to 0.05 increments and require 3 consecutive days of confirmation; then apply a **0.15x deadband** (`DEADBAND`: no rebalance when target exposure differs from current holdings by <0.15x). Cash earns ^IRX interest; each rebalance costs 5bp per side. Full-period target exposure switches approximately 12.1 times/year in the dated snapshot below.
+5. **Overextension cap (V1.7.0):** a close strictly above `SMA250 × 1.15` activates a restriction latch; release only at or below `SMA250 × 1.10`. Keep the previous state in between. Cap the volatility-scaled raw target at 1x without raising lower targets. The overheat reduction to at most 1x bypasses three-day confirmation by updating confirmation state itself; leverage restoration and all other target changes retain three identical rounded signatures. Apply the existing 0.05 rounding and 0.15x deadband, then execute at the next open. Release permits leverage under the original rules; it never forces 1.5x. B/C tiers and leverage eligibility are unchanged.
+6. **Execution**: round exposure to 0.05 increments and require 3 consecutive identical target signatures, except for the fast overheat cut; then apply a **0.15x deadband** (`DEADBAND`: no rebalance when target exposure differs from current holdings by <0.15x). Cash earns ^IRX interest; each rebalance costs 5bp per side. Full-period target exposure switches approximately 11.4 times/year in the dated snapshot below.
 
 Volatility scaling makes actual net exposure **continuous from 0 (cash) to a 1.5x target**. The six B/C/R/D/F/E decision tiers alone do not describe the actual holdings.
 
 ## 4. Backtest results (1999-03 onward, including costs)
 
-Dated snapshot using local data through **2026-09-25**; the live report recalculates metrics from its latest downloaded prices. Existing production metric definitions are preserved (subperiods rebase at their first close).
+Dated snapshot through **2026-10-15** using the final fast-cut rule; the live report recalculates metrics from its latest downloaded prices. Existing production metric definitions are preserved (subperiods rebase at their first close).
 
 | Portfolio | CAGR | Total return | Maximum drawdown | Calmar | Sharpe |
 |---|---:|---:|---:|---:|---:|
-| **V1.7.0 strategy** | **15.7%** | **5356%** | **−22.4%** | **0.70** | **0.91** |
-| QQQ buy and hold | 10.9% | 1632% | −83.0% | 0.13 | 0.52 |
-| QLD buy and hold | 10.6% | 1506% | −98.8% | 0.11 | 0.46 |
+| **V1.7.0 strategy** | **15.47%** | **5159%** | **−22.44%** | **0.69** | **0.90** |
+| QQQ buy and hold | 10.82% | 1594% | −82.96% | 0.13 | 0.52 |
+| QLD buy and hold | 10.41% | 1430% | −98.85% | 0.11 | 0.45 |
 
-Since June 2006 (actual QLD), CAGR is approximately **18.1%**, maximum drawdown **−22.4%**, Calmar **0.81**. Last-five-year production metrics are **19.5% / −19.6% / 0.99**. Annualized allocation switching is about **12.1 times**, one-way turnover **7.60x**, and average net exposure **0.90x**. Historical results do not establish future returns.
+Since June 2006 (actual QLD), production CAGR is **17.99%**, maximum drawdown **−22.44%**, Calmar **0.80**. Recent-five-year production metrics are **18.78% / −19.60% / 0.96**. Annualized allocation switching is **11.4 times**, one-way turnover **6.89x** and average exposure **0.89x**.
 
-The adoption study uses prior closing capital for each subperiod's first daily return, while the existing report rebases at its first close; its recent CAGR is therefore **19.27%** rather than the report's **19.46%** on the same cache. V1.7.0 changes the allocation rule only, preserving the production performance methodology. See [the adoption study](./research/SMA_EXTENSION_REVIEW_2026-10-16.md).
+The research convention includes a subperiod's first daily return against prior closing capital, giving recent CAGR **18.93%** rather than production **18.78%** on the same cache. Performance methodology is unchanged. The fully confirmed 15%/10% comparator has **19.60%** research recent CAGR, the same **−19.60%** drawdown and **55** rebalances. The user selected the fast overheat cut after reviewing this return tradeoff. See [hysteresis and confirmation research](./research/SMA_HYSTERESIS_REVIEW_2026-10-16.md).
 
 > **Warm-up methodology:** QQQ listed on 1999-03-10 and lacks 250 pre-listing trading days. ^NDX (Nasdaq-100 Index) OHLC from 1997-01 until listing is scaled to QQQ’s first closing price and used only to warm up SMA/MACD/RSI/Supertrend/volatility. All returns start with actual QQQ opening data on 1999-03-11. Waiting for QQQ’s own SMA250 to mature on 2000-03-03, without NDX, gave a historical V1.6.1 reference of CAGR 13.2%, drawdown −26.9% and Calmar 0.49. Consider both; differences in warm-up are not strategy improvements.
 
@@ -90,7 +90,7 @@ V1.6 added an oversold RSI floor in bearish macro regimes: RSI(14)≤25 latches 
 
 V1.6.1 changes no signal or allocation parameters. It corrects execution: multiplying a T+1 target by the previous-close-to-current-close return wrongly assigns an untradeable overnight gap to new holdings. The corrected order is existing holdings overnight → rebalance at the T+1 open → new holdings intraday. Full-period CAGR is largely unchanged, but maximum drawdown is honestly corrected from −24.7% to −26.9%.
 
-V1.7.0 adds the SMA250 +15% overextension cap after volatility scaling and before the existing three-day confirmation and deadband. At the same 2026-09-25 research cutoff, full-history rebalances fall from 359 to 334; recent five-year rebalances fall from 69 to 64. This is not an immediate next-open overlay: skipping confirmation increases recent rebalances to 100. The user selected the confirmed version. The threshold is exploratory and was compared on already-researched history.
+V1.7.0 adds SMA250 15% activation / 10% release hysteresis after volatility scaling. Overheat cuts skip three-day confirmation; leverage restoration and all other signals retain it. On the 2026-10-15 cache, actual opening rebalances fall from 359 without the cap to 314; recent five years fall from 69 to 55. For September–October 2026, opening target changes are September 1 (1.15x→1.50x), September 17 (1.50x→1.00x), September 23 (1.00x→1.50x), and October 6 (1.50x→1.00x). There is no October 13 leverage restoration through the cutoff. Thresholds and timing alternatives were compared on already-researched history.
 
 > **Rebalancing:** QQQ/QLD weights drift freely while the target allocation is unchanged. Rebalance only when the strategy changes its allocation, charging 5bp on actual trades. This matches the intended live process and minimizes turnover. Tests found a long-term difference of <0.03pp versus daily rebalancing to target weights, which is negligible.
 
@@ -116,7 +116,7 @@ Execution discipline avoids trading every small daily fluctuation:
 
 - **Rebalance at key boundaries:** invested ↔ cash, or unleveraged ↔ QLD leverage (the 1.0 boundary).
 - **Within the same region:** rebalance only when target and current exposure differ by **≥0.15x**; otherwise hold.
-- Daily checks are acceptable and produced the shallowest backtest drawdowns. Actual changes are around 12–15 times/year, averaging once every two or three weeks.
+- Daily checks are acceptable and produced the shallowest backtest drawdowns. The dated V1.7.0 snapshot has about 11.4 allocation changes/year; spacing varies with market conditions.
 
 ## 6. Data and methodology
 
