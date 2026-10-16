@@ -937,6 +937,7 @@ function renderLatest(){
  const executedExp=L.executed_exp??L.prev_exp;
  document.getElementById('lreb').innerHTML=
    t('Last opening rebalance: <b>','上次开盘调仓:<b>')+L.last_reb+'</b>'+t(' (','(距今 ')+L.days_since+t(' days ago)<br>',' 天)<br>')+
+   t('Last target change: ','上次目标调整:')+L.prev_exp.toFixed(2)+'x → '+executedExp.toFixed(2)+'x<br>'+
    t('Currently executed: ','当前已执行:')+executedExp.toFixed(2)+'x → '+t('Next-open target ','下个开盘建议 ')+L.exp.toFixed(2)+'x';
  const macroState=L.macro_bull?t('Bullish','多头'):(L.deep_bear?t('Deep bear','深空头'):t('Pullback watch','回调观察'));
  const vixText=Number.isFinite(L.vix)?L.vix.toFixed(1):'--';
