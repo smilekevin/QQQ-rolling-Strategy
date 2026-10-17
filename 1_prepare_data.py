@@ -22,10 +22,25 @@ OUT = os.path.dirname(os.path.abspath(__file__)) + os.sep   # 输出到脚本所
 EXPENSE_RATIO = 0.0095    # QLD 年管理费率 0.95%
 WARMUP_START = '1997-01-01'
 
+
+def download_ohlc(ticker, start):
+    frame = yf.download(ticker, start=start, progress=False, auto_adjust=True)
+    # Yahoo 可能先发布成交量,复权 OHLC 仍全空;只裁掉尾部无价格占位行。
+    has_price = frame[['Open', 'High', 'Low', 'Close']].notna().any(axis=1)
+    if not has_price.any():
+        raise ValueError(f'{ticker} 未下载到有效价格')
+    last_price_date = frame.index[has_price][-1]
+    tail = frame.index > last_price_date
+    if tail.any():
+        print(f'{ticker} 忽略 {int(tail.sum())} 行尾部空价格占位数据;'
+              f'最新价格日期 {last_price_date.date()}')
+    return frame.loc[:last_price_date]
+
+
 # ---- 下载 ----
 print("下载 ^NDX / QQQ / QLD / ^IRX / ^VIX ...")
-ndx_ohlc = yf.download('^NDX', start=WARMUP_START, progress=False, auto_adjust=True)
-qqq_ohlc = yf.download('QQQ', start='1999-01-01', progress=False, auto_adjust=True)
+ndx_ohlc = download_ohlc('^NDX', WARMUP_START)
+qqq_ohlc = download_ohlc('QQQ', '1999-01-01')
 ndx  = ndx_ohlc['Close'].squeeze()
 nhigh= ndx_ohlc['High'].squeeze()
 nlow = ndx_ohlc['Low'].squeeze()
@@ -33,7 +48,7 @@ qqq  = qqq_ohlc['Close'].squeeze()
 qopen= qqq_ohlc['Open'].squeeze()
 qhigh= qqq_ohlc['High'].squeeze()
 qlow = qqq_ohlc['Low'].squeeze()
-qld_ohlc = yf.download('QLD', start='2006-01-01', progress=False, auto_adjust=True)
+qld_ohlc = download_ohlc('QLD', '2006-01-01')
 qld_real = qld_ohlc['Close'].squeeze()
 qld_open_real = qld_ohlc['Open'].squeeze()
 irx  = yf.download('^IRX', start=WARMUP_START, progress=False, auto_adjust=True)['Close'].squeeze()
@@ -43,12 +58,10 @@ vix  = yf.download('^VIX', start=WARMUP_START, progress=False, auto_adjust=True)
 qqq_start = qqq.first_valid_index()
 anchor = ndx.index[ndx.index.get_indexer([qqq_start], method='pad')[0]]
 scale = qqq.loc[qqq_start] / ndx.loc[anchor]
-signal_close = (ndx * scale).rename('signal_close')
-signal_high = (nhigh * scale).rename('signal_high')
-signal_low = (nlow * scale).rename('signal_low')
-signal_close.loc[qqq.index] = qqq
-signal_high.loc[qhigh.index] = qhigh
-signal_low.loc[qlow.index] = qlow
+# 上市后只使用 QQQ 的日期和价格,^NDX 不得延长最新信号或填补上市后缺口。
+signal_close = pd.concat([ndx.loc[ndx.index < qqq_start] * scale, qqq]).rename('signal_close')
+signal_high = pd.concat([nhigh.loc[nhigh.index < qqq_start] * scale, qhigh]).rename('signal_high')
+signal_low = pd.concat([nlow.loc[nlow.index < qqq_start] * scale, qlow]).rename('signal_low')
 
 df = pd.DataFrame({'signal_close':signal_close,'signal_high':signal_high,'signal_low':signal_low}).sort_index()
 df['qqq'] = qqq.reindex(df.index)

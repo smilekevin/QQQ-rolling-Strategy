@@ -39,9 +39,12 @@ def validate_prices(path):
         "signal_close", "signal_high", "signal_low", "qqq", "qopen",
         "qhigh", "qlow", "qld", "qld_open", "vix",
     ):
-        value = float(latest[column])
+        try:
+            value = float(latest[column])
+        except (KeyError, TypeError, ValueError) as error:
+            raise ValueError(f"最新行情 {latest_date} 的 {column} 缺失或无效") from error
         if not math.isfinite(value) or value <= 0:
-            raise ValueError(f"最新行情 {column} 缺失或无效")
+            raise ValueError(f"最新行情 {latest_date} 的 {column} 缺失或无效")
     return latest["Date"]
 
 

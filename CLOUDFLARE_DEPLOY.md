@@ -56,7 +56,7 @@ The workflow expression is `30 22 * * 1-5` in UTC: **06:30 Beijing time Tuesdayâ
 
 GitHub schedules run only from the default branch, which must remain `main`; the workflow must be merged there before the schedule becomes active. Scheduled starts can be delayed or, under sufficiently high load, dropped. Public-repository schedules are disabled after 60 days without repository activity; re-enable them in Actions if this happens. The schedule is not an exact-time guarantee. See [GitHub scheduled workflow behavior](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
 
-The existing build rejects same-day daily bars before 17:00 New York time and prices more than seven calendar days old. This is a permissive staleness check, not an exchange calendar or proof every source instrument has updated. US holidays may publish the same trading date. The original filling and execution methodology is unchanged.
+The existing build rejects same-day daily bars before 17:00 New York time and prices more than seven calendar days old. This is a permissive staleness check, not an exchange calendar or proof every source instrument has updated. US holidays may publish the same trading date. Yahoo sometimes publishes an ETF's volume before its adjusted OHLC prices; trailing rows with all four price fields empty are trimmed and the retained date is logged. Post-listing signal dates follow QQQ, with NDX used strictly before listing. Partially populated latest bars still fail validation. Return formulas and execution methodology are unchanged.
 
 ## 5. Keep Cloudflare push deployments and PR previews
 
@@ -110,6 +110,7 @@ Troubleshooting:
 - **No scheduled run:** check that the workflow is on default `main`, Actions is enabled and the workflow is not disabled. Inspect GitHub Actions rather than Cloudflare Cron events.
 - **Hook request failure:** confirm the URL belongs to this Worker and targets `main`. Recreate a deleted Hook and replace the GitHub Secret. No API token or Authorization header is required.
 - **`SQLite driver not installed!`:** Linux x86_64 installs pinned `pysqlite3-binary`; the existing runtime check must succeed before downloads. This compatibility fallback is retained for Cloudflare Builds too.
+- **Empty latest prices:** volume-only trailing Yahoo placeholders are trimmed automatically. Other invalid latest prices report their date and column and still fail after three download attempts; inspect source availability and retry later. A successful report may retain the prior trading date until QQQ prices are available, within the existing seven-day limit.
 - **Download/backtest/deployment failure:** inspect Cloudflare Workers Builds logs using the build ID from Actions. Fix the cause and run the GitHub workflow again on `main`.
 - **Actions succeeded but the page is old:** Actions only confirms the build request was accepted. Check that the matching Cloudflare build completed successfully, then check the production report date and routing/cache.
 - **Preview 404/1042:** enable Preview URL routing in Cloudflare, then verify the actual page and report data.
