@@ -15,6 +15,8 @@
 依赖:  pip install yfinance pandas numpy
 """
 import os
+from datetime import datetime
+from zoneinfo import ZoneInfo
 import yfinance as yf
 import pandas as pd, numpy as np
 
@@ -23,8 +25,60 @@ EXPENSE_RATIO = 0.0095    # QLD 年管理费率 0.95%
 WARMUP_START = '1997-01-01'
 
 
+def regular_close_bar(raw, metadata, expected_date, now=None):
+    """只接受纽约正常收盘时刻的同日报价,用于最新一行缺失的收盘字段。"""
+    try:
+        if raw.empty or raw.index[-1].date() != expected_date:
+            return None
+        bar = raw.iloc[-1]
+        if pd.notna(bar['Close']) or pd.notna(bar['Adj Close']):
+            return None
+        tz = ZoneInfo('America/New_York')
+        end = metadata['currentTradingPeriod']['regular']['end']
+        close_time = datetime.fromtimestamp(end, tz)
+        now = now or datetime.now(tz)
+        if (metadata['exchangeTimezoneName'] != 'America/New_York'
+                or metadata['currency'] != 'USD'
+                or close_time.date() != expected_date
+                or metadata['regularMarketTime'] != end
+                or now.timestamp() < end + 3600):
+            return None
+        # 遇到当日公司行动时不推断复权因子;上一完整交易日的因子也必须为 1。
+        if any(bar.get(name, np.nan) != 0 for name in ('Dividends', 'Stock Splits', 'Capital Gains')):
+            return None
+        if len(raw) < 2 or not np.isclose(raw.iloc[-2]['Adj Close'], raw.iloc[-2]['Close'],
+                                        rtol=1e-7, atol=0):
+            return None
+        values = {name: float(bar[name]) for name in ('Open', 'High', 'Low')}
+        values['Close'] = float(metadata['regularMarketPrice'])
+        if not all(np.isfinite(value) and value > 0 for value in values.values()):
+            return None
+        if not (values['Low'] <= values['Open'] <= values['High']
+                and values['Low'] <= values['Close'] <= values['High']):
+            return None
+        return values
+    except (KeyError, TypeError, ValueError, OverflowError):
+        return None
+
+
 def download_ohlc(ticker, start):
     frame = yf.download(ticker, start=start, progress=False, auto_adjust=True)
+    # 日线 Close/Adj Close 缺失时,auto_adjust 会连开高低也变成 NaN。
+    # 同日正常收盘报价可恢复最新一行;不更改历史复权价格或使用盘后价。
+    if ticker in ('QQQ', 'QLD') and not frame.empty and frame.iloc[-1][
+            frame.columns.get_level_values(0).isin(['Open', 'High', 'Low', 'Close'])].isna().all():
+        try:
+            quote = yf.Ticker(ticker)
+            raw = quote.history(period='5d', auto_adjust=False, actions=True, repair=False)
+            metadata = quote.get_history_metadata()
+            values = regular_close_bar(raw, metadata, frame.index[-1].date())
+            if metadata.get('symbol') == ticker and values is not None:
+                for name, value in values.items():
+                    frame.loc[frame.index[-1], name] = value
+                print(f'{ticker} {frame.index[-1].date()} 使用经时间校验的正常收盘报价 '
+                      f'{values["Close"]};仅恢复最新日线')
+        except Exception as error:
+            print(f'{ticker} 正常收盘报价恢复不可用 ({type(error).__name__});保留完整历史数据')
     # Yahoo 可能先发布成交量,复权 OHLC 仍全空;只裁掉尾部无价格占位行。
     has_price = frame[['Open', 'High', 'Low', 'Close']].notna().any(axis=1)
     if not has_price.any():
@@ -34,13 +88,25 @@ def download_ohlc(ticker, start):
     if tail.any():
         print(f'{ticker} 忽略 {int(tail.sum())} 行尾部空价格占位数据;'
               f'最新价格日期 {last_price_date.date()}')
-    return frame.loc[:last_price_date]
+    frame = frame.loc[:last_price_date]
+    for name in ('Open', 'High', 'Low', 'Close'):
+        value = frame[name].iloc[-1]
+        if not np.all(np.isfinite(value) & (value > 0)):
+            raise ValueError(f'{ticker} {last_price_date.date()} 的 {name} 缺失或无效')
+    return frame
 
 
 # ---- 下载 ----
 print("下载 ^NDX / QQQ / QLD / ^IRX / ^VIX ...")
 ndx_ohlc = download_ohlc('^NDX', WARMUP_START)
 qqq_ohlc = download_ohlc('QQQ', '1999-01-01')
+qld_ohlc = download_ohlc('QLD', '2006-01-01')
+# 任一 ETF 无法恢复时使用共同的完整截止日,避免把上市后缺失的 QLD 合成为收益。
+common_end = min(qqq_ohlc.index[-1], qld_ohlc.index[-1])
+if qqq_ohlc.index[-1] != qld_ohlc.index[-1]:
+    print(f'QQQ/QLD 最新完整日期不一致;共同截止日 {common_end.date()}')
+qqq_ohlc = qqq_ohlc.loc[:common_end]
+qld_ohlc = qld_ohlc.loc[:common_end]
 ndx  = ndx_ohlc['Close'].squeeze()
 nhigh= ndx_ohlc['High'].squeeze()
 nlow = ndx_ohlc['Low'].squeeze()
@@ -48,7 +114,6 @@ qqq  = qqq_ohlc['Close'].squeeze()
 qopen= qqq_ohlc['Open'].squeeze()
 qhigh= qqq_ohlc['High'].squeeze()
 qlow = qqq_ohlc['Low'].squeeze()
-qld_ohlc = download_ohlc('QLD', '2006-01-01')
 qld_real = qld_ohlc['Close'].squeeze()
 qld_open_real = qld_ohlc['Open'].squeeze()
 irx  = yf.download('^IRX', start=WARMUP_START, progress=False, auto_adjust=True)['Close'].squeeze()
