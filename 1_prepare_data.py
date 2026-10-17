@@ -46,8 +46,13 @@ def regular_close_bar(raw, metadata, expected_date, now=None):
         # 遇到当日公司行动时不推断复权因子;上一完整交易日的因子也必须为 1。
         if any(bar.get(name, np.nan) != 0 for name in ('Dividends', 'Stock Splits', 'Capital Gains')):
             return None
-        if len(raw) < 2 or not np.isclose(raw.iloc[-2]['Adj Close'], raw.iloc[-2]['Close'],
-                                        rtol=1e-7, atol=0):
+        if len(raw) < 2:
+            return None
+        previous_close = float(raw.iloc[-2]['Close'])
+        previous_adjusted = float(raw.iloc[-2]['Adj Close'])
+        if not (np.isfinite(previous_close) and previous_close > 0
+                and np.isfinite(previous_adjusted) and previous_adjusted > 0
+                and np.isclose(previous_adjusted, previous_close, rtol=1e-7, atol=0)):
             return None
         values = {name: float(bar[name]) for name in ('Open', 'High', 'Low')}
         values['Close'] = float(metadata['regularMarketPrice'])

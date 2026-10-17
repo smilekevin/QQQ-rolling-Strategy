@@ -229,6 +229,10 @@ class RegularCloseTests(unittest.TestCase):
                 raw = self.raw.copy()
                 raw.loc[raw.index[offset], column] = value
                 self.assertIsNone(self.recover(raw, self.metadata, self.date))
+        for invalid in (0., -1., float('nan'), float('inf')):
+            raw = self.raw.copy()
+            raw.loc[raw.index[-2], ['Close', 'Adj Close']] = invalid
+            self.assertIsNone(self.recover(raw, self.metadata, self.date))
 
 
 if __name__ == '__main__':
