@@ -96,7 +96,8 @@ class PrepareDataTests(unittest.TestCase):
         self.clock = patch('scripts.build_report.datetime')
         clock = self.clock.start()
         self.addCleanup(self.clock.stop)
-        clock.now.return_value = datetime(2026, 10, 16, 20, tzinfo=ZoneInfo('America/New_York'))
+        self.validation_clock = clock
+        clock.now.return_value = datetime(2026, 10, 15, 20, tzinfo=ZoneInfo('America/New_York'))
 
     def test_volume_only_tail_matches_healthy_export_exactly(self):
         frames = source_prices()
@@ -108,7 +109,9 @@ class PrepareDataTests(unittest.TestCase):
                 frame.loc[pd.Timestamp('2026-10-16'), OHLC] = np.nan
         actual = prepare(frames, self.work)
         pd.testing.assert_frame_equal(actual, expected)
-        self.assertEqual(validate_prices(self.work / 'prices.csv'), '2026-10-15')
+        self.validation_clock.now.return_value = datetime(2026, 10, 16, 20, tzinfo=ZoneInfo('America/New_York'))
+        with self.assertRaisesRegex(ValueError, '应为 2026-10-16.*2026-10-15'):
+            validate_prices(self.work / 'prices.csv')
         # Warm-up prices never become executable returns; segment compounding stays exact.
         self.assertTrue(actual.loc[:'1999-03-09', [
             'qqq_overnight_ret', 'qqq_intraday_ret',
@@ -150,7 +153,57 @@ class PrepareDataTests(unittest.TestCase):
         actual = prepare(frames, self.work, raw, metadata)
         # Exactly matches an ordinary complete Yahoo daily-bar export, including history.
         pd.testing.assert_frame_equal(actual, expected)
+        self.validation_clock.now.return_value = datetime(2026, 10, 16, 20, tzinfo=ZoneInfo('America/New_York'))
         self.assertEqual(validate_prices(self.work / 'prices.csv'), '2026-10-16')
+
+    def test_complete_recent_daily_bar_recovers_empty_or_absent_history_tail(self):
+        for absent in (False, True):
+            with self.subTest(absent=absent):
+                frames, raw, metadata = closing_sources()
+                expected = prepare(frames, self.work)
+                for ticker in ('QQQ', 'QLD'):
+                    close = float(frames[ticker][('Close', ticker)].iloc[-1])
+                    raw[ticker].loc[raw[ticker].index[-1], ['Close', 'Adj Close']] = close
+                    if absent:
+                        frames[ticker] = frames[ticker].iloc[:-1]
+                    else:
+                        frames[ticker].loc[pd.Timestamp('2026-10-16'), OHLC] = np.nan
+                actual = prepare(frames, self.work, raw, metadata)
+                pd.testing.assert_frame_equal(actual, expected)
+
+    def test_recovery_rejects_inconsistent_historical_adjustment(self):
+        frames, raw, metadata = closing_sources()
+        expected = prepare(source_prices(), self.work)
+        for ticker in ('QQQ', 'QLD'):
+            frames[ticker].loc[pd.Timestamp('2026-10-16'), OHLC] = np.nan
+            raw[ticker].loc[raw[ticker].index[-1], ['Close', 'Adj Close']] = 800.
+            raw[ticker].loc[raw[ticker].index[-2], 'Adj Close'] *= .5
+        actual = prepare(frames, self.work, raw, metadata)
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_recovery_does_not_skip_missing_previous_session(self):
+        frames, raw, metadata = closing_sources()
+        expected_frames = source_prices()
+        for ticker in ('QQQ', 'QLD'):
+            frames[ticker] = frames[ticker].iloc[:-2]
+            expected_frames[ticker] = expected_frames[ticker].iloc[:-1]
+        expected = prepare(expected_frames, self.work)
+        actual = prepare(frames, self.work, raw, metadata)
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_recovery_rejection_logs_reason(self):
+        frames, raw, metadata = closing_sources()
+        ticker = 'QQQ'
+        frames[ticker].loc[pd.Timestamp('2026-10-16'), OHLC] = np.nan
+        metadata[ticker]['regularMarketTime'] -= 60
+        fake_yf = types.SimpleNamespace(
+            download=lambda *args, **kwargs: frames[ticker].copy(),
+            Ticker=lambda *args: types.SimpleNamespace(
+                history=lambda **kwargs: raw[ticker], get_history_metadata=lambda: metadata[ticker]))
+        output = io.StringIO()
+        with redirect_stdout(output):
+            downloader(fake_yf)['download_ohlc'](ticker, '1999-01-01')
+        self.assertIn('报价时间不匹配', output.getvalue())
 
     def test_failed_or_wrong_symbol_quote_keeps_common_complete_cutoff(self):
         frames, raw, metadata = closing_sources()
@@ -188,12 +241,19 @@ class PrepareDataTests(unittest.TestCase):
         prepare(source_prices(), self.work)
         for now, message in ((datetime(2026, 10, 14, 20), '晚于'),
                              (datetime(2026, 10, 15, 16), '17:00'),
-                             (datetime(2026, 10, 23, 20), '7 个自然日')):
+                             (datetime(2026, 10, 23, 20), '应为 2026-10-23')):
             with self.subTest(now=now):
                 with patch('scripts.build_report.datetime') as clock:
                     clock.now.return_value = now.replace(tzinfo=ZoneInfo('America/New_York'))
                     with self.assertRaisesRegex(ValueError, message):
                         validate_prices(self.work / 'prices.csv')
+
+    def test_october_16_prices_cannot_pass_october_19_close_validation(self):
+        frames, _, _ = closing_sources()
+        prepare(frames, self.work)
+        self.validation_clock.now.return_value = datetime(2026, 10, 19, 21, 11, tzinfo=ZoneInfo('America/New_York'))
+        with self.assertRaisesRegex(ValueError, '应为 2026-10-19.*2026-10-16'):
+            validate_prices(self.work / 'prices.csv')
 
 
 class RegularCloseTests(unittest.TestCase):
@@ -206,12 +266,12 @@ class RegularCloseTests(unittest.TestCase):
 
     def test_rejects_intraday_afterhours_stale_or_invalid_quotes(self):
         for change in ({'regularMarketTime': self.metadata['regularMarketTime'] - 1},
-                       {'regularMarketTime': self.metadata['regularMarketTime'] + 1},
+                       {'regularMarketTime': self.metadata['regularMarketTime'] + 6},
                        {'regularMarketTime': self.metadata['regularMarketTime'] - 86400},
                        {'regularMarketPrice': float('nan')}, {'regularMarketPrice': 0},
                        {'regularMarketPrice': float('inf')}, {'regularMarketPrice': 'invalid'},
                        {'regularMarketPrice': 1e9}, {'currency': 'CAD'},
-                       {'exchangeTimezoneName': 'UTC'}, {'currentTradingPeriod': {}}):
+                       {'exchangeTimezoneName': 'UTC'}):
             with self.subTest(change=change):
                 metadata = deepcopy(self.metadata)
                 metadata.update(change)
@@ -219,6 +279,38 @@ class RegularCloseTests(unittest.TestCase):
         before_validation = datetime(2026, 10, 16, 16, 59, tzinfo=ZoneInfo('America/New_York'))
         self.assertIsNone(self.recover(self.raw, self.metadata, self.date, before_validation))
         self.assertIsNone(self.recover(self.raw.iloc[:-1], self.metadata, self.date))
+
+    def test_next_session_metadata_and_delayed_close_timestamp_are_accepted(self):
+        metadata = deepcopy(self.metadata)
+        metadata['currentTradingPeriod']['regular']['end'] += 3 * 86400
+        for delay in (0, 1, 5):
+            with self.subTest(delay=delay):
+                metadata['regularMarketTime'] = self.metadata['regularMarketTime'] + delay
+                values = self.recover(self.raw, metadata, self.date)
+                self.assertIsNotNone(values)
+                self.assertEqual(values['Close'], metadata['regularMarketPrice'])
+
+    def test_complete_daily_bar_uses_its_own_adjustment_without_quote_price(self):
+        raw = self.raw.copy()
+        raw.loc[raw.index[-1], ['Close', 'Adj Close']] = [800., 400.]
+        raw.loc[raw.index[-1], ['Open', 'High', 'Low']] = [790., 810., 780.]
+        metadata = deepcopy(self.metadata)
+        metadata['regularMarketPrice'] = 1e9
+        values = self.recover(raw, metadata, self.date)
+        self.assertEqual(values, {'Open': 395., 'High': 405., 'Low': 390., 'Close': 400.})
+
+    def test_yfinance_formatted_timestamp_recovers_the_same_close(self):
+        metadata = deepcopy(self.metadata)
+        metadata['regularMarketTime'] = pd.Timestamp('2026-10-16T16:00:01', tz='America/New_York')
+        metadata['currentTradingPeriod']['regular']['end'] = pd.Timestamp('2026-10-19T16:00', tz='America/New_York')
+        values = self.recover(self.raw, metadata, self.date)
+        self.assertIsNotNone(values)
+        self.assertEqual(values['Close'], metadata['regularMarketPrice'])
+        for stamp in (pd.Timestamp('2026-10-16T16:00'), pd.NaT,
+                      pd.Timestamp('2026-10-16T15:59:59', tz='America/New_York'),
+                      pd.Timestamp('2026-10-16T16:01', tz='America/New_York')):
+            metadata['regularMarketTime'] = stamp
+            self.assertIsNone(self.recover(self.raw, metadata, self.date))
 
     def test_rejects_actions_unexplained_adjustment_and_partial_raw_prices(self):
         for column, value, offset in [('Dividends', 1., -1), ('Stock Splits', 2., -1),

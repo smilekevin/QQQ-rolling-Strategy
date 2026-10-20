@@ -19,71 +19,128 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 import yfinance as yf
 import pandas as pd, numpy as np
+from market_sessions import latest_completed_session, session_close
 
 OUT = os.path.dirname(os.path.abspath(__file__)) + os.sep   # 输出到脚本所在目录
 EXPENSE_RATIO = 0.0095    # QLD 年管理费率 0.95%
 WARMUP_START = '1997-01-01'
 
 
-def regular_close_bar(raw, metadata, expected_date, now=None):
-    """只接受纽约正常收盘时刻的同日报价,用于最新一行缺失的收盘字段。"""
+def regular_close_bar(raw, metadata, expected_date, now=None, diagnostics=None):
+    """优先采用补齐的复权日线,否则验证同日正常收盘报价。"""
+    def reject(reason):
+        if diagnostics is not None:
+            diagnostics.append(reason)
+        return None
+
     try:
         if raw.empty or raw.index[-1].date() != expected_date:
-            return None
+            return reject('短周期日线缺少目标交易日')
         bar = raw.iloc[-1]
-        if pd.notna(bar['Close']) or pd.notna(bar['Adj Close']):
-            return None
         tz = ZoneInfo('America/New_York')
-        end = metadata['currentTradingPeriod']['regular']['end']
-        close_time = datetime.fromtimestamp(end, tz)
         now = now or datetime.now(tz)
         if (metadata['exchangeTimezoneName'] != 'America/New_York'
-                or metadata['currency'] != 'USD'
-                or close_time.date() != expected_date
-                or metadata['regularMarketTime'] != end
-                or now.timestamp() < end + 3600):
-            return None
-        # 遇到当日公司行动时不推断复权因子;上一完整交易日的因子也必须为 1。
-        if any(bar.get(name, np.nan) != 0 for name in ('Dividends', 'Stock Splits', 'Capital Gains')):
-            return None
-        if len(raw) < 2:
-            return None
-        previous_close = float(raw.iloc[-2]['Close'])
-        previous_adjusted = float(raw.iloc[-2]['Adj Close'])
-        if not (np.isfinite(previous_close) and previous_close > 0
-                and np.isfinite(previous_adjusted) and previous_adjusted > 0
-                and np.isclose(previous_adjusted, previous_close, rtol=1e-7, atol=0)):
-            return None
+                or metadata['currency'] != 'USD'):
+            return reject('报价币种或交易所时区不匹配')
+        # Yahoo 的 currentTradingPeriod 在晚间可能已切到下一日,不能用来验证前日收盘。
+        end = session_close(expected_date).timestamp()
+        if now.timestamp() < end + 3600:
+            return reject('尚未到该交易日收盘后一小时')
         values = {name: float(bar[name]) for name in ('Open', 'High', 'Low')}
-        values['Close'] = float(metadata['regularMarketPrice'])
+        if pd.notna(bar['Close']) and pd.notna(bar['Adj Close']):
+            close, adjusted = float(bar['Close']), float(bar['Adj Close'])
+            if not all(np.isfinite(value) and value > 0 for value in (close, adjusted)):
+                return reject('短周期日线收盘价或复权收盘价无效')
+            values['Close'] = close
+            factor = adjusted / close
+        else:
+            if pd.notna(bar['Close']) or pd.notna(bar['Adj Close']):
+                return reject('短周期日线 Close/Adj Close 仅部分缺失')
+            # regularMarketPrice 必须在日历收盘时刻附近;只容忍最多五秒的报价时间戳延迟。
+            # 不使用 postMarketPrice 或盘中最后价。
+            quote_time = metadata['regularMarketTime']
+            # yfinance 1.7 formats metadata as timezone-aware pandas.Timestamp;
+            # older versions expose Unix seconds. Reject ambiguous naive times.
+            if not isinstance(quote_time, (int, float, np.integer, np.floating)):
+                quote_time = pd.Timestamp(quote_time)
+                if pd.isna(quote_time) or quote_time.tzinfo is None:
+                    return reject('正常收盘报价时间缺少明确时区')
+                quote_time = quote_time.timestamp()
+            if not end <= quote_time <= end + 5:
+                return reject('正常收盘报价时间不匹配该交易日收盘（允许延迟 5 秒）')
+            if any(bar.get(name, np.nan) != 0 for name in ('Dividends', 'Stock Splits', 'Capital Gains')):
+                return reject('目标交易日存在公司行动或公司行动字段缺失')
+            if len(raw) < 2:
+                return reject('缺少前一完整交易日,无法验证复权因子')
+            previous_close = float(raw.iloc[-2]['Close'])
+            previous_adjusted = float(raw.iloc[-2]['Adj Close'])
+            if not (np.isfinite(previous_close) and previous_close > 0
+                    and np.isfinite(previous_adjusted) and previous_adjusted > 0
+                    and np.isclose(previous_adjusted, previous_close, rtol=1e-7, atol=0)):
+                return reject('前一交易日价格无效或复权因子不为 1')
+            values['Close'] = float(metadata['regularMarketPrice'])
+            factor = 1.
         if not all(np.isfinite(value) and value > 0 for value in values.values()):
-            return None
+            return reject('恢复日线包含无效价格')
         if not (values['Low'] <= values['Open'] <= values['High']
                 and values['Low'] <= values['Close'] <= values['High']):
-            return None
-        return values
-    except (KeyError, TypeError, ValueError, OverflowError):
-        return None
+            return reject('开盘价或收盘价超出当日高低范围')
+        adjusted_values = {name: value * factor for name, value in values.items()}
+        if not all(np.isfinite(value) and value > 0 for value in adjusted_values.values()):
+            return reject('恢复日线复权后价格无效')
+        return adjusted_values
+    except (KeyError, TypeError, ValueError, OverflowError) as error:
+        return reject(f'恢复所需字段缺失或无效（{type(error).__name__}）')
+
+
+def check_recovery_overlap(frame, raw, expected_date):
+    """恢复仅限最新一日;两次请求的前一交易日复权 OHLC 必须一致。"""
+    previous_date = latest_completed_session(session_close(expected_date))
+    old = frame.loc[frame.index.date == previous_date]
+    recent = raw.loc[raw.index.date == previous_date]
+    if old.empty or recent.empty:
+        raise ValueError('缺少共同的前一交易日;不能跳过历史缺口恢复最新价格')
+    previous = recent.iloc[-1]
+    close, adjusted = float(previous['Close']), float(previous['Adj Close'])
+    if not (np.isfinite(close) and close > 0 and np.isfinite(adjusted) and adjusted > 0):
+        raise ValueError('前一交易日的原始或复权收盘价无效')
+    factor = adjusted / close
+    for name in ('Open', 'High', 'Low', 'Close'):
+        if not np.allclose(old[name].iloc[-1], float(previous[name]) * factor,
+                           rtol=1e-7, atol=0):
+            raise ValueError(f'前一交易日 {name} 的复权口径不一致;需要重新下载完整历史')
 
 
 def download_ohlc(ticker, start):
     frame = yf.download(ticker, start=start, progress=False, auto_adjust=True)
     # 日线 Close/Adj Close 缺失时,auto_adjust 会连开高低也变成 NaN。
     # 同日正常收盘报价可恢复最新一行;不更改历史复权价格或使用盘后价。
-    if ticker in ('QQQ', 'QLD') and not frame.empty and frame.iloc[-1][
-            frame.columns.get_level_values(0).isin(['Open', 'High', 'Low', 'Close'])].isna().all():
+    expected_date = latest_completed_session(datetime.now(ZoneInfo('America/New_York')))
+    if ticker in ('QQQ', 'QLD') and not frame.empty and (
+            frame.index[-1].date() < expected_date or (
+                frame.index[-1].date() == expected_date and frame.iloc[-1][
+                    frame.columns.get_level_values(0).isin(['Open', 'High', 'Low', 'Close'])].isna().all())):
         try:
             quote = yf.Ticker(ticker)
-            raw = quote.history(period='5d', auto_adjust=False, actions=True, repair=False)
+            raw = quote.history(period='5d', auto_adjust=False, actions=True, repair=False, keepna=True)
             metadata = quote.get_history_metadata()
-            values = regular_close_bar(raw, metadata, frame.index[-1].date())
-            if metadata.get('symbol') == ticker and values is not None:
+            if metadata.get('symbol') != ticker:
+                raise ValueError('短周期报价标的不匹配')
+            check_recovery_overlap(frame, raw, expected_date)
+            reasons = []
+            values = regular_close_bar(raw, metadata, expected_date, diagnostics=reasons)
+            if values is not None:
                 for name, value in values.items():
-                    frame.loc[frame.index[-1], name] = value
-                print(f'{ticker} {frame.index[-1].date()} 使用经时间校验的正常收盘报价 '
-                      f'{values["Close"]};仅恢复最新日线')
+                    frame.loc[pd.Timestamp(expected_date), name] = value
+                source = '补齐的复权日线' if pd.notna(raw.iloc[-1]['Adj Close']) else '经时间校验的正常收盘报价'
+                print(f'{ticker} {expected_date} 使用{source} {values["Close"]};仅恢复最新日线')
+            else:
+                print(f'{ticker} {expected_date} 日线恢复未通过：{"；".join(reasons)}')
         except Exception as error:
-            print(f'{ticker} 正常收盘报价恢复不可用 ({type(error).__name__});保留完整历史数据')
+            if isinstance(error, ValueError):
+                print(f'{ticker} {expected_date} 日线恢复不可用：{error}')
+            else:
+                print(f'{ticker} {expected_date} 日线恢复请求失败 ({type(error).__name__})')
     # Yahoo 可能先发布成交量,复权 OHLC 仍全空;只裁掉尾部无价格占位行。
     has_price = frame[['Open', 'High', 'Low', 'Close']].notna().any(axis=1)
     if not has_price.any():
