@@ -1,5 +1,6 @@
 yfinance>=0.2
 pandas>=1.5
 numpy>=1.23
+pandas_market_calendars==5.5.0
 # Cloudflare Linux 构建的 Python 可能缺少 _sqlite3；Peewee 自动使用此备用驱动。
 pysqlite3-binary==0.5.4.post2; sys_platform == "linux" and platform_machine == "x86_64"

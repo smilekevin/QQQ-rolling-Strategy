@@ -1,6 +1,6 @@
 """在临时目录运行原流水线，检查后只将静态报告复制到 dist。"""
 import csv
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 import json
 import math
 from pathlib import Path
@@ -11,11 +11,15 @@ import tempfile
 import time
 from zoneinfo import ZoneInfo
 
+# Also support direct execution as `python scripts/build_report.py`.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from market_sessions import latest_completed_session
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCES = (
     "1_prepare_data.py", "2_backtest.py", "3_generate_report.py",
-    "indicators.py", "execution.py",
+    "indicators.py", "execution.py", "market_sessions.py",
 )
 
 
@@ -29,12 +33,11 @@ def validate_prices(path):
     latest_date = date.fromisoformat(latest["Date"])
     if latest_date > market_now.date():
         raise ValueError("行情日期晚于纽约当前日期")
-    # 常规交易 16:00 ET 收盘后至少等一小时；兼容北京时间 06:30 的全年调度。
-    if latest_date == market_now.date() and market_now.hour < 17:
-        raise ValueError("当日日线尚未到盘后校验时间；请在纽约时间 17:00 后构建")
-    # 允许周末、节假日；这是宽松的过期检查，不替代交易所日历。
-    if latest_date < market_now.date() - timedelta(days=7):
-        raise ValueError(f"行情已超过 7 个自然日未更新：{latest_date}")
+    expected_date = latest_completed_session(market_now)
+    if latest_date > expected_date:
+        raise ValueError("行情尚未到该交易日收盘后一小时的校验时间（常规交易日 17:00 ET）")
+    if latest_date < expected_date:
+        raise ValueError(f"最新完整交易日应为 {expected_date}，实际行情仅到 {latest_date}；拒绝发布旧数据")
     for column in (
         "signal_close", "signal_high", "signal_low", "qqq", "qopen",
         "qhigh", "qlow", "qld", "qld_open", "vix",
