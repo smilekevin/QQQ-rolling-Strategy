@@ -58,7 +58,15 @@ def regular_close_bar(raw, metadata, expected_date, now=None, diagnostics=None):
                 return reject('短周期日线 Close/Adj Close 仅部分缺失')
             # regularMarketPrice 必须在日历收盘时刻附近;只容忍最多五秒的报价时间戳延迟。
             # 不使用 postMarketPrice 或盘中最后价。
-            if not end <= metadata['regularMarketTime'] <= end + 5:
+            quote_time = metadata['regularMarketTime']
+            # yfinance 1.7 formats metadata as timezone-aware pandas.Timestamp;
+            # older versions expose Unix seconds. Reject ambiguous naive times.
+            if not isinstance(quote_time, (int, float, np.integer, np.floating)):
+                quote_time = pd.Timestamp(quote_time)
+                if pd.isna(quote_time) or quote_time.tzinfo is None:
+                    return reject('正常收盘报价时间缺少明确时区')
+                quote_time = quote_time.timestamp()
+            if not end <= quote_time <= end + 5:
                 return reject('正常收盘报价时间不匹配该交易日收盘（允许延迟 5 秒）')
             if any(bar.get(name, np.nan) != 0 for name in ('Dividends', 'Stock Splits', 'Capital Gains')):
                 return reject('目标交易日存在公司行动或公司行动字段缺失')

@@ -299,6 +299,19 @@ class RegularCloseTests(unittest.TestCase):
         values = self.recover(raw, metadata, self.date)
         self.assertEqual(values, {'Open': 395., 'High': 405., 'Low': 390., 'Close': 400.})
 
+    def test_yfinance_formatted_timestamp_recovers_the_same_close(self):
+        metadata = deepcopy(self.metadata)
+        metadata['regularMarketTime'] = pd.Timestamp('2026-10-16T16:00:01', tz='America/New_York')
+        metadata['currentTradingPeriod']['regular']['end'] = pd.Timestamp('2026-10-19T16:00', tz='America/New_York')
+        values = self.recover(self.raw, metadata, self.date)
+        self.assertIsNotNone(values)
+        self.assertEqual(values['Close'], metadata['regularMarketPrice'])
+        for stamp in (pd.Timestamp('2026-10-16T16:00'), pd.NaT,
+                      pd.Timestamp('2026-10-16T15:59:59', tz='America/New_York'),
+                      pd.Timestamp('2026-10-16T16:01', tz='America/New_York')):
+            metadata['regularMarketTime'] = stamp
+            self.assertIsNone(self.recover(self.raw, metadata, self.date))
+
     def test_rejects_actions_unexplained_adjustment_and_partial_raw_prices(self):
         for column, value, offset in [('Dividends', 1., -1), ('Stock Splits', 2., -1),
                                       ('Capital Gains', 1., -1), ('High', np.nan, -1),
