@@ -1,0 +1,38 @@
+{
+  "parameters": {
+    "family": "core_trend",
+    "sma_len": 250,
+    "vol_target": 0.2,
+    "max_exposure": 1.5,
+    "extension_enabled": true,
+    "extension_threshold": 0.15,
+    "extension_release": 0.1,
+    "confirm": 3,
+    "bear_exit_buffer": 0.03,
+    "bull_reentry_buffer": 0.01,
+    "lever_volceil": 0.35,
+    "recovery_exposure": 0.75,
+    "mild_exposure": 0.75,
+    "rsi_oversold": 25,
+    "oversold_floor": 0.15,
+    "deadband": 0.15
+  },
+  "train_end": "2009-12-31",
+  "selection_end": "2018-12-31",
+  "test_start": "2019-01-01",
+  "candidate_count": 252,
+  "research_phase": "extended",
+  "development_drawdown_budget": 0.5518942871984712,
+  "robust_qualifier_found": true,
+  "selection_metrics": {
+    "train_cagr": 0.11010859129486508,
+    "validation_cagr": 0.1470382258825095,
+    "train_mdd": -0.47810303026723744,
+    "validation_mdd": -0.2471274601379111,
+    "neighbor_success_rate": 0.8571428571428571,
+    "neighbor_count": 7,
+    "neighborhood_score": 0.020358138454007524
+  },
+  "data_cutoff": "2018-12-31",
+  "method": "Coarse grid, positive excess CAGR in train and validation, drawdown within the recorded development budget, >=70% qualifying immediate neighbors, maximize median neighborhood score; no test-period tuning."
+}

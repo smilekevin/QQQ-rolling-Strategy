@@ -125,6 +125,19 @@ Execution discipline avoids trading every small daily fluctuation:
 - **Risk-free rate:** ^IRX (13-week US Treasury yield) proxies QLD financing costs and cash income.
 - **Sharpe** uses rf=0; Calmar = CAGR / |maximum drawdown|.
 
-## 7. Disclaimer
+## 7. SPY / SSO research strategy
+
+An independent SPY/SSO candidate, reproduction commands, frozen parameters and a
+generated English/Chinese report are available in [spy_strategy/](./spy_strategy/README.md).
+See the [SPY research review](./research/SPY_STRATEGY_REVIEW_2026-11-05.md) for
+chronological comparisons, actual-SSO-only results, parameter selection and risk
+limits. This candidate does not change the QQQ strategy or its deployment pipeline.
+
+```bash
+python -m spy_strategy backtest --refresh
+# Open spy_strategy/output/spy_report.html after the command completes.
+```
+
+## 8. Disclaimer
 
 This project is for research and education only, **not investment advice**. Historical backtests do not guarantee future returns. Leveraged ETFs such as QLD carry volatility-drag and daily-rebalancing risks; prolonged holding or sideways markets may substantially underperform the underlying index. Live trading also involves opening slippage, taxes, fees and liquidity costs that the backtest does not fully capture. You bear the risks of acting on this material.

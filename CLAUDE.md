@@ -154,6 +154,22 @@ QQQ buy and hold has CAGR/drawdown/Calmar approximately 10.8%/−83.0%/0.13; QLD
 
 ## 10. Data and disclaimer
 
+**Separate SPY research (2026-11-05):** the user requested an analogous SPY strategy
+aiming to outperform SPY buy and hold. `spy_strategy/` is an independent research
+module with its own frozen `selected.json`, adjusted SPY/SSO data, NYSE publication
+boundary, CLI and bilingual report. It reuses `indicators.py` and
+`execution.run_next_open()` through an explicit legacy-column adapter; the QQQ
+rules, parameters, HTML and deployment remain unchanged. Its selected core/trend
+candidate retains 0.75x SPY, allows a 1.5x target in favorable regimes, and scales
+only exposure above the core. MACD/RSI/Supertrend do not determine this candidate's
+allocation. Research history is not an untouched forward test: the core family
+was added after initial recent-period diagnostics. See
+[`SPY_STRATEGY_REVIEW_2026-11-05.md`](./research/SPY_STRATEGY_REVIEW_2026-11-05.md)
+for exact rules, development risk budgets, the 252 candidate configurations,
+synthetic-history limits and results. Do not automatically retune `selected.json`
+or adopt this candidate into QQQ production. SPY research parameters live only in
+that separate file; the original QQQ CONFIG remains the sole QQQ parameter source.
+
 - Sources: yfinance QQQ / QLD / ^NDX / ^IRX / ^VIX. ^NDX is scaled to QQQ’s first closing price for pre-listing warm-up only, switching to actual QQQ OHLC after listing. ^VIX is observation only. QQQ/QLD use adjusted opening/closing prices. **QLD listed in 2006-06**; earlier returns use `2×QQQ daily return − (0.95% fee + short-term rate)/252`. Correlation with actual QLD daily returns is 0.996 and CAGR is optimistically biased about 0.8%/year. Since 2006, actual data is used.
 - Sharpe uses rf=0; Calmar = CAGR / |maximum drawdown|.
 - **Disclaimer:** research and education only, not investment advice. Historical backtests do not predict future results. Leveraged ETFs have volatility-drag and daily-reset risks and can substantially underperform in long holding periods or sideways markets. Live opening slippage, taxes, fees and liquidity costs are not fully modeled.

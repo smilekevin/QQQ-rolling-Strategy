@@ -11,6 +11,7 @@ This directory preserves historical strategy research, organized by report date.
 | 2026-10-13 | [Shorter QLD exposure windows](./QLD_WINDOW_REVIEW_2026-10-13.md) | Leveraged holding-period limits and drawdown exits |
 | 2026-10-16 | [Initial SMA extension cap study](./SMA_EXTENSION_REVIEW_2026-10-16.md) | Historical stateless cap, shorter averages and trading frequency |
 | 2026-10-16 | [SMA hysteresis and confirmation](./SMA_HYSTERESIS_REVIEW_2026-10-16.md) | Final 15%/10% latch with fast overheat cuts; confirmed restoration, timing and cost comparisons |
+| 2026-11-05 | [SPY / SSO strategy research](./SPY_STRATEGY_REVIEW_2026-11-05.md) | Independent core-and-trend strategy, development selection, historical tests and execution sensitivity |
 
 On 2026-10-13, the user decided to retain existing V1.6.1 rules and parameters. On 2026-10-16, the user initially adopted the confirmed SMA250 +15% cap, then selected 15%/10% hysteresis with fast overheat cuts and confirmed restoration as the final V1.7.0 rule. Other research candidates remain unadopted. See the root [CLAUDE.md](../CLAUDE.md) for the current strategy definition.
 

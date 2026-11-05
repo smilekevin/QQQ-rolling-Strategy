@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPY / SSO Strategy Research</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+:root{color-scheme:dark;font:15px/1.6 system-ui,sans-serif;color:#dce6ee;background:#101923}body{max-width:1160px;margin:36px auto;padding:0 22px}h1{font-size:30px;line-height:1.2;color:#fff}h2{font-size:19px;margin:0 0 12px}button,select{font:inherit;color:inherit;background:#192a38;border:1px solid #446073;border-radius:7px;padding:6px 12px}button{cursor:pointer}header{display:flex;justify-content:space-between;gap:20px;align-items:center}section,.card{background:#172431;border:1px solid #2c4051;border-radius:12px;padding:22px;margin:18px 0}.subtle{color:#9fb3c4}.notice{border-left:4px solid #e5b95b}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.grid .card{margin:0}.value{font-size:26px;color:#fff}.chart{height:360px}.short{height:170px}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:right;padding:9px;border-bottom:1px solid #2c4051}th:first-child,td:first-child{text-align:left}.scroll{overflow:auto}.good{color:#7edac2}.bad{color:#ffae91}code{color:#9bd9fa}#error{color:#ffae91}footer{margin:28px 0;color:#9fb3c4}dt{color:#9fb3c4}dd{margin:0 0 10px}a{color:#9bd9fa}@media(max-width:700px){body{margin:20px auto}.grid{grid-template-columns:1fr}.chart{height:280px}header{align-items:flex-start}h1{font-size:25px}}
+select{max-width:100%;margin-block:6px}canvas{max-width:100%}header>div{min-width:0}
+</style></head><body>
+<header><div><span id="brand" class="subtle">SPY · SSO · CASH</span><h1 id="title"></h1><div id="subtitle" class="subtle"></div></div><button id="language" type="button">中文</button></header>
+<section class="notice"><strong id="verdict"></strong><p id="caution"></p></section>
+<section><label id="period-label" for="period"></label> <select id="period"></select></section>
+<div class="grid"><div class="card"><div id="cagr-label" class="subtle"></div><div id="cagr" class="value"></div><div id="cagr-spy" class="subtle"></div></div><div class="card"><div id="mdd-label" class="subtle"></div><div id="mdd" class="value"></div><div id="mdd-spy" class="subtle"></div></div><div class="card"><div id="excess-label" class="subtle"></div><div id="excess" class="value"></div><div id="excess-note" class="subtle"></div></div></div>
+<section><h2 id="equity-title"></h2><div class="chart"><canvas id="equity"></canvas></div><div id="error"></div></section>
+<section><h2 id="table-title"></h2><div class="scroll"><table><thead id="metrics-head"></thead><tbody id="metrics-body"></tbody></table></div></section>
+<section><h2 id="exposure-title"></h2><div class="chart short"><canvas id="exposure"></canvas></div><div id="exposure-note" class="subtle"></div></section>
+<section><h2 id="rules-title"></h2><div id="rules"></div><p id="rule-parameters" class="subtle"></p></section>
+<section><h2 id="latest-title"></h2><div id="latest"></div><p id="latest-note" class="subtle"></p></section>
+<section><h2 id="annual-title"></h2><div class="scroll"><table><thead id="annual-head"></thead><tbody id="annual-body"></tbody></table></div></section>
+<section><h2 id="method-title"></h2><div id="method"></div></section>
+<footer id="footer"></footer>
+<script>
+const R=/* REPORT_DATA */;
+let lang='en';try{const saved=localStorage.getItem('spy-strategy-lang');lang=['en','zh'].includes(saved)?saved:(navigator.language.toLowerCase().startsWith('zh')?'zh':'en')}catch{lang=navigator.language.toLowerCase().startsWith('zh')?'zh':'en'}
+const t=(en,zh)=>lang==='zh'?zh:en;
+const el=id=>document.getElementById(id),set=(id,text)=>{el(id).textContent=text};
+const pct=x=>(x*100).toFixed(2)+'%',pp=x=>(x>=0?'+':'')+(x*100).toFixed(2)+t(' pp',' 个百分点');
+const names=()=>({strategy:t('SPY strategy','SPY 策略'),spy:t('SPY buy & hold','SPY 买入持有'),static_spy_sso:t('Buy-once 50/50 SPY / SSO','一次买入 50/50 SPY／SSO'),qqq_parameters_on_spy:t('QQQ parameters on SPY','直接移植 QQQ 参数'),unleveraged_rule:t('Same rule, maximum 1x','相同规则，最高 1 倍'),double_cost:t('Strategy, doubled trading cost','策略：双倍交易成本'),extra_day_delay:t('Strategy, one extra execution day','策略：额外延迟一天执行')});
+const periods=()=>({full:t('Full history','完整历史'),train:t('Training: 1995–2009','训练：1995–2009'),validation:t('Validation: 2010–2018','验证：2010–2018'),holdout:t('Chronological test: 2019 onward','历史留出期：2019 年以来'),actual_sso:t('Actual SSO: June 2006 onward','真实 SSO：2006 年 6 月以来'),since_2010:t('Since 2010','2010 年以来'),since_2020:t('Since 2020','2020 年以来')});
+let equityChart,exposureChart;
+function render(){
+ document.documentElement.lang=lang;set('language',lang==='zh'?'English':'中文');
+ document.title=t('SPY / SSO Strategy Research','SPY／SSO 策略研究');set('brand',t('SPY · SSO · CASH','SPY · SSO · 现金'));
+ const p=R.selection.parameters,period=el('period').value||'full',M=R.metrics.strategy[period],B=R.metrics.spy[period];
+ set('title',t('SPY / SSO strategy research','SPY／SSO 策略研究'));
+ set('subtitle',t('Adjusted closing data through ','复权收盘数据截至 ')+R.data.cutoff+t(' · Next-open execution · Maximum 1.5x target',' · 下一交易日开盘执行 · 最高 1.5 倍目标敞口'));
+ const hasTest=Boolean(R.metrics.strategy.holdout),test=hasTest&&R.metrics.strategy.holdout.cagr>R.metrics.spy.holdout.cagr;
+ set('verdict',!hasTest?t('No chronological test period is available for this cutoff.','此数据截止日尚无历史留出期结果。'):test?t('Historical test beats SPY; future excess returns remain unproven.','历史留出期回报高于 SPY；未来超额收益仍未经证实。'):t('The chronological test does not beat SPY buy & hold.','历史留出期未跑赢 SPY 买入持有。'));
+ set('caution',t('This is an exploratory candidate, not an investment recommendation. The core-holding family was added after initial recent-period diagnostics; the 2019+ period is not an untouched independent sample.','这是探索性候选，不是投资建议。核心仓位方案是在查看首轮近期表现后扩展的，2019 年以来的数据并非完全未接触的独立样本。'));
+ set('period-label',t('Comparison period','比较区间'));
+ el('period').innerHTML=Object.entries(periods()).filter(([key])=>R.metrics.strategy[key]).map(([key,label])=>`<option value="${key}"${key===period?' selected':''}>${label}</option>`).join('');
+ set('cagr-label',t('Strategy annualized return','策略年化回报'));set('cagr',pct(M.cagr));set('cagr-spy','SPY '+pct(B.cagr));
+ set('mdd-label',t('Strategy maximum drawdown','策略最大回撤'));set('mdd',pct(M.mdd));set('mdd-spy','SPY '+pct(B.mdd));
+ set('excess-label',t('Annualized return difference','年化回报差'));set('excess',pp(M.cagr-B.cagr));set('excess-note',M.start+' → '+M.end);
+ set('equity-title',t('Growth of $10,000','10,000 美元净值走势'));set('table-title',t('Benchmarks and stress checks','基准与压力测试'));
+ const header=[t('Portfolio','组合'),'CAGR',t('Max drawdown','最大回撤'),t('Volatility','波动率'),'Calmar'];
+ el('metrics-head').innerHTML='<tr>'+header.map(x=>'<th>'+x+'</th>').join('')+'</tr>';
+ el('metrics-body').innerHTML=Object.entries(names()).map(([key,name])=>{const m=R.metrics[key][period];return '<tr><td>'+name+'</td><td>'+pct(m.cagr)+'</td><td>'+pct(m.mdd)+'</td><td>'+pct(m.volatility)+'</td><td>'+(m.calmar===null?'—':m.calmar.toFixed(2))+'</td></tr>'}).join('');
+ set('exposure-title',t('Actual opening exposure','实际开盘敞口'));
+ set('exposure-note',t('Positions drift between target changes. The 1.5x limit applies to targets; realized holdings may exceed it. Average opening exposure: ','仓位在目标变更之间自然漂移。1.5 倍限制针对目标敞口，实际持仓可能超过。平均开盘敞口：')+R.risk.mean_opening_exposure.toFixed(2)+'x');
+ set('rules-title',t('Selected rule','选定规则'));
+ let rule=p.family==='core_trend'?t('Retain an unleveraged SPY core of ','保留不加杠杆的 SPY 核心仓位 ')+pct(p.mild_exposure)+t('. Above the SMA regime gate, increase the target toward 1.5x only when the average is rising and volatility permits. Volatility scaling applies to the allocation above the core. In a bearish regime, return to the core.','。均线状态转多、均线上升且波动允许时，将目标提高至最多 1.5 倍；波动控制只缩减核心仓位以上的部分。均线状态转空时降回核心仓位。'):p.family==='trend'?t('Use a hysteretic SMA trend gate. A bullish regime permits 1–1.5x before volatility scaling; a bearish regime holds cash.','使用带滞回的均线趋势门槛。多头状态允许波动缩放前 1–1.5 倍敞口，空头状态持有现金。'):t('Use the shared MACD/RSI/Supertrend regime and exposure rules on SPY.','在 SPY 上使用共享 MACD／RSI／Supertrend 状态及敞口规则。');
+ rule+=' '+t('A bearish regime re-enters only above SMA × 1.01. Signals form at the close and trade at the next open; unchanged targets are not rebalanced daily.','空头状态必须高于 SMA × 1.01 才重返多头。收盘生成信号，下个交易日开盘执行；目标未变时不进行每日再平衡。');
+ set('rules',rule);
+ set('rule-parameters','SMA '+p.sma_len+t(' sessions · Volatility target ',' 个交易日 · 波动目标 ')+pct(p.vol_target)+t(' · Confirmation ',' · 确认 ')+p.confirm+t(' sessions · Deadband ',' 个交易日 · 调仓死区 ')+p.deadband.toFixed(2)+'x'+t(' · Overextension cap: ',' · 过热限制：')+(p.extension_enabled?pct(p.extension_threshold)+' / '+pct(p.extension_release):t('off','关闭')));
+ set('latest-title',t('Latest close and next-open allocation','最新收盘与下一开盘目标配置'));
+ const w=R.latest.target_weights;set('latest',R.latest.date+' · '+R.latest.next_open_target.toFixed(2)+'x · SPY '+pct(w.spy)+' · SSO '+pct(w.sso)+' · '+t('Cash ','现金 ')+pct(w.cash));
+ set('latest-note',t('Research output, conditional on the stated data cutoff; do not treat it as a live order.','这是基于所示数据截止日的研究输出，不代表实时交易指令。'));
+ set('annual-title',t('Calendar-year returns','自然年度回报'));
+ el('annual-head').innerHTML='<tr>'+[t('Year','年份'),names().strategy,'SPY',t('Difference','回报差')].map(x=>'<th>'+x+'</th>').join('')+'</tr>';
+ el('annual-body').innerHTML=Object.keys(R.annual.strategy).reverse().map(year=>{const a=R.annual.strategy[year].total_return,b=R.annual.spy[year].total_return;return '<tr><td>'+year+(year===R.data.cutoff.slice(0,4)?t(' YTD',' 年初至今'):'')+'</td><td>'+pct(a)+'</td><td>'+pct(b)+'</td><td class="'+(a>=b?'good':'bad')+'">'+pp(a-b)+'</td></tr>'}).join('');
+ set('method-title',t('Method and limits','方法与限制'));
+ const notes=[t('Training: 1995–2009; validation and selection: 2010–2018; retrospective chronological test: 2019 onward. Parameters were frozen before final testing in each research phase. '+R.selection.candidate_count+' candidate configurations were compared.','训练：1995–2009；验证及选参：2010–2018；回顾性历史留出期：2019 年以来。每轮研究均先冻结参数再做最终测试，共比较 '+R.selection.candidate_count+' 组配置。'),t('Development neighborhood robustness gate: ','训练／验证相邻参数稳健性门槛：')+(R.selection.robust_qualifier_found?t('passed','通过'):t('not passed','未通过')),t('Yahoo adjusted OHLC includes ETF distributions. Actual SSO returns start on 2006-06-22. Earlier SSO is synthetic: 2× SPY daily return minus a 0.95% annual fee and a Treasury-yield financing proxy. Synthetic results are not fully investable historical performance.','Yahoo 复权开高低收包含 ETF 分红。真实 SSO 收益从 2006-06-22 开始；更早历史按 2×SPY 日收益扣除年费 0.95% 及国债收益率融资代理合成，不是完全可交易的历史业绩。'),t('Costs: 5 basis points per side. Existing holdings receive overnight returns before opening trades; new holdings earn intraday returns. Cash earns the previously known Treasury yield. Taxes and variable spreads are excluded.','成本为每边 5 个基点。旧持仓先承担隔夜收益，再于开盘调仓，新持仓获得日内收益；现金按此前已知国债收益率计息。不含税费及浮动价差。'),t('Periods include their first daily return against the previous close. Subperiod portfolios carry existing holdings. The static 50/50 comparison is bought once and drifts, rather than being rebalanced to 1.5x daily.','分期统计包含首个交易日相对前收盘的收益，持仓连续承接。静态 50/50 对照是一次买入后漂移，不是每日再平衡到 1.5 倍。')];
+ el('method').replaceChildren(...notes.map(text=>{const node=document.createElement('p');node.textContent=text;return node}));
+ set('footer',t('Historical research only. Future returns may underperform SPY, and losses may exceed historical drawdowns. SSO has daily leverage, financing costs and volatility drag.','仅供历史研究。未来可能跑输 SPY，损失也可能超过历史最大回撤。SSO 存在每日杠杆重置、融资成本及波动损耗。'));
+ if(typeof Chart==='undefined'){set('error',t('Chart.js could not load. Tables remain available; check access to cdn.jsdelivr.net.','Chart.js 未能加载。表格仍可查看，请检查 cdn.jsdelivr.net 的访问。'));return}
+ const a=R.chart.dates.findIndex(d=>d>=M.start),last=R.chart.dates.findIndex(d=>d>M.end),b=last<0?R.chart.dates.length:last,dates=R.chart.dates.slice(a,b);
+ const datasets=['strategy','spy','static_spy_sso'].map((key,i)=>({label:names()[key],data:R.chart.equity[key].slice(a,b).map(v=>10000*v/(a?R.chart.equity[key][a-1]:1)),borderColor:['#7edac2','#98b7ed','#e5b95b'][i],borderWidth:1.6,pointRadius:0,hidden:key==='static_spy_sso'}));
+ const options={responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{color:'#dce6ee'}}},scales:{x:{ticks:{color:'#9fb3c4',maxTicksLimit:8},grid:{display:false}},y:{ticks:{color:'#9fb3c4'},grid:{color:'#2c4051'}}}};
+ if(equityChart){equityChart.data.labels=dates;equityChart.data.datasets.forEach((d,i)=>{d.label=datasets[i].label;d.data=datasets[i].data});equityChart.update('none')}else{equityChart=new Chart(el('equity'),{type:'line',data:{labels:dates,datasets},options})}
+ const expData={label:t('Opening exposure','开盘敞口'),data:R.chart.exposure.slice(a,b),borderColor:'#98b7ed',pointRadius:0,borderWidth:1.2};
+ if(exposureChart){exposureChart.data.labels=dates;Object.assign(exposureChart.data.datasets[0],expData);exposureChart.update('none')}else{exposureChart=new Chart(el('exposure'),{type:'line',data:{labels:dates,datasets:[expData]},options:{...options,plugins:{legend:{display:false}}}})}
+}
+el('period').addEventListener('change',render);el('language').addEventListener('click',()=>{lang=lang==='zh'?'en':'zh';try{localStorage.setItem('spy-strategy-lang',lang)}catch{}render()});render();
+</script></body></html>
