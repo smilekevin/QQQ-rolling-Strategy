@@ -1,0 +1,655 @@
+{
+  "selection": {
+    "parameters": {
+      "family": "core_trend",
+      "sma_len": 250,
+      "vol_target": 0.2,
+      "max_exposure": 1.5,
+      "extension_enabled": true,
+      "extension_threshold": 0.15,
+      "extension_release": 0.1,
+      "confirm": 3,
+      "bear_exit_buffer": 0.03,
+      "bull_reentry_buffer": 0.01,
+      "lever_volceil": 0.35,
+      "recovery_exposure": 0.75,
+      "mild_exposure": 0.75,
+      "rsi_oversold": 25,
+      "oversold_floor": 0.15,
+      "deadband": 0.15
+    },
+    "train_end": "2009-12-31",
+    "selection_end": "2018-12-31",
+    "test_start": "2019-01-01",
+    "candidate_count": 252,
+    "research_phase": "extended",
+    "development_drawdown_budget": 0.5518942871984712,
+    "robust_qualifier_found": true,
+    "selection_metrics": {
+      "train_cagr": 0.11010859129486508,
+      "validation_cagr": 0.1470382258825095,
+      "train_mdd": -0.47810303026723744,
+      "validation_mdd": -0.2471274601379111,
+      "neighbor_success_rate": 0.8571428571428571,
+      "neighbor_count": 7,
+      "neighborhood_score": 0.020358138454007524
+    },
+    "data_cutoff": "2018-12-31",
+    "method": "Coarse grid, positive excess CAGR in train and validation, drawdown within the recorded development budget, >=70% qualifying immediate neighbors, maximize median neighborhood score; no test-period tuning."
+  },
+  "data": {
+    "provider": "Yahoo Finance / yfinance",
+    "auto_adjust": true,
+    "cutoff": "2026-11-04",
+    "synthetic_annual_fee": 0.0095,
+    "real_sso_from": "2006-06-22",
+    "sources": {
+      "SPY": {
+        "raw_file_sha256": "d920e1685df0c91b5630c279245790ed5ccd26df3ee63dc621b8364c179557f4",
+        "used_data_sha256": "d6fec991131471be587eb7215992e04251c2efaf7f121e253b714e98305fddd9",
+        "first": "1993-01-29",
+        "last": "2026-11-04",
+        "rows": 8500
+      },
+      "SSO": {
+        "raw_file_sha256": "2a4966a64781854543250ab600776a884f603142c41e8e13e63806ab2304ddd8",
+        "used_data_sha256": "79151fb78a798c5aff50fd35c50e7c7fc50beb963601beae91fc7d9677db57ba",
+        "first": "2006-06-21",
+        "last": "2026-11-04",
+        "rows": 5126
+      },
+      "^IRX": {
+        "raw_file_sha256": "c73d2e87ed1612ee2d5b39c4647c3f8da31c83888bb5aae1b1e41957f0d7fa46",
+        "used_data_sha256": "8abc5e3267e772f27032a004ab174e303b380f1b31a79e2f726fd370e5e7f942",
+        "first": "1993-01-04",
+        "last": "2026-11-04",
+        "rows": 8497
+      },
+      "QQQ": {
+        "raw_file_sha256": "06d1d66dcfb0682e300ecf61367a5d4c6ddf3f0c02f1e71a305be17b0811cd2d",
+        "used_data_sha256": "8b4ddaa5d5290d915d46f1706c34740d1ba0a2cb097d57669404d7621f4206d2",
+        "first": "1999-03-10",
+        "last": "2026-11-04",
+        "rows": 6958
+      }
+    }
+  },
+  "metrics": {
+    "strategy": {
+      "full": {
+        "cagr": 0.13904899728006317,
+        "total_return": 61.825834070782236,
+        "mdd": -0.47810303026723744,
+        "volatility": 0.20004626103307346,
+        "sharpe_rf0": 0.7513810633954585,
+        "calmar": 0.290834796011105,
+        "days": 8014,
+        "start": "1995-01-03",
+        "end": "2026-11-04"
+      },
+      "train": {
+        "cagr": 0.11010859129486508,
+        "total_return": 3.7876446949495577,
+        "mdd": -0.47810303026723744,
+        "volatility": 0.20286690081379571,
+        "sharpe_rf0": 0.6165682877519906,
+        "calmar": 0.23030306089739586,
+        "days": 3778,
+        "start": "1995-01-03",
+        "end": "2009-12-31"
+      },
+      "validation": {
+        "cagr": 0.1470382258825095,
+        "total_return": 2.4296937425918683,
+        "mdd": -0.2471274601379111,
+        "volatility": 0.185582207699244,
+        "sharpe_rf0": 0.8326632442945454,
+        "calmar": 0.5949894269153815,
+        "days": 2264,
+        "start": "2010-01-04",
+        "end": "2018-12-31"
+      },
+      "holdout": {
+        "cagr": 0.18705399453139218,
+        "total_return": 2.8261413410372587,
+        "mdd": -0.3679468679593447,
+        "volatility": 0.21041139973508813,
+        "sharpe_rf0": 0.9210796728546065,
+        "calmar": 0.5083722972526028,
+        "days": 1972,
+        "start": "2019-01-02",
+        "end": "2026-11-04"
+      },
+      "actual_sso": {
+        "cagr": 0.13609271821851346,
+        "total_return": 12.395739069690373,
+        "mdd": -0.47810303026723744,
+        "volatility": 0.20195594044873555,
+        "sharpe_rf0": 0.7334297732665206,
+        "calmar": 0.2846514445692677,
+        "days": 5125,
+        "start": "2006-06-22",
+        "end": "2026-11-04"
+      },
+      "since_2010": {
+        "cagr": 0.1654962692788883,
+        "total_return": 12.122493015627555,
+        "mdd": -0.36794686795934484,
+        "volatility": 0.19750981112397611,
+        "sharpe_rf0": 0.8749580169398089,
+        "calmar": 0.44978306296433623,
+        "days": 4236,
+        "start": "2010-01-04",
+        "end": "2026-11-04"
+      },
+      "since_2020": {
+        "cagr": 0.16330973904103901,
+        "total_return": 1.807998869164615,
+        "mdd": -0.36794686795934495,
+        "volatility": 0.2154680681367202,
+        "sharpe_rf0": 0.8106539873229405,
+        "calmar": 0.4438405467255761,
+        "days": 1720,
+        "start": "2020-01-02",
+        "end": "2026-11-04"
+      }
+    },
+    "spy": {
+      "full": {
+        "cagr": 0.11182731964699857,
+        "total_return": 28.11122808050902,
+        "mdd": -0.5518942871984712,
+        "volatility": 0.18909373291470594,
+        "sharpe_rf0": 0.655302040844699,
+        "calmar": 0.20262452835787995,
+        "days": 8014,
+        "start": "1995-01-03",
+        "end": "2026-11-04"
+      },
+      "train": {
+        "cagr": 0.07952912352038292,
+        "total_return": 2.1495730342100123,
+        "mdd": -0.5518942871984712,
+        "volatility": 0.2082060659246917,
+        "sharpe_rf0": 0.47157368437161706,
+        "calmar": 0.14410209593596102,
+        "days": 3778,
+        "start": "1995-01-03",
+        "end": "2009-12-31"
+      },
+      "validation": {
+        "cagr": 0.11635552811067217,
+        "total_return": 1.6882148481311519,
+        "mdd": -0.19348898527635172,
+        "volatility": 0.14921399924737028,
+        "sharpe_rf0": 0.8125726448715049,
+        "calmar": 0.6013547900129134,
+        "days": 2264,
+        "start": "2010-01-04",
+        "end": "2018-12-31"
+      },
+      "holdout": {
+        "cagr": 0.1709517482436355,
+        "total_return": 2.438308713414942,
+        "mdd": -0.33717263786002905,
+        "volatility": 0.1916146348592499,
+        "sharpe_rf0": 0.9199025762075623,
+        "calmar": 0.5070154842001234,
+        "days": 1972,
+        "start": "2019-01-02",
+        "end": "2026-11-04"
+      },
+      "actual_sso": {
+        "cagr": 0.1133588916961945,
+        "total_return": 7.880425169091289,
+        "mdd": -0.5518942871984711,
+        "volatility": 0.19314441574576358,
+        "sharpe_rf0": 0.6527131082169954,
+        "calmar": 0.20539964686285764,
+        "days": 5125,
+        "start": "2006-06-22",
+        "end": "2026-11-04"
+      },
+      "since_2010": {
+        "cagr": 0.1414477862960678,
+        "total_return": 8.242912535860789,
+        "mdd": -0.33717263786002927,
+        "volatility": 0.17025954953890823,
+        "sharpe_rf0": 0.8625693790513157,
+        "calmar": 0.4195114621216302,
+        "days": 4236,
+        "start": "2010-01-04",
+        "end": "2026-11-04"
+      },
+      "since_2020": {
+        "cagr": 0.1515703893369984,
+        "total_return": 1.6201847249506898,
+        "mdd": -0.33717263786002905,
+        "volatility": 0.19951445121437084,
+        "sharpe_rf0": 0.8075279360227821,
+        "calmar": 0.44953348023430073,
+        "days": 1720,
+        "start": "2020-01-02",
+        "end": "2026-11-04"
+      }
+    },
+    "static_spy_sso": {
+      "full": {
+        "cagr": 0.13460893393330992,
+        "total_return": 54.48763082929526,
+        "mdd": -0.761275142036697,
+        "volatility": 0.294503507224183,
+        "sharpe_rf0": 0.5766398272202771,
+        "calmar": 0.17682034589121148,
+        "days": 8014,
+        "start": "1995-01-03",
+        "end": "2026-11-04"
+      },
+      "train": {
+        "cagr": 0.07260073772165436,
+        "total_return": 1.859761385995026,
+        "mdd": -0.761275142036697,
+        "volatility": 0.3176738401114391,
+        "sharpe_rf0": 0.37960333727546336,
+        "calmar": 0.0953672774963072,
+        "days": 3778,
+        "start": "1995-01-03",
+        "end": "2009-12-31"
+      },
+      "validation": {
+        "cagr": 0.15922265549709302,
+        "total_return": 2.7712317437701293,
+        "mdd": -0.3051297898844175,
+        "volatility": 0.22667232257435782,
+        "sharpe_rf0": 0.7657574182319297,
+        "calmar": 0.5218194380738971,
+        "days": 2264,
+        "start": "2010-01-04",
+        "end": "2018-12-31"
+      },
+      "holdout": {
+        "cagr": 0.2328407365268997,
+        "total_return": 4.144973751423806,
+        "mdd": -0.5084109763521204,
+        "volatility": 0.3165085793634271,
+        "sharpe_rf0": 0.8209369349574267,
+        "calmar": 0.4579773989097287,
+        "days": 1972,
+        "start": "2019-01-02",
+        "end": "2026-11-04"
+      },
+      "actual_sso": {
+        "cagr": 0.14125315016270087,
+        "total_return": 13.689087651610517,
+        "mdd": -0.728796161173958,
+        "volatility": 0.2964957759560121,
+        "sharpe_rf0": 0.5946262609922893,
+        "calmar": 0.1938170886289628,
+        "days": 5125,
+        "start": "2006-06-22",
+        "end": "2026-11-04"
+      },
+      "since_2010": {
+        "cagr": 0.19293087958265545,
+        "total_return": 18.402888332233605,
+        "mdd": -0.5084109763521205,
+        "volatility": 0.27218779591929154,
+        "sharpe_rf0": 0.7852365401358052,
+        "calmar": 0.37947819491810775,
+        "days": 4236,
+        "start": "2010-01-04",
+        "end": "2026-11-04"
+      },
+      "since_2020": {
+        "cagr": 0.19698596836410492,
+        "total_return": 2.4118412713343207,
+        "mdd": -0.5084109763521203,
+        "volatility": 0.3298433016934721,
+        "sharpe_rf0": 0.7113594289035265,
+        "calmar": 0.3874542004924662,
+        "days": 1720,
+        "start": "2020-01-02",
+        "end": "2026-11-04"
+      }
+    },
+    "qqq_parameters_on_spy": {
+      "full": {
+        "cagr": 0.11699916353034594,
+        "total_return": 32.74091356674615,
+        "mdd": -0.33157635082158876,
+        "volatility": 0.1555376929189754,
+        "sharpe_rf0": 0.7896933369922067,
+        "calmar": 0.3528573833460748,
+        "days": 8014,
+        "start": "1995-01-03",
+        "end": "2026-11-04"
+      },
+      "train": {
+        "cagr": 0.11675968401542647,
+        "total_return": 4.236188525123242,
+        "mdd": -0.262412158640001,
+        "volatility": 0.15108781474940017,
+        "sharpe_rf0": 0.8067631413274043,
+        "calmar": 0.44494769076461577,
+        "days": 3778,
+        "start": "1995-01-03",
+        "end": "2009-12-31"
+      },
+      "validation": {
+        "cagr": 0.10988580567884852,
+        "total_return": 1.5514435965245865,
+        "mdd": -0.19434788429194205,
+        "volatility": 0.1496116621359256,
+        "sharpe_rf0": 0.7720423004065965,
+        "calmar": 0.5654077793498499,
+        "days": 2264,
+        "start": "2010-01-04",
+        "end": "2018-12-31"
+      },
+      "holdout": {
+        "cagr": 0.12568437349277592,
+        "total_return": 1.5255477886188595,
+        "mdd": -0.33157635082158876,
+        "volatility": 0.1700198572031942,
+        "sharpe_rf0": 0.782396233491249,
+        "calmar": 0.37905107882800393,
+        "days": 1972,
+        "start": "2019-01-02",
+        "end": "2026-11-04"
+      },
+      "actual_sso": {
+        "cagr": 0.10588293831677868,
+        "total_return": 6.743304246310192,
+        "mdd": -0.3315763508215883,
+        "volatility": 0.15532232809853447,
+        "sharpe_rf0": 0.7262947242818228,
+        "calmar": 0.3193319971536548,
+        "days": 5125,
+        "start": "2006-06-22",
+        "end": "2026-11-04"
+      },
+      "since_2010": {
+        "cagr": 0.1172127936375126,
+        "total_return": 5.4437927329884275,
+        "mdd": -0.33157635082158876,
+        "volatility": 0.1594194676593948,
+        "sharpe_rf0": 0.7756956430110337,
+        "calmar": 0.3535016696669699,
+        "days": 4236,
+        "start": "2010-01-04",
+        "end": "2026-11-04"
+      },
+      "since_2020": {
+        "cagr": 0.1062958562824786,
+        "total_return": 0.9926862965065939,
+        "mdd": -0.33157635082158887,
+        "volatility": 0.173839984093589,
+        "sharpe_rf0": 0.6690699864929629,
+        "calmar": 0.3205773150560824,
+        "days": 1720,
+        "start": "2020-01-02",
+        "end": "2026-11-04"
+      }
+    },
+    "unleveraged_rule": {
+      "full": {
+        "cagr": 0.1107493078689429,
+        "total_return": 27.22687744302183,
+        "mdd": -0.43900937623584035,
+        "volatility": 0.16018851651889843,
+        "sharpe_rf0": 0.736066700680831,
+        "calmar": 0.25227093967452585,
+        "days": 8014,
+        "start": "1995-01-03",
+        "end": "2026-11-04"
+      },
+      "train": {
+        "cagr": 0.08883742169398796,
+        "total_return": 2.5822197171406307,
+        "mdd": -0.43900937623584035,
+        "volatility": 0.16978840736173173,
+        "sharpe_rf0": 0.5862788755011576,
+        "calmar": 0.2023588253528863,
+        "days": 3778,
+        "start": "1995-01-03",
+        "end": "2009-12-31"
+      },
+      "validation": {
+        "cagr": 0.10701562961743247,
+        "total_return": 1.492774079602941,
+        "mdd": -0.17957785326143672,
+        "volatility": 0.13771076208848476,
+        "sharpe_rf0": 0.8074634460727226,
+        "calmar": 0.5959288836226079,
+        "days": 2264,
+        "start": "2010-01-04",
+        "end": "2018-12-31"
+      },
+      "holdout": {
+        "cagr": 0.15843722590923895,
+        "total_return": 2.1610233032538884,
+        "mdd": -0.29554820065734544,
+        "volatility": 0.16520939651155053,
+        "sharpe_rf0": 0.9733260003445475,
+        "calmar": 0.5360791422747618,
+        "days": 1972,
+        "start": "2019-01-02",
+        "end": "2026-11-04"
+      },
+      "actual_sso": {
+        "cagr": 0.10897647704077933,
+        "total_return": 7.195945457369039,
+        "mdd": -0.4390093762358396,
+        "volatility": 0.16068853826333437,
+        "sharpe_rf0": 0.7243667104215851,
+        "calmar": 0.2482326869078902,
+        "days": 5125,
+        "start": "2006-06-22",
+        "end": "2026-11-04"
+      },
+      "since_2010": {
+        "cagr": 0.13066381319957052,
+        "total_return": 6.879716955372143,
+        "mdd": -0.29554820065734577,
+        "volatility": 0.1511257699320751,
+        "sharpe_rf0": 0.8885959891305988,
+        "calmar": 0.4421066103902971,
+        "days": 4236,
+        "start": "2010-01-04",
+        "end": "2026-11-04"
+      },
+      "since_2020": {
+        "cagr": 0.14163233466163494,
+        "total_return": 1.4696735949354456,
+        "mdd": -0.29554820065734577,
+        "volatility": 0.17093393897282272,
+        "sharpe_rf0": 0.8608327818383587,
+        "calmar": 0.47921907271511827,
+        "days": 1720,
+        "start": "2020-01-02",
+        "end": "2026-11-04"
+      }
+    },
+    "double_cost": {
+      "full": {
+        "cagr": 0.1374694761624535,
+        "total_return": 59.11362019705644,
+        "mdd": -0.4788720129915063,
+        "volatility": 0.2000408710601818,
+        "sharpe_rf0": 0.7444565110650088,
+        "calmar": 0.2870693472013195,
+        "days": 8014,
+        "start": "1995-01-03",
+        "end": "2026-11-04"
+      },
+      "train": {
+        "cagr": 0.10860754619743228,
+        "total_return": 3.6915038545103975,
+        "mdd": -0.4788720129915063,
+        "volatility": 0.2028709100717548,
+        "sharpe_rf0": 0.6098881501862812,
+        "calmar": 0.22679869203247557,
+        "days": 3778,
+        "start": "1995-01-03",
+        "end": "2009-12-31"
+      },
+      "validation": {
+        "cagr": 0.1454446348459921,
+        "total_return": 2.3871218817257813,
+        "mdd": -0.24738048164486404,
+        "volatility": 0.18556899301042326,
+        "sharpe_rf0": 0.8252156332258422,
+        "calmar": 0.5879390074710518,
+        "days": 2264,
+        "start": "2010-01-04",
+        "end": "2018-12-31"
+      },
+      "holdout": {
+        "cagr": 0.18533290983178918,
+        "total_return": 2.7829445987586667,
+        "mdd": -0.3681771139669334,
+        "volatility": 0.2103966277543551,
+        "sharpe_rf0": 0.914229685204641,
+        "calmar": 0.503379766968444,
+        "days": 1972,
+        "start": "2019-01-02",
+        "end": "2026-11-04"
+      },
+      "actual_sso": {
+        "cagr": 0.13460748894694438,
+        "total_return": 12.044049527562196,
+        "mdd": -0.4788720129915075,
+        "volatility": 0.20194434127288174,
+        "sharpe_rf0": 0.7269804596390159,
+        "calmar": 0.28109282918008316,
+        "days": 5125,
+        "start": "2006-06-22",
+        "end": "2026-11-04"
+      },
+      "since_2010": {
+        "cagr": 0.1638441700720569,
+        "total_return": 11.813294427811849,
+        "mdd": -0.3681771139669334,
+        "volatility": 0.1974958400093469,
+        "sharpe_rf0": 0.8678207446255115,
+        "calmar": 0.44501454288321685,
+        "days": 4236,
+        "start": "2010-01-04",
+        "end": "2026-11-04"
+      },
+      "since_2020": {
+        "cagr": 0.16148216754135775,
+        "total_return": 1.7780267779944001,
+        "mdd": -0.3681771139669333,
+        "volatility": 0.21545384956360925,
+        "sharpe_rf0": 0.8033926030014612,
+        "calmar": 0.4385991453989744,
+        "days": 1720,
+        "start": "2020-01-02",
+        "end": "2026-11-04"
+      }
+    },
+    "extra_day_delay": {
+      "full": {
+        "cagr": 0.13889158740174296,
+        "total_return": 61.55031439789785,
+        "mdd": -0.4785616814710216,
+        "volatility": 0.20150877847909682,
+        "sharpe_rf0": 0.746780155566074,
+        "calmar": 0.29022713848466214,
+        "days": 8014,
+        "start": "1995-01-03",
+        "end": "2026-11-04"
+      },
+      "train": {
+        "cagr": 0.11437946012520764,
+        "total_return": 4.071345535927948,
+        "mdd": -0.4785616814710216,
+        "volatility": 0.20279905342739654,
+        "sharpe_rf0": 0.6356451185922019,
+        "calmar": 0.23900672484605032,
+        "days": 3778,
+        "start": "1995-01-03",
+        "end": "2009-12-31"
+      },
+      "validation": {
+        "cagr": 0.15122593724303143,
+        "total_return": 2.543841495145326,
+        "mdd": -0.24600299509119694,
+        "volatility": 0.18673864978542645,
+        "sharpe_rf0": 0.8481171210059181,
+        "calmar": 0.6147320978225072,
+        "days": 2264,
+        "start": "2010-01-04",
+        "end": "2018-12-31"
+      },
+      "holdout": {
+        "cagr": 0.17277483281929343,
+        "total_return": 2.4804228055510094,
+        "mdd": -0.4127106779657037,
+        "volatility": 0.21499623502917156,
+        "sharpe_rf0": 0.8500307028614698,
+        "calmar": 0.41863426861383757,
+        "days": 1972,
+        "start": "2019-01-02",
+        "end": "2026-11-04"
+      },
+      "actual_sso": {
+        "cagr": 0.13278688456080012,
+        "total_return": 11.624916659562121,
+        "mdd": -0.4785616814710202,
+        "volatility": 0.20426777509740915,
+        "sharpe_rf0": 0.7132837320980011,
+        "calmar": 0.2774707831864745,
+        "days": 5125,
+        "start": "2006-06-22",
+        "end": "2026-11-04"
+      },
+      "since_2010": {
+        "cagr": 0.1612079652795252,
+        "total_return": 11.334066758961733,
+        "mdd": -0.4127106779657036,
+        "volatility": 0.20036718016294133,
+        "sharpe_rf0": 0.8470680108620309,
+        "calmar": 0.39060769174700544,
+        "days": 4236,
+        "start": "2010-01-04",
+        "end": "2026-11-04"
+      },
+      "since_2020": {
+        "cagr": 0.14802640751018487,
+        "total_return": 1.5656378744364021,
+        "mdd": -0.41271067796570393,
+        "volatility": 0.2206217121790816,
+        "sharpe_rf0": 0.7372608293687832,
+        "calmar": 0.3586687125223491,
+        "days": 1720,
+        "start": "2020-01-02",
+        "end": "2026-11-04"
+      }
+    }
+  },
+  "risk": {
+    "realized_beta_to_spy": 0.9965844720762581,
+    "mean_opening_exposure": 1.2391836772017901,
+    "max_opening_exposure": 1.5703179058889403,
+    "annual_one_way_turnover": 2.773603542518198,
+    "annual_rebalances": 3.8677314699276266
+  },
+  "training_asset_comparison": {
+    "spy_beta_to_qqq": 0.5194358556072064,
+    "spy_to_qqq_volatility_ratio": 0.642748601247199,
+    "start": "1999-03-11",
+    "end": "2009-12-31"
+  },
+  "caveats": [
+    "Historical chronological tests are not an untouched forward sample. Initial adaptation diagnostics and the original QQQ research already used recent history.",
+    "SSO is synthetic before 2006-06-22; adjusted real SSO is used thereafter. Synthetic financing is a Treasury proxy, not a tradable historical quote.",
+    "5bp per side includes an assumed allowance for fees/slippage; taxes, bid/ask variation, real execution delays and capacity are not modeled.",
+    "Maximum 1.5x refers to targets; holdings can drift beyond target between trades. Static 50/50 SPY/SSO is a buy-once drifting mix, not constant daily 1.5x."
+  ],
+  "selection_sha256": "e4a51a83bedaf052345b505fdab0716caddf89cd9b7e359da8d71b6361370332",
+  "research_date": "2026-11-05",
+  "execution_cost_bps_per_side": 5,
+  "historical_test_is_untouched": false
+}

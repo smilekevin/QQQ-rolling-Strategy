@@ -1,4 +1,4 @@
-"""在临时目录运行原流水线，检查后只将静态报告复制到 dist。"""
+"""Build date-aligned QQQ and SPY reports, then publish only static assets."""
 import csv
 from datetime import date, datetime
 import json
@@ -68,6 +68,40 @@ def validate_report(path, latest_date):
             raise ValueError(f"报告序列 {name} 与日期长度不一致")
 
 
+def build_spy_report(work, latest_date):
+    """Refresh the frozen SPY strategy at the validated QQQ cutoff, never retune."""
+    output = work / "spy"
+    subprocess.run(
+        [sys.executable, "-m", "spy_strategy", "backtest", "--refresh",
+         "--as-of", latest_date, "--output", str(output)],
+        cwd=ROOT, check=True,
+    )
+    with (output / "results.json").open(encoding="utf-8") as source:
+        report = json.load(source)
+    if any(value != latest_date for value in (
+        report["data"]["cutoff"], report["latest"]["date"],
+        report["metrics"]["strategy"]["full"]["end"],
+    )):
+        raise ValueError("SPY report and QQQ report must have the same validated cutoff")
+    page = output / "spy_report.html"
+    html = page.read_text(encoding="utf-8")
+    if "<html" not in html or "/* REPORT_DATA */" in html:
+        raise ValueError("SPY report HTML is missing or has no generated data")
+    return page
+
+
+def publish_assets(work, spy_page, dist):
+    """Flat spy.html is served at /spy by Workers Assets HTML handling."""
+    if dist.exists():
+        shutil.rmtree(dist)
+    dist.mkdir()
+    shutil.copy2(ROOT / "qqq_qld_report.html", dist / "index.html")
+    shutil.copy2(ROOT / "qqq_qld_report.html", dist / "qqq_qld_report.html")
+    shutil.copy2(ROOT / "_headers", dist / "_headers")
+    shutil.copy2(work / "report_data.js", dist / "report_data.js")
+    shutil.copy2(spy_page, dist / "spy.html")
+
+
 def main():
     with tempfile.TemporaryDirectory(prefix="qqq-report-") as temporary:
         work = Path(temporary)
@@ -87,15 +121,12 @@ def main():
         for name in SOURCES[1:3]:
             subprocess.run([sys.executable, str(work / name)], check=True)
         validate_report(work / "results.json", latest_date)
+        # Complete both builds before replacing any previously generated assets.
+        spy_page = build_spy_report(work, latest_date)
         dist = ROOT / "dist"
-        if dist.exists():
-            shutil.rmtree(dist)
-        dist.mkdir()
-        shutil.copy2(ROOT / "qqq_qld_report.html", dist / "index.html")
-        shutil.copy2(ROOT / "qqq_qld_report.html", dist / "qqq_qld_report.html")
-        shutil.copy2(ROOT / "_headers", dist / "_headers")
-        shutil.copy2(work / "report_data.js", dist / "report_data.js")
-        print(f"Cloudflare 静态报告已生成：{dist}；行情日期：{latest_date}", flush=True)
+        publish_assets(work, spy_page, dist)
+        print(f"Cloudflare QQQ (/) and SPY (/spy) reports: {dist}; cutoff: {latest_date}",
+              flush=True)
 
 
 if __name__ == "__main__":
