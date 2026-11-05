@@ -2,7 +2,9 @@
 
 Data cutoff: **2026-11-04**, the latest eligible completed NYSE session at the time
 of the run. The independent implementation is in [`spy_strategy/`](../spy_strategy/README.md).
-The original QQQ rules and deployment pipeline are unchanged.
+The original QQQ strategy rules are unchanged. A subsequent publishing change
+integrates the frozen SPY report into the common Cloudflare build at `/spy`;
+the historical research results below are unchanged by that routing change.
 
 ## Outcome
 

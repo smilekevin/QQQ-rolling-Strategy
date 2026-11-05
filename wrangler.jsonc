@@ -6,6 +6,7 @@
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
     "run_worker_first": false
   },
   // 分支预览使用本分支的静态资源；不配置生产 Hook Secret 或 Cron。

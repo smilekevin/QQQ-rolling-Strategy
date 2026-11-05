@@ -131,7 +131,8 @@ An independent SPY/SSO candidate, reproduction commands, frozen parameters and a
 generated English/Chinese report are available in [spy_strategy/](./spy_strategy/README.md).
 See the [SPY research review](./research/SPY_STRATEGY_REVIEW_2026-11-05.md) for
 chronological comparisons, actual-SSO-only results, parameter selection and risk
-limits. This candidate does not change the QQQ strategy or its deployment pipeline.
+limits. The Cloudflare build publishes this report at `/spy` and the QQQ report
+at `/`, refreshing both with the same validated cutoff and frozen parameters.
 
 ```bash
 python -m spy_strategy backtest --refresh

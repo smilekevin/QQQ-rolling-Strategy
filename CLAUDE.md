@@ -159,7 +159,13 @@ aiming to outperform SPY buy and hold. `spy_strategy/` is an independent researc
 module with its own frozen `selected.json`, adjusted SPY/SSO data, NYSE publication
 boundary, CLI and bilingual report. It reuses `indicators.py` and
 `execution.run_next_open()` through an explicit legacy-column adapter; the QQQ
-rules, parameters, HTML and deployment remain unchanged. Its selected core/trend
+rules, parameters and HTML remain unchanged. The shared Cloudflare build now
+refreshes SPY with frozen parameters at the validated QQQ cutoff before publishing
+`dist/spy.html`; Workers Assets serves it at `/spy` with explicit
+`auto-trailing-slash` HTML handling. `/` remains the QQQ report. Both pages must
+build successfully before replacing generated assets, and `_headers` forces
+revalidation of the embedded SPY report data. No Worker rewrite or dashboard
+route is needed. Its selected core/trend
 candidate retains 0.75x SPY, allows a 1.5x target in favorable regimes, and scales
 only exposure above the core. MACD/RSI/Supertrend do not determine this candidate's
 allocation. Research history is not an untouched forward test: the core family

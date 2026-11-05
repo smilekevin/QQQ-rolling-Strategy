@@ -36,7 +36,17 @@ Store the URL in GitHub Actions secrets, rather than Worker runtime or Cloudflar
 
 Scheduled/manual requests run only from `main`; choosing a feature branch skips the job. PR checks install Python test dependencies and run strategy-consistency, mocked Hook and Worker tests without accessing the Secret or triggering production. Cloudflare continues building branch previews. The scheduled/manual job does not install dependencies; no GitHub job builds assets, runs Wrangler, pushes generated data or merges PRs. Concurrent production workflow runs are serialized.
 
-Cloudflare retains the existing `bash build_cloudflare.sh` pipeline: dependency installation, SQLite validation, price downloads with up to three attempts, temporary-directory backtest/report generation and four assets in `dist/`, followed by `npm run deploy`.
+Cloudflare retains the existing `bash build_cloudflare.sh` pipeline: dependency installation, SQLite validation, price downloads with up to three attempts and temporary-directory backtest/report generation, followed by `npm run deploy`. The build also refreshes the frozen SPY strategy at the validated QQQ data cutoff. Both reports must succeed before five static assets are packaged in `dist/`.
+
+### SPY report at `/spy`
+
+The SPY report is emitted as `dist/spy.html`. Workers Assets uses
+`auto-trailing-slash` HTML handling to serve it at `/spy`; `/spy/` and
+`/spy.html` resolve to that canonical route. The QQQ report remains at `/`.
+The SPY page embeds its own data, so `_headers` requires revalidation and disables
+CDN storage for its route. Daily/manual builds refresh both reports using frozen
+parameters; they do not run parameter optimization. No additional dashboard
+routes, Hook credentials or Worker logic are required.
 
 ## 3. Retire the old Worker Cron
 

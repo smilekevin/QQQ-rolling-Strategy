@@ -3,7 +3,8 @@
 This candidate aims for a higher long-run return than SPY buy and hold while
 keeping its development-period drawdown within SPY's historical drawdown. It is
 an exploratory historical result, not a promise of future excess returns. The
-production QQQ strategy and Cloudflare pipeline are unchanged.
+production QQQ strategy rules are unchanged. The Cloudflare build publishes the
+QQQ report at `/` and this report at `/spy`, using the same validated data cutoff.
 
 ## Run
 
@@ -21,6 +22,23 @@ CDN is unavailable. For a local HTTP server:
 
 ```bash
 python -m http.server 8765 --directory spy_strategy/output
+```
+
+## Website route
+
+The existing `bash build_cloudflare.sh` command builds both reports in a temporary
+directory, then packages the SPY page as `dist/spy.html`. Workers Assets maps
+`/spy` to that file with `auto-trailing-slash` HTML handling. `/spy/` and
+`/spy.html` resolve to the canonical `/spy` route. The QQQ home page stays at `/`.
+Scheduled and manual Cloudflare builds refresh both reports; they run `backtest`
+with the frozen configuration, never `research`. A date mismatch or failure in
+either report fails the build. The embedded SPY data use revalidation/no-store
+cache headers. No additional Worker secrets or dashboard routes are required.
+
+Local Cloudflare route validation, after a successful build:
+
+```bash
+npm run dev -- --local
 ```
 
 `backtest` always uses the frozen `spy_strategy/selected.json`; it never optimizes
