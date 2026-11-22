@@ -13,113 +13,458 @@
 })();
 </script>
 <style>
-:root{color-scheme:light;--grid-gap:12px;--section-gap:22px}
+:root{
+  color-scheme:dark;
+  --bg:#060a12;
+  --bg-glow:rgba(34,211,238,.09);
+  --surface:#0c1322;
+  --surface-2:#10192b;
+  --well:#080d18;
+  --border:rgba(148,163,184,.14);
+  --border-strong:rgba(148,163,184,.24);
+  --border-accent:rgba(34,211,238,.36);
+  --text:#f1f5f9;
+  --text-2:#94a3b8;
+  --text-3:#64748b;
+  --cyan:#22d3ee;
+  --cyan-soft:rgba(34,211,238,.12);
+  --green:#22e39a;
+  --green-soft:rgba(34,227,154,.12);
+  --gold:#fbbf24;
+  --sky:#38bdf8;
+  --red:#fb5a6b;
+  --red-soft:rgba(251,90,107,.12);
+  --panic:#ff2e63;
+  --violet:#c084fc;
+  --slate:#94a3b8;
+  --tier-accent:#22d3ee;
+  --font-sans:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  --font-mono:ui-monospace,'SF Mono','JetBrains Mono','Fira Code',Menlo,Monaco,Consolas,monospace;
+  --grid-gap:12px;
+  --section-gap:20px;
+}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#f4f1ea;color:#1c2230;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
-.wrap{max-width:1120px;margin:0 auto;padding:34px 22px 70px}
-.eyebrow{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:#9a7b3f;font-weight:700}
-h1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:6px 0 4px}
-.sub{color:#5a6172;font-size:14.5px}
-.versions{margin-top:14px;border-top:1px solid #d9cfb8;border-bottom:1px solid #d9cfb8}
-.versions summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 2px;cursor:pointer;color:#5a6172;font-size:13px;font-weight:700;list-style:none}
+html{background:var(--bg)}
+body{
+  background:
+    radial-gradient(ellipse 80% 42% at 50% -8%,var(--bg-glow),transparent 68%),
+    radial-gradient(ellipse 50% 30% at 92% 10%,rgba(56,189,248,.05),transparent 60%),
+    var(--bg);
+  color:var(--text);
+  font-family:var(--font-sans);
+  line-height:1.58;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  min-height:100vh;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:26px 24px 76px}
+
+/* Top bar & header */
+.header-tools{
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;
+  gap:12px;margin-bottom:18px;padding-bottom:14px;
+  border-bottom:1px solid var(--border);
+  font-size:12px;color:var(--text-2);
+}
+.brand-bar{display:inline-flex;align-items:center;gap:10px;min-width:0}
+.status-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--cyan);flex-shrink:0;
+  box-shadow:0 0 0 3px rgba(34,211,238,.18),0 0 12px rgba(34,211,238,.7);
+}
+.eyebrow{
+  font-family:var(--font-mono);font-size:11.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--cyan);font-weight:700;
+}
+.lang-wrap{display:inline-flex;align-items:center;gap:9px;margin-left:auto}
+.language-switch{
+  display:inline-flex;gap:2px;padding:3px;border:1px solid var(--border-strong);
+  background:var(--well);border-radius:999px;cursor:pointer;font:inherit;color:var(--text-2);
+  transition:border-color .15s ease;
+}
+.language-switch:hover{border-color:var(--border-accent)}
+.language-switch span{padding:4px 11px;border-radius:999px;font-weight:650;font-size:11.5px;transition:background .15s ease,color .15s ease}
+html[lang=en] .language-switch [lang=en],html[lang=zh] .language-switch [lang=zh]{background:var(--cyan);color:#04101a;font-weight:750}
+.language-switch:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+
+h1{
+  font-size:31px;font-weight:800;letter-spacing:-.028em;line-height:1.18;
+  color:#f8fafc;margin:0 0 10px;
+}
+.sub{color:var(--text-2);font-size:14px;max-width:1040px;line-height:1.68}
+.sub b{color:#e2e8f0;font-weight:650}
+
+/* Version accordion */
+.versions{
+  margin-top:16px;border:1px solid var(--border);border-radius:11px;
+  background:rgba(12,19,34,.7);overflow:hidden;
+}
+.versions summary{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:11px 16px;cursor:pointer;color:var(--text-2);font-size:12.5px;
+  font-weight:700;letter-spacing:.03em;list-style:none;user-select:none;
+  transition:background .15s ease,color .15s ease;
+}
+.versions summary:hover{background:rgba(34,211,238,.05);color:var(--text)}
 .versions summary::-webkit-details-marker{display:none}
-.versions summary:after{content:"+";font-size:18px;font-weight:500;color:#9a7b3f;line-height:1}
+.versions summary:after{
+  content:"+";font-family:var(--font-mono);font-size:16px;font-weight:600;
+  color:var(--cyan);line-height:1;
+}
+.versions[open] summary{border-bottom:1px solid var(--border);color:var(--text)}
 .versions[open] summary:after{content:"−"}
-.version-list{padding:2px 2px 13px}
-.version-row{display:grid;grid-template-columns:88px minmax(0,1fr);gap:14px;padding:8px 0;border-top:1px dashed #e5ddcb;font-size:12.5px}
-.version-row dt{font-weight:800;color:#1c2230}
-.version-row dd{color:#5a6172}
-.card{background:#fffdf8;border:1px solid #e5ddcb;border-radius:14px;padding:22px 24px;margin-top:var(--section-gap);box-shadow:0 1px 2px rgba(40,30,10,.04)}
-h2{font-size:18px;font-weight:750;margin-bottom:3px;display:flex;align-items:center;gap:9px}
-h2 .n{flex-shrink:0;font-size:11px;background:#1c2230;color:#f4f1ea;width:22px;height:22px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
-.note{color:#6a7183;font-size:13px;margin-bottom:14px}
-.signal{display:grid;grid-template-columns:1fr;gap:var(--grid-gap)}
-.signal-summary{min-width:0}
-.bigstate{font-size:34px;font-weight:850;letter-spacing:-.02em;color:#1c2230}
-.pill{display:inline-block;padding:4px 12px;border-radius:999px;font-size:12.5px;font-weight:700}
-.ind-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:var(--grid-gap)}
-.ind{background:#faf6ec;border:1px solid #ece3d0;border-radius:10px;padding:10px 12px}
-.ind .k{font-size:11px;color:#8a8570;text-transform:uppercase;letter-spacing:.08em}
-.ind .v{font-size:18px;font-weight:750;margin-top:2px}
-.up{color:#2f8f5b} .dn{color:#c2453b}
-table{width:100%;border-collapse:collapse;font-size:13.5px}
-th,td{padding:9px 8px;text-align:right;border-bottom:1px solid #eee4d2}
-th:first-child,td:first-child{text-align:left}
-thead th{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:#8a8570;border-bottom:1.5px solid #d9cfb8}
-tr.hl td{background:#fbf4e3;font-weight:750}
-.best{color:#2f8f5b;font-weight:750}
-.toggle{display:inline-flex;flex-wrap:wrap;max-width:100%;background:#efe8d7;border-radius:9px;padding:3px;gap:2px;margin-bottom:12px}
-.toggle button{border:0;background:transparent;padding:6px 15px;border-radius:7px;font-size:13px;font-weight:650;color:#6a7183;cursor:pointer;font-family:inherit}
-.toggle button.on{background:#1c2230;color:#f4f1ea}
-.chartbox{position:relative;height:380px;margin-top:6px}
-.chartbox.sm{height:250px}
+.version-list{padding:6px 16px 12px}
+.version-row{
+  display:grid;grid-template-columns:104px minmax(0,1fr);gap:14px;align-items:baseline;
+  padding:9px 0;border-top:1px dashed rgba(148,163,184,.14);font-size:12.5px;
+}
+.version-row:first-child{border-top:0}
+.version-row dt{
+  font-family:var(--font-mono);font-size:11.5px;font-weight:700;color:var(--cyan);
+  background:var(--cyan-soft);border:1px solid rgba(34,211,238,.22);
+  padding:2px 8px;border-radius:6px;text-align:center;width:fit-content;
+}
+.version-row dd{color:var(--text-2);line-height:1.6}
+
+/* Cards */
+.card{
+  background:linear-gradient(180deg,rgba(17,26,46,.92) 0%,rgba(12,19,34,.96) 100%);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:22px 24px;
+  margin-top:var(--section-gap);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 10px 30px rgba(0,0,0,.32);
+  position:relative;
+}
+.card.hero-card{
+  border-color:rgba(148,163,184,.2);
+  background:
+    radial-gradient(ellipse 60% 80% at 0% 0%,rgba(34,211,238,.08),transparent 62%),
+    linear-gradient(180deg,rgba(16,25,45,.96) 0%,rgba(11,18,32,.98) 100%);
+  overflow:hidden;
+}
+.card.hero-card::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--tier-accent) 0%,rgba(34,211,238,.45) 55%,transparent 100%);
+}
+.card-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:4px}
+h2{
+  font-size:17px;font-weight:750;letter-spacing:-.01em;color:#f8fafc;
+  margin-bottom:4px;display:flex;align-items:center;gap:10px;
+}
+h2 .n{
+  flex-shrink:0;font-family:var(--font-mono);font-size:11px;
+  background:var(--cyan-soft);color:var(--cyan);
+  border:1px solid rgba(34,211,238,.28);
+  min-width:24px;height:22px;padding:0 6px;border-radius:6px;
+  display:inline-flex;align-items:center;justify-content:center;font-weight:700;
+}
+.note{color:var(--text-2);font-size:13px;margin-bottom:14px;line-height:1.6}
+.note b{color:#e2e8f0;font-weight:650}
+
+/* Hero latest signal */
+.signal{display:flex;flex-direction:column;gap:16px}
+.signal-top{
+  display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;align-items:stretch;
+}
+.signal-summary{
+  min-width:0;display:flex;flex-direction:column;justify-content:center;
+  background:var(--well);border:1px solid var(--border);border-radius:11px;
+  padding:16px 18px;
+}
+.bigstate{
+  font-size:36px;font-weight:850;letter-spacing:-.025em;line-height:1.12;
+  color:var(--text);
+}
+#lstatebar{margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pill{
+  display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;
+  font-family:var(--font-mono);font-size:12px;font-weight:700;
+  border:1px solid transparent;font-variant-numeric:tabular-nums;
+}
+.signal-telemetry{
+  background:var(--well);border:1px solid var(--border);border-radius:11px;
+  padding:14px 16px;display:flex;align-items:center;
+}
+#lreb{
+  font-size:12.5px;color:var(--text-2);line-height:1.8;
+  font-variant-numeric:tabular-nums;width:100%;
+}
+#lreb b{color:var(--text);font-family:var(--font-mono);font-weight:700}
+
+.ind-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(142px,1fr));gap:10px}
+.ind{
+  background:var(--well);border:1px solid var(--border);border-radius:10px;
+  padding:10px 12px;transition:border-color .15s ease,background .15s ease;
+}
+.ind:hover{border-color:var(--border-strong);background:#0c1425}
+.ind .k{
+  font-size:10.5px;color:var(--text-3);text-transform:uppercase;
+  letter-spacing:.07em;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.ind .v{
+  font-family:var(--font-mono);font-size:17px;font-weight:750;margin-top:4px;
+  color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.01em;
+}
+.up{color:var(--green) !important}
+.dn{color:var(--red) !important}
+.warn{color:var(--gold) !important}
+
+/* KPI grid */
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:var(--grid-gap)}
+.kpi .box{
+  background:var(--well);border:1px solid var(--border);border-radius:11px;
+  padding:14px 16px;position:relative;overflow:hidden;
+  transition:border-color .15s ease,transform .15s ease;
+}
+.kpi .box:hover{border-color:var(--border-accent)}
+.kpi .box::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:2px;
+  background:rgba(148,163,184,.18);
+}
+.kpi .box.kpi-pos::before{background:linear-gradient(90deg,var(--green),transparent)}
+.kpi .box.kpi-neg::before{background:linear-gradient(90deg,var(--red),transparent)}
+.kpi .box.kpi-cyan::before{background:linear-gradient(90deg,var(--cyan),transparent)}
+.kpi .box .k{font-size:10.5px;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+.kpi .box .v{
+  font-family:var(--font-mono);font-size:26px;font-weight:800;margin-top:5px;
+  letter-spacing:-.025em;font-variant-numeric:tabular-nums;color:var(--text);
+}
+.kpi .box.kpi-pos .v{color:var(--green)}
+.kpi .box.kpi-neg .v{color:var(--red)}
+.kpi .box.kpi-cyan .v{color:var(--cyan)}
+.kpi .box .s{font-family:var(--font-mono);font-size:11px;color:var(--text-3);margin-top:2px}
+
+/* Controls & toggles */
+.ctrl-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px}
+.toggle{
+  display:inline-flex;flex-wrap:wrap;max-width:100%;
+  background:var(--well);border:1px solid var(--border);
+  border-radius:9px;padding:3px;gap:2px;margin-bottom:12px;
+}
+.ctrl-row .toggle{margin-bottom:0}
+.toggle button{
+  border:0;background:transparent;padding:6px 14px;border-radius:6px;
+  font-size:12.5px;font-weight:650;color:var(--text-2);cursor:pointer;
+  font-family:inherit;transition:background .14s ease,color .14s ease,box-shadow .14s ease;
+}
+.toggle button:hover:not(.on){color:var(--text);background:rgba(148,163,184,.08)}
+.toggle button.on{
+  background:var(--cyan);color:#04101a;font-weight:750;
+  box-shadow:0 0 14px rgba(34,211,238,.24);
+}
+.btn-ghost{
+  border:1px solid var(--border-strong);background:var(--well);
+  border-radius:8px;padding:6px 13px;font-size:12px;font-weight:650;
+  color:var(--text-2);cursor:pointer;font-family:inherit;
+  transition:border-color .15s ease,color .15s ease,background .15s ease;
+}
+.btn-ghost:hover{border-color:var(--border-accent);color:var(--cyan);background:rgba(34,211,238,.06)}
+.btn-primary{
+  border:1px solid rgba(34,211,238,.45);background:var(--cyan);color:#04101a;
+  border-radius:7px;padding:6px 14px;font-size:12px;font-weight:750;
+  cursor:pointer;font-family:inherit;transition:filter .15s ease;
+}
+.btn-primary:hover{filter:brightness(1.1)}
+.ctrl-label{font-size:12px;color:var(--text-2);font-weight:650}
+.ctrl-arrow{color:var(--text-3);font-family:var(--font-mono)}
+.date-input{
+  border:1px solid var(--border-strong);background:var(--well);
+  border-radius:7px;padding:5px 9px;font-size:12px;color:var(--text);
+  font-family:var(--font-mono);font-variant-numeric:tabular-nums;
+  color-scheme:dark;outline:none;transition:border-color .15s ease;
+}
+.date-input:focus{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(34,211,238,.18)}
+.range-badge{
+  font-family:var(--font-mono);font-size:11.5px;color:var(--text-2);
+  background:rgba(148,163,184,.08);border:1px solid var(--border);
+  padding:4px 10px;border-radius:6px;font-variant-numeric:tabular-nums;
+}
+.range-badge[data-error]{color:var(--red);border-color:rgba(251,90,107,.35);background:var(--red-soft)}
+
+/* Chart containers & interactive legends */
+.chartbox{
+  position:relative;height:420px;margin-top:8px;
+  background:var(--well);border:1px solid var(--border);
+  border-radius:11px;padding:12px 12px 8px;
+}
+.chartbox.sm{height:275px}
 #eqchart,#ddchart,#expchart{touch-action:pan-y;user-select:none;-webkit-user-select:none}
-.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:#5a6172;margin-top:10px}
-.legend span{display:inline-flex;align-items:center;gap:6px}
-.dot{width:11px;height:3px;border-radius:2px;display:inline-block}
-.panic-dot{width:8px;height:8px;border-radius:50%;background:#c2453b;display:inline-block}
-.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:var(--grid-gap);margin-top:4px}
-.rule{border:1px solid #e5ddcb;border-radius:11px;padding:13px 15px;background:#faf6ec}
-.rule .lv{font-size:12px;font-weight:700;letter-spacing:.05em}
-.rule .ex{font-size:22px;font-weight:800;margin:3px 0}
-.rule .ds{font-size:12.5px;color:#5a6172}
+
+.legend{
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;
+  font-size:12px;color:var(--text-2);margin-top:11px;
+}
+.legend-title{
+  font-size:11.5px;font-weight:700;color:var(--text-3);
+  text-transform:uppercase;letter-spacing:.06em;margin-right:2px;
+}
+.legend-chip{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:4px 10px;border-radius:999px;
+  background:var(--well);border:1px solid var(--border);
+  color:var(--text-2);font-size:12px;font-weight:550;
+  font-variant-numeric:tabular-nums;
+}
+.legend-btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:5px 11px;border-radius:999px;
+  background:var(--well);border:1px solid var(--border-strong);
+  color:var(--text);font-size:12px;font-weight:600;font-family:inherit;
+  cursor:pointer;transition:all .14s ease;
+}
+.legend-btn:hover{border-color:var(--border-accent);background:rgba(34,211,238,.07)}
+.legend-btn.is-off{opacity:.38;border-color:var(--border);text-decoration:line-through}
+.legend-btn.mode-on{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-soft)}
+.swatch-line{width:16px;height:3px;border-radius:2px;display:inline-block;flex-shrink:0}
+.swatch-dash{width:16px;height:0;border-top:2px dashed currentColor;display:inline-block;flex-shrink:0}
+.swatch-dot{width:16px;height:0;border-top:2px dotted currentColor;display:inline-block;flex-shrink:0}
+.panic-dot{
+  width:9px;height:9px;border-radius:50%;background:var(--panic);
+  border:1.5px solid #090e18;box-shadow:0 0 8px rgba(255,46,99,.7);
+  display:inline-block;flex-shrink:0;
+}
+
+/* Tables */
+.table-wrap{
+  overflow-x:auto;border:1px solid var(--border);border-radius:10px;background:var(--well);
+}
+table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{padding:10px 12px;text-align:right;border-bottom:1px solid rgba(148,163,184,.1)}
+th:first-child,td:first-child{text-align:left}
+td:not(:first-child){font-family:var(--font-mono);font-size:12.5px}
+thead th{
+  font-size:11px;text-transform:uppercase;letter-spacing:.07em;
+  color:var(--text-3);background:rgba(16,25,43,.92);
+  border-bottom:1px solid var(--border-strong);font-weight:700;
+}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:rgba(56,189,248,.04)}
+tr.hl td{
+  background:rgba(34,211,238,.09);font-weight:750;color:#f8fafc;
+}
+tr.hl td:first-child{box-shadow:inset 3px 0 0 var(--cyan)}
+.best{color:var(--green);font-weight:800}
+
+/* Annual table */
 .two{display:grid;grid-template-columns:1fr;gap:var(--section-gap);margin-top:var(--section-gap)}
 .two .card{min-width:0;margin-top:0}
-.annual-wrap{max-height:520px;overflow:auto;border:1px solid #e5ddcb;border-radius:8px}
+.annual-wrap{
+  max-height:520px;overflow:auto;border:1px solid var(--border);
+  border-radius:10px;background:var(--well);
+}
 .annual-table{min-width:690px;font-variant-numeric:tabular-nums}
 .annual-table th,.annual-table td{white-space:nowrap}
-.annual-table thead th{position:sticky;top:0;z-index:2;background:#fffdf8}
-.annual-table th:first-child,.annual-table td:first-child{position:sticky;left:0;z-index:1;background:#fffdf8;border-right:1px solid #e5ddcb}
-.annual-table thead th:first-child{z-index:3}
-.annual-table th:nth-child(2),.annual-table td:nth-child(2){background:#fbf4e3;font-weight:750}
-.annual-table .pos{color:#2f8f5b}
-.annual-table .neg{color:#c2453b}
-.annual-table .annual-best{box-shadow:inset 0 -2px #2f8f5b;font-weight:800}
-.year-tag{display:inline-block;margin-left:5px;color:#8a8570;font-size:10px;font-weight:650}
+.annual-table thead th{position:sticky;top:0;z-index:2;background:#10192b}
+.annual-table th:first-child,.annual-table td:first-child{
+  position:sticky;left:0;z-index:1;background:#0a111f;
+  border-right:1px solid var(--border);font-family:var(--font-mono);font-weight:700;color:var(--text);
+}
+.annual-table thead th:first-child{z-index:3;background:#10192b;color:var(--text-3)}
+.annual-table th:nth-child(2){color:var(--cyan)}
+.annual-table td:nth-child(2){background:rgba(34,211,238,.07);font-weight:750}
+.annual-table .pos{color:var(--green)}
+.annual-table .neg{color:var(--red)}
+.annual-table .annual-best{box-shadow:inset 0 -2px var(--green);font-weight:800}
+.year-tag{
+  display:inline-block;margin-left:6px;padding:1px 5px;border-radius:4px;
+  background:rgba(34,211,238,.14);color:var(--cyan);
+  font-family:var(--font-mono);font-size:9.5px;font-weight:700;vertical-align:middle;
+}
+
+/* Rules section */
+.warn-banner{
+  display:block;margin-top:10px;padding:10px 13px;border-radius:9px;
+  background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.24);
+  color:#fcd34d;font-size:12.5px;line-height:1.6;
+}
+.warn-banner b{color:#fef08a}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:var(--grid-gap);margin-top:6px}
+.rule{
+  border:1px solid var(--border);border-radius:11px;padding:14px 16px;
+  background:var(--well);position:relative;overflow:hidden;
+  border-top:2.5px solid var(--rule-accent,var(--border-strong));
+}
+.rule.rule-vol{
+  background:linear-gradient(180deg,rgba(34,211,238,.08) 0%,var(--well) 100%);
+  border-color:rgba(34,211,238,.28);border-top-color:var(--cyan);
+}
+.rule .lv{
+  font-family:var(--font-mono);font-size:11.5px;font-weight:750;
+  letter-spacing:.04em;color:var(--rule-accent,var(--cyan));
+}
+.rule .ex{
+  font-family:var(--font-mono);font-size:19px;font-weight:800;margin:5px 0 6px;
+  color:#f8fafc;letter-spacing:-.015em;font-variant-numeric:tabular-nums;
+}
+.rule .ds{font-size:12.5px;color:var(--text-2);line-height:1.58}
+.rule .ds b{color:#e2e8f0}
+
+ul.rl{margin:14px 0 0 0;list-style:none;font-size:13px}
+ul.rl li{
+  padding:8px 0 8px 22px;position:relative;
+  border-bottom:1px dashed rgba(148,163,184,.14);
+  color:var(--text-2);line-height:1.65;
+}
+ul.rl li:last-child{border-bottom:0}
+ul.rl li b{color:#e2e8f0}
+ul.rl li:before{content:"▸";position:absolute;left:3px;color:var(--cyan);font-size:13px}
+code{
+  background:rgba(34,211,238,.12);color:var(--cyan);
+  border:1px solid rgba(34,211,238,.22);
+  padding:1px 6px;border-radius:5px;
+  font-family:var(--font-mono);font-size:12px;font-variant-numeric:tabular-nums;
+}
+#turn,#avgexp{font-family:var(--font-mono);color:var(--cyan);font-weight:700;font-variant-numeric:tabular-nums}
+.foot{
+  color:var(--text-3);font-size:12px;margin-top:28px;line-height:1.75;
+  padding-top:18px;border-top:1px solid var(--border);
+}
+.foot b{color:var(--text-2)}
+
+/* Missing-data error card */
+#report-error{border-color:rgba(251,90,107,.35);background:rgba(251,90,107,.06)}
+#report-error h2{color:var(--red)}
+#report-error p{color:var(--text-2);font-size:13.5px;margin-top:6px}
+
+@media(max-width:860px){
+  .signal-top{grid-template-columns:1fr}
+}
 @media(max-width:760px){
   :root{--section-gap:16px}
-  .bigstate{font-size:28px}
-  .wrap{padding:20px 13px 54px}
+  .wrap{padding:18px 14px 56px}
+  .header-tools{margin-bottom:14px;padding-bottom:12px}
+  .eyebrow{font-size:10.5px;letter-spacing:.1em}
   h1{font-size:23px}
-  .sub{font-size:13.5px}
-  .version-row{grid-template-columns:72px minmax(0,1fr);gap:10px}
+  .sub{font-size:13px}
+  .bigstate{font-size:28px}
+  .version-row{grid-template-columns:82px minmax(0,1fr);gap:10px}
   .card{padding:16px 15px;border-radius:12px;margin-top:var(--section-gap)}
-  h2{font-size:16px}
-  .chartbox{height:300px}
-  .chartbox.sm{height:230px}
-  table{font-size:12.5px} th,td{padding:7px 5px}
+  h2{font-size:15.5px}
+  .chartbox{height:310px;padding:8px 6px 4px}
+  .chartbox.sm{height:240px}
+  table{font-size:12px}
+  th,td{padding:8px 7px}
+  td:not(:first-child){font-size:11.5px}
   .annual-wrap{max-height:440px}
-  .annual-table{min-width:650px}
-  .ind-grid{grid-template-columns:repeat(auto-fit,minmax(96px,1fr))}
+  .annual-table{min-width:640px}
+  .ind-grid{grid-template-columns:repeat(auto-fit,minmax(108px,1fr));gap:8px}
+  .ind .v{font-size:15.5px}
   input[type=date]{font-size:16px !important}   /* 防 iOS 聚焦时自动放大 */
 }
 @media(max-width:430px){
   .kpi{grid-template-columns:repeat(2,1fr)}
-  .kpi .box .v{font-size:20px}
+  .kpi .box .v{font-size:21px}
   .rules{grid-template-columns:1fr}
-  .toggle button{padding:6px 10px;font-size:12px}
-  .legend{font-size:11.5px;gap:10px}
+  .toggle button{padding:6px 10px;font-size:11.5px}
+  .legend{font-size:11px;gap:6px}
+  .legend-chip,.legend-btn{padding:4px 8px;font-size:11px}
 }
-ul.rl{margin:6px 0 0 2px;list-style:none;font-size:13.5px}
-ul.rl li{padding:5px 0 5px 22px;position:relative;border-bottom:1px dashed #ece3d0}
-ul.rl li:before{content:"▸";position:absolute;left:2px;color:#9a7b3f}
-code{background:#efe8d7;padding:1px 6px;border-radius:5px;font-size:12.5px}
-.foot{color:#8a8570;font-size:12px;margin-top:26px;line-height:1.7}
-.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:var(--grid-gap)}
-.kpi .box{background:#faf6ec;border:1px solid #ece3d0;border-radius:11px;padding:13px 15px}
-.kpi .box .k{font-size:11px;color:#8a8570;text-transform:uppercase;letter-spacing:.07em}
-.kpi .box .v{font-size:24px;font-weight:800;margin-top:2px;letter-spacing:-.02em}
-.kpi .box .s{font-size:11.5px;color:#6a7183}
-
-.header-tools{display:flex;justify-content:flex-end;margin-bottom:12px;gap:9px;align-items:center;font-size:12px;color:#6a7183}
-.language-switch{display:inline-flex;gap:2px;padding:3px;border:1px solid #d9cfb8;background:#efe8d7;border-radius:999px;cursor:pointer;font:inherit;color:#6a7183}
-.language-switch span{padding:5px 10px;border-radius:999px}
-html[lang=en] .language-switch [lang=en],html[lang=zh] .language-switch [lang=zh]{background:#1c2230;color:#fffdf8}
-.language-switch:focus-visible{outline:2px solid #3f7fb8;outline-offset:3px}
 </style></head>
 <body><div class="wrap">
-<div class="header-tools"><span data-i18n="140">Language</span><button id="language-switch" class="language-switch" type="button" role="switch" aria-checked="false" aria-label="Display in Chinese"><span lang="en">EN</span><span lang="zh">中文</span></button></div>
-<div class="eyebrow"><span data-i18n="1">QQQ · QLD — Indicator-driven leveraged allocation · V1.7.0</span></div>
+<div class="header-tools">
+  <div class="brand-bar"><span class="status-dot" aria-hidden="true"></span><div class="eyebrow"><span data-i18n="1">QQQ · QLD — Indicator-driven leveraged allocation · V1.7.0</span></div></div>
+  <div class="lang-wrap"><span data-i18n="140">Language</span><button id="language-switch" class="language-switch" type="button" role="switch" aria-checked="false" aria-label="Display in Chinese"><span lang="en">EN</span><span lang="zh">中文</span></button></div>
+</div>
 <h1><span data-i18n="2">Dynamic Allocation Backtest (V1.7.0)</span></h1>
 <p class="sub"><span data-i18n="3">QQQ’s </span><b>MACD / RSI / Supertrend</b><span data-i18n="4"> + a 250-day trend gate determine the allocation tier. Risk controls include a </span><b><span data-i18n="5">20% volatility target</span></b><span data-i18n="6">, a </span><b><span data-i18n="7">deep-bear cash exit</span></b><span data-i18n="8"> and the V1.7.0 overextension latch: a close more than 15% above SMA250 caps the volatility-scaled raw target at 1x until extension returns to 10% or less. Overheat cuts skip the three-day confirmation; leverage restoration and other signals retain it. The 10%–15% buffer preserves the previous state, and the existing deadband remains. Execution stays </span><b><span data-i18n="9">signals at the close of day T, rebalancing at the T+1 open</span></b><span data-i18n="10">: existing holdings absorb overnight moves, and new holdings earn intraday returns. Performance below includes trading costs. Net exposure varies from </span><b><span data-i18n="11">0 (cash) → 1.5x (QQQ+QLD)</span></b><span data-i18n="12">, with defensive cash earning short-term Treasury interest. </span><b><span data-i18n="13">No rebalancing while the target allocation is unchanged</span></b><span data-i18n="14">, with a </span><b><span data-i18n="15">0.15x deadband</span></b><span data-i18n="141">.</span></p>
 
@@ -141,19 +486,23 @@ html[lang=en] .language-switch [lang=en],html[lang=zh] .language-switch [lang=zh
 </details>
 
 <!-- 当前信号 -->
-<div class="card"><h2><span class="n">◆</span><span data-i18n="29">Current target allocation</span></h2>
+<div class="card hero-card" id="hero-card"><h2><span class="n">◆</span><span data-i18n="29">Current target allocation</span></h2>
 <div class="note"><span data-i18n="30">At the close on </span><b id="ldate"></b><span data-i18n="31">, based on the latest indicators. Extreme panic is an observation marker only and does not affect allocation. For research only; not investment advice.</span></div>
 <div class="signal">
-  <div class="signal-summary">
-    <div class="bigstate" id="lstate"></div>
-    <div id="lstatebar" style="margin-top:8px"></div>
-    <div id="lreb" style="margin-top:10px;font-size:12.5px;color:#6a7183;line-height:1.7"></div>
+  <div class="signal-top">
+    <div class="signal-summary">
+      <div class="bigstate" id="lstate"></div>
+      <div id="lstatebar"></div>
+    </div>
+    <div class="signal-telemetry">
+      <div id="lreb"></div>
+    </div>
   </div>
   <div class="ind-grid" id="lind"></div>
 </div></div>
 
 <!-- 关键结论 -->
-<div class="card"><h2><span class="n">1</span><span data-i18n="32">Key results</span></h2>
+<div class="card"><h2><span class="n">01</span><span data-i18n="32">Key results</span></h2>
 <div class="toggle" id="kpitog">
   <button data-p="p5y"><span data-i18n="33">Last 5 years</span></button>
   <button data-p="sub" class="on"><span data-i18n="34">Since 2006 (actual QLD)</span></button>
@@ -162,13 +511,13 @@ html[lang=en] .language-switch [lang=en],html[lang=zh] .language-switch [lang=zh
   <button data-p="full"><span data-i18n="37">Since 1999 (full period)</span></button>
 </div>
 <div class="kpi" id="kpi"></div>
-<p class="note" style="margin-top:14px" id="kpinote"></p>
+<p class="note" style="margin-top:14px;margin-bottom:0" id="kpinote"></p>
 </div>
 
 <!-- 净值曲线 -->
-<div class="card"><h2><span class="n">2</span><span data-i18n="38">Equity growth (log scale)</span></h2>
+<div class="card"><h2><span class="n">02</span><span data-i18n="38">Equity growth (log scale)</span></h2>
 <div class="note"><span data-i18n="39">All series are normalized on the first trading day in the selected range to </span><b><span data-i18n="40">1x (0% cumulative return)</span></b><span data-i18n="41">. Non-trading start dates advance to the next available trading day. </span><b><span data-i18n="42">The strategy line is colored by decision tier</span></b><span data-i18n="43">. Red dots mark extreme-panic days with RSI≤25 and VIX≥30, for observation only. Zoom using preset ranges, </span><b><span data-i18n="44">custom start/end dates</span></b><span data-i18n="45">, or </span><b><span data-i18n="46">pinch / mouse wheel (drag horizontally to pan)</span></b><span data-i18n="47"> on the chart.</span></div>
-<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px">
+<div class="ctrl-row">
   <div class="toggle" id="rangetog">
     <button data-r="all" class="on"><span data-i18n="48">All</span></button>
     <button data-r="2008"><span data-i18n="49">Since 2008</span></button>
@@ -176,26 +525,26 @@ html[lang=en] .language-switch [lang=en],html[lang=zh] .language-switch [lang=zh
     <button data-r="2020"><span data-i18n="51">Since 2020</span></button>
     <button data-r="2022"><span data-i18n="52">Since 2022</span></button>
   </div>
-  <button id="zreset" style="border:1px solid #d9cfb8;background:#fffdf8;border-radius:8px;padding:6px 13px;font-size:12.5px;font-weight:650;color:#6a7183;cursor:pointer;font-family:inherit"><span data-i18n="53">↺ Reset zoom</span></button>
+  <button id="zreset" class="btn-ghost"><span data-i18n="53">↺ Reset zoom</span></button>
 </div>
-<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px">
-  <span style="font-size:12.5px;color:#6a7183;font-weight:650"><span data-i18n="54">Custom range</span></span>
-  <input type="date" id="dstart" style="border:1px solid #d9cfb8;background:#fffdf8;border-radius:7px;padding:5px 9px;font-size:12.5px;color:#1c2230;font-family:inherit">
-  <span style="color:#8a8570">→</span>
-  <input type="date" id="dend" style="border:1px solid #d9cfb8;background:#fffdf8;border-radius:7px;padding:5px 9px;font-size:12.5px;color:#1c2230;font-family:inherit">
-  <button id="dapply" style="border:0;background:#1c2230;color:#f4f1ea;border-radius:7px;padding:6px 14px;font-size:12.5px;font-weight:650;cursor:pointer;font-family:inherit"><span data-i18n="55">Apply</span></button>
-  <span style="font-size:12px;color:#8a8570" id="rangelabel"></span>
+<div class="ctrl-row">
+  <span class="ctrl-label"><span data-i18n="54">Custom range</span></span>
+  <input type="date" id="dstart" class="date-input">
+  <span class="ctrl-arrow">→</span>
+  <input type="date" id="dend" class="date-input">
+  <button id="dapply" class="btn-primary"><span data-i18n="55">Apply</span></button>
+  <span class="range-badge" id="rangelabel"></span>
 </div>
 <div class="chartbox" id="eqbox"><canvas id="eqchart"></canvas></div>
-<div class="legend" id="statelegend" style="margin-top:12px"></div>
+<div class="legend" id="statelegend"></div>
 <div class="legend" id="eqlegend"></div>
 </div>
 
 <div class="two">
 <!-- 回撤 -->
-<div class="card"><h2><span class="n">3</span><span data-i18n="56">Drawdown comparison</span></h2>
+<div class="card"><h2><span class="n">03</span><span data-i18n="56">Drawdown comparison</span></h2>
 <div class="note"><span data-i18n="57">Select a preset or custom range independently. Drawdown is measured against </span><b><span data-i18n="58">the running peak within the selected range</span></b><span data-i18n="59">, starting at 0% on its first trading day, without carrying in earlier drawdowns. Start dates advance and end dates retreat to available trading days. Zoom with pinch (mobile) or mouse wheel (desktop), and drag horizontally to pan.</span></div>
-<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px">
+<div class="ctrl-row">
   <div class="toggle" id="ddrangetog">
     <button data-r="all" class="on"><span data-i18n="60">All</span></button>
     <button data-r="2008"><span data-i18n="61">Since 2008</span></button>
@@ -203,21 +552,21 @@ html[lang=en] .language-switch [lang=en],html[lang=zh] .language-switch [lang=zh
     <button data-r="2020"><span data-i18n="63">Since 2020</span></button>
     <button data-r="2022"><span data-i18n="64">Since 2022</span></button>
   </div>
-  <button id="ddreset" style="border:1px solid #d9cfb8;background:#fffdf8;border-radius:8px;padding:6px 13px;font-size:12.5px;font-weight:650;color:#6a7183;cursor:pointer;font-family:inherit"><span data-i18n="65">↺ Full range</span></button>
+  <button id="ddreset" class="btn-ghost"><span data-i18n="65">↺ Full range</span></button>
 </div>
-<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px">
-  <span style="font-size:12.5px;color:#6a7183;font-weight:650"><span data-i18n="66">Custom range</span></span>
-  <input type="date" id="ddstart" aria-label="回撤起始日期" style="border:1px solid #d9cfb8;background:#fffdf8;border-radius:7px;padding:5px 9px;font-size:12.5px;color:#1c2230;font-family:inherit">
-  <span style="color:#8a8570">→</span>
-  <input type="date" id="ddend" aria-label="回撤结束日期" style="border:1px solid #d9cfb8;background:#fffdf8;border-radius:7px;padding:5px 9px;font-size:12.5px;color:#1c2230;font-family:inherit">
-  <button id="ddapply" style="border:0;background:#1c2230;color:#f4f1ea;border-radius:7px;padding:6px 14px;font-size:12.5px;font-weight:650;cursor:pointer;font-family:inherit"><span data-i18n="67">Apply</span></button>
-  <span style="font-size:12px;color:#8a8570" id="ddrangelabel"></span>
+<div class="ctrl-row">
+  <span class="ctrl-label"><span data-i18n="66">Custom range</span></span>
+  <input type="date" id="ddstart" aria-label="回撤起始日期" class="date-input">
+  <span class="ctrl-arrow">→</span>
+  <input type="date" id="ddend" aria-label="回撤结束日期" class="date-input">
+  <button id="ddapply" class="btn-primary"><span data-i18n="67">Apply</span></button>
+  <span class="range-badge" id="ddrangelabel"></span>
 </div>
-
 <div class="chartbox sm"><canvas id="ddchart"></canvas></div>
+<div class="legend" id="ddlegend"></div>
 </div>
 <!-- 年度收益与回撤 -->
-<div class="card"><h2><span class="n">4</span><span data-i18n="68">Annual returns and drawdowns</span></h2>
+<div class="card"><h2><span class="n">04</span><span data-i18n="68">Annual returns and drawdowns</span></h2>
 <div class="note" id="annualnote"></div>
 <div class="toggle" id="annualtog">
   <button data-m="return" class="on"><span data-i18n="69">Annual return</span></button>
@@ -226,16 +575,16 @@ html[lang=en] .language-switch [lang=en],html[lang=zh] .language-switch [lang=zh
 <div class="annual-wrap"><table class="annual-table" id="annualtable"></table></div>
 </div>
 <!-- 仓位分布 -->
-<div class="card"><h2><span class="n">5</span><span data-i18n="71">Time by decision tier</span></h2>
+<div class="card"><h2><span class="n">05</span><span data-i18n="71">Time by decision tier</span></h2>
 <div class="note"><span data-i18n="72">Measured by decision tier: uptrend about 45%, neutral bullish 30%, reversal recovery 6%, mild pullback 7%, oversold floor 5%, deep bear/cash 7%.</span></div>
 <div class="chartbox sm"><canvas id="distchart"></canvas></div>
 </div>
 </div>
 
 <!-- 杠杆暴露 -->
-<div class="card"><h2><span class="n">6</span><span data-i18n="73">Net exposure over time</span></h2>
+<div class="card"><h2><span class="n">06</span><span data-i18n="73">Net exposure over time</span></h2>
 <div class="note"><span data-i18n="74">Exposure is the portfolio’s QQQ equivalent (0x cash → maximum target 1.5x). More than 15% above SMA250 activates a 1x cap until extension returns to 10% or less. Overheat cuts skip three-day confirmation; restoration and other signals retain it. The existing deadband remains; holdings drift between rebalances. Zoom with preset ranges, pinch (mobile), or mouse wheel (desktop), and drag horizontally to pan.</span></div>
-<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px">
+<div class="ctrl-row">
   <div class="toggle" id="exprangetog">
     <button data-r="all" class="on"><span data-i18n="48">All</span></button>
     <button data-r="2008"><span data-i18n="49">Since 2008</span></button>
@@ -243,27 +592,27 @@ html[lang=en] .language-switch [lang=en],html[lang=zh] .language-switch [lang=zh
     <button data-r="2020"><span data-i18n="51">Since 2020</span></button>
     <button data-r="2022"><span data-i18n="52">Since 2022</span></button>
   </div>
-  <button id="expreset" style="border:1px solid #d9cfb8;background:#fffdf8;border-radius:8px;padding:6px 13px;font-size:12.5px;font-weight:650;color:#6a7183;cursor:pointer;font-family:inherit"><span data-i18n="53">↺ Reset zoom</span></button>
-  <span style="font-size:12px;color:#8a8570" id="exprangelabel"></span>
+  <button id="expreset" class="btn-ghost"><span data-i18n="53">↺ Reset zoom</span></button>
+  <span class="range-badge" id="exprangelabel"></span>
 </div>
 <div class="chartbox sm"><canvas id="expchart"></canvas></div>
 </div>
 
 <!-- 策略规则 -->
-<div class="card"><h2><span class="n">7</span><span data-i18n="75">Allocation rules</span></h2>
-<div class="note"><span data-i18n="76">Decision chain: ① a 250-day moving average with hysteresis sets the macro regime → ② in bullish regimes, Supertrend/MACD/RSI scores (0–4) select the </span><b><span data-i18n="77">base tier</span></b><span data-i18n="78"> → ③ bearish regimes select E/R/D for deep bear, dual reversal or ordinary pullback → ④ RSI≤25 in a bearish macro regime latches a minimum 0.15x floor → ⑤ the 20% volatility target </span><b><span data-i18n="79">continuously scales</span></b><span data-i18n="80"> the base tier into a raw target → ⑥ activate the 1x cap above SMA250 +15%, release at +10% or less, and preserve state between them → ⑦ skip three-day confirmation only for overheat cuts; confirm restoration and other signals, apply the existing deadband, then execute at the next open. Defensive cash earns short-term Treasury interest. </span><b><span data-i18n="81">Maximum target 1.5x.</span></b><br><span style="color:#b06a2e"><span data-i18n="82">⚠ B/C/R/D/F/E are decision tiers; </span><b><span data-i18n="83">the equity curve is colored by decision tier</span></b><span data-i18n="84">, while </span><b><span data-i18n="85">actual net exposure</span></b><span data-i18n="86"> (after volatility scaling, the floor, the overextension cap, confirmation and deadband) is shown in tooltips. F means the oversold floor latch is active in a deep-bear state, retaining at least 0.15x without leverage.</span></span></div>
+<div class="card"><h2><span class="n">07</span><span data-i18n="75">Allocation rules</span></h2>
+<div class="note"><span data-i18n="76">Decision chain: ① a 250-day moving average with hysteresis sets the macro regime → ② in bullish regimes, Supertrend/MACD/RSI scores (0–4) select the </span><b><span data-i18n="77">base tier</span></b><span data-i18n="78"> → ③ bearish regimes select E/R/D for deep bear, dual reversal or ordinary pullback → ④ RSI≤25 in a bearish macro regime latches a minimum 0.15x floor → ⑤ the 20% volatility target </span><b><span data-i18n="79">continuously scales</span></b><span data-i18n="80"> the base tier into a raw target → ⑥ activate the 1x cap above SMA250 +15%, release at +10% or less, and preserve state between them → ⑦ skip three-day confirmation only for overheat cuts; confirm restoration and other signals, apply the existing deadband, then execute at the next open. Defensive cash earns short-term Treasury interest. </span><b><span data-i18n="81">Maximum target 1.5x.</span></b><span class="warn-banner"><span data-i18n="82">⚠ B/C/R/D/F/E are decision tiers; </span><b><span data-i18n="83">the equity curve is colored by decision tier</span></b><span data-i18n="84">, while </span><b><span data-i18n="85">actual net exposure</span></b><span data-i18n="86"> (after volatility scaling, the floor, the overextension cap, confirmation and deadband) is shown in tooltips. F means the oversold floor latch is active in a deep-bear state, retaining at least 0.15x without leverage.</span></span></div>
 <div class="rules">
- <div class="rule"><div class="lv" style="color:#6a9b3f"><span data-i18n="87">B · Uptrend (highest tier)</span></div><div class="ex"><span data-i18n="88">Base up to 1.5x</span></div><div class="ds"><span data-i18n="89">Base 1.5x (QQQ+QLD), scaled down by volatility; </span><b><span data-i18n="90">1x raw-target cap: activate above +15%, release at +10% or less</span></b><span data-i18n="91">. Preserve cap state in the buffer. Overheat cuts skip three-day confirmation; leverage restoration and other signals retain it, followed by the existing deadband. Leverage also requires rising SMA250 and volatility </span>&lt;<span data-i18n="92">40% for leverage eligibility.</span></div></div>
- <div class="rule"><div class="lv" style="color:#b8912f"><span data-i18n="93">C · Neutral bullish</span></div><div class="ex"><span data-i18n="94">Actual 0.2–1.0x</span></div><div class="ds"><span data-i18n="95">Base 1.0x (all QQQ); after volatility scaling, </span><b><span data-i18n="96">actual 0.22–1.0x, median 1.0x</span></b><span data-i18n="97">. High volatility causes the largest cuts. Price is above SMA250 with modest momentum (0–2 points), or leverage eligibility is blocked.</span></div></div>
- <div class="rule"><div class="lv" style="color:#3f7fb8"><span data-i18n="98">R · Reversal recovery</span></div><div class="ex"><span data-i18n="99">Actual about 0.2–0.75x</span></div><div class="ds"><span data-i18n="100">The SMA250 macro regime is still bearish and deep-bear conditions are absent, but </span><b><span data-i18n="101">Supertrend is bullish and the MACD histogram is positive</span></b><span data-i18n="102">. Scale the 0.75x base by volatility targeting to participate gradually in V-shaped rebounds while retaining the long-term gate.</span></div></div>
- <div class="rule"><div class="lv" style="color:#c2453b"><span data-i18n="103">D · Mild pullback</span></div><div class="ex"><span data-i18n="104">Actual 0.15–0.5x</span></div><div class="ds"><span data-i18n="105">Price has exited the bullish regime below the 250-day average, but the 4% deep-bear breach or bearish indicator agreement is absent. Base 0.5x (QQQ+cash) </span><b><span data-i18n="106">is further scaled by volatility targeting</span></b><span data-i18n="107">; greater turbulence brings exposure closer to cash.</span></div></div>
- <div class="rule"><div class="lv" style="color:#8b6a9e"><span data-i18n="108">F · Oversold floor</span></div><div class="ex"><span data-i18n="109">Minimum 0.15x · Unleveraged</span></div><div class="ds"><span data-i18n="110">RSI(14)≤25 in a bearish macro regime activates the latch. When deep-bear conditions would otherwise select E, retain a 0.15x QQQ floor. The latch stays active until the macro regime turns bullish; short RSI rebounds do not release it.</span></div></div>
- <div class="rule"><div class="lv" style="color:#5a6172"><span data-i18n="111">E · Deep bear / cash</span></div><div class="ex"><span data-i18n="112">Default 0x · Cash</span></div><div class="ds"><span data-i18n="113">Price is 4% below the 250-day average, with MACD </span>&lt;<span data-i18n="114">0 and bearish Supertrend → default cash exit. If the oversold floor latch is active, use F and retain 0.15x; remaining cash earns Treasury interest.</span></div></div>
- <div class="rule" style="background:#eef4ee;border-color:#c9e0c9"><div class="lv" style="color:#2f6f4f"><span data-i18n="115">★ Volatility targeting</span></div><div class="ex"><span data-i18n="116">×min(1.0, 20%÷realized vol)</span></div><div class="ds"><span data-i18n="117">Continuously scales the base tier. Volatility spikes cut leverage; scaling never increases it. Final exposure is continuous and can fall within any tier’s visual band.</span></div></div>
+ <div class="rule" style="--rule-accent:#22e39a"><div class="lv"><span data-i18n="87">B · Uptrend (highest tier)</span></div><div class="ex"><span data-i18n="88">Base up to 1.5x</span></div><div class="ds"><span data-i18n="89">Base 1.5x (QQQ+QLD), scaled down by volatility; </span><b><span data-i18n="90">1x raw-target cap: activate above +15%, release at +10% or less</span></b><span data-i18n="91">. Preserve cap state in the buffer. Overheat cuts skip three-day confirmation; leverage restoration and other signals retain it, followed by the existing deadband. Leverage also requires rising SMA250 and volatility </span>&lt;<span data-i18n="92">40% for leverage eligibility.</span></div></div>
+ <div class="rule" style="--rule-accent:#fbbf24"><div class="lv"><span data-i18n="93">C · Neutral bullish</span></div><div class="ex"><span data-i18n="94">Actual 0.2–1.0x</span></div><div class="ds"><span data-i18n="95">Base 1.0x (all QQQ); after volatility scaling, </span><b><span data-i18n="96">actual 0.22–1.0x, median 1.0x</span></b><span data-i18n="97">. High volatility causes the largest cuts. Price is above SMA250 with modest momentum (0–2 points), or leverage eligibility is blocked.</span></div></div>
+ <div class="rule" style="--rule-accent:#38bdf8"><div class="lv"><span data-i18n="98">R · Reversal recovery</span></div><div class="ex"><span data-i18n="99">Actual about 0.2–0.75x</span></div><div class="ds"><span data-i18n="100">The SMA250 macro regime is still bearish and deep-bear conditions are absent, but </span><b><span data-i18n="101">Supertrend is bullish and the MACD histogram is positive</span></b><span data-i18n="102">. Scale the 0.75x base by volatility targeting to participate gradually in V-shaped rebounds while retaining the long-term gate.</span></div></div>
+ <div class="rule" style="--rule-accent:#fb5a6b"><div class="lv"><span data-i18n="103">D · Mild pullback</span></div><div class="ex"><span data-i18n="104">Actual 0.15–0.5x</span></div><div class="ds"><span data-i18n="105">Price has exited the bullish regime below the 250-day average, but the 4% deep-bear breach or bearish indicator agreement is absent. Base 0.5x (QQQ+cash) </span><b><span data-i18n="106">is further scaled by volatility targeting</span></b><span data-i18n="107">; greater turbulence brings exposure closer to cash.</span></div></div>
+ <div class="rule" style="--rule-accent:#c084fc"><div class="lv"><span data-i18n="108">F · Oversold floor</span></div><div class="ex"><span data-i18n="109">Minimum 0.15x · Unleveraged</span></div><div class="ds"><span data-i18n="110">RSI(14)≤25 in a bearish macro regime activates the latch. When deep-bear conditions would otherwise select E, retain a 0.15x QQQ floor. The latch stays active until the macro regime turns bullish; short RSI rebounds do not release it.</span></div></div>
+ <div class="rule" style="--rule-accent:#94a3b8"><div class="lv"><span data-i18n="111">E · Deep bear / cash</span></div><div class="ex"><span data-i18n="112">Default 0x · Cash</span></div><div class="ds"><span data-i18n="113">Price is 4% below the 250-day average, with MACD </span>&lt;<span data-i18n="114">0 and bearish Supertrend → default cash exit. If the oversold floor latch is active, use F and retain 0.15x; remaining cash earns Treasury interest.</span></div></div>
+ <div class="rule rule-vol" style="--rule-accent:#22d3ee"><div class="lv"><span data-i18n="115">★ Volatility targeting</span></div><div class="ex"><span data-i18n="116">×min(1.0, 20%÷realized vol)</span></div><div class="ds"><span data-i18n="117">Continuously scales the base tier. Volatility spikes cut leverage; scaling never increases it. Final exposure is continuous and can fall within any tier’s visual band.</span></div></div>
 </div>
 <ul class="rl">
  <li><b><span data-i18n="145">Overextension cap (V1.7.0):</span></b><span data-i18n="146"> A close/SMA250 − 1 &gt; 15% activates the restriction; release only at 10% or less. Between 10% and 15%, preserve the previous state. Cap the volatility-scaled raw target at 1x without raising lower targets. Overheat cuts skip the three-day confirmation; leverage restoration and every other signal still require three identical rounded targets. Keep the existing 0.05 rounding and 0.15x deadband. Signals form at the close and execute at the next open. Release does not force 1.5x: original momentum and volatility rules still apply. B/C tiers and colors remain unchanged.</span></li>
-<li><b><span data-i18n="118">Macro gate:</span></b><span data-i18n="119"> Exit the bullish regime below the 250-day average; re-enter only 1% above it. Asymmetric hysteresis filters false breakouts near the average.</span></li>
+ <li><b><span data-i18n="118">Macro gate:</span></b><span data-i18n="119"> Exit the bullish regime below the 250-day average; re-enter only 1% above it. Asymmetric hysteresis filters false breakouts near the average.</span></li>
  <li><b><span data-i18n="120">Reversal recovery (V1.5):</span></b><span data-i18n="121"> In a bearish regime, check deep-bear conditions (E/F) first. Otherwise, if Supertrend is bullish and the MACD histogram is </span>&gt;<span data-i18n="122">0, select R: base 0.75x × volatility scaling. This restores some exposure earlier than D, without restoring leverage.</span></li>
  <li><b><span data-i18n="123">Oversold floor (V1.6):</span></b><span data-i18n="124"> RSI(14)≤25 in a bearish macro regime activates a latch, keeping final net exposure at least 0.15x until the macro regime turns bullish. The floor buys only unleveraged QQQ; R/D targets above 0.15x remain unchanged.</span></li>
  <li><b><span data-i18n="125">Momentum score (bullish regime):</span></b><span data-i18n="126"> Bullish Supertrend +1, MACD histogram </span>&gt;<span data-i18n="127">0 +1, MACD line </span>&gt;<span data-i18n="142">0 +1, RSI</span>&gt;<span data-i18n="128">50 +1; 0–2 points → all QQQ, 3–4 → QQQ+QLD (1.5x cap, MAX_EXPOSURE=1.5).</span></li>
@@ -920,16 +1269,112 @@ if(!R){
 }
 const fmtP = x => (x*100).toFixed(1)+'%';
 const fmtP0 = x => (x*100).toFixed(0)+'%';
+const MONO_FONT = "ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Monaco, Consolas, monospace";
 const STRATEGY = Object.keys(R.metrics||{}).find(k=>k.startsWith('策略('));
 if(!STRATEGY){throw new Error('Missing strategy metrics in report_data.js');}
 const NAMES = [STRATEGY,'QQQ半仓','QQQ全仓(=买入持有QQQ)','QQQ+QLD(50/50)','QLD全仓(=买入持有QLD)'];
-const COL = {[STRATEGY]:'#1c2230','QQQ半仓':'#c2453b','QQQ全仓(=买入持有QQQ)':'#c99a2e','QQQ+QLD(50/50)':'#3f7fb8','QLD全仓(=买入持有QLD)':'#9a7b3f'};
-const STATECOL = {'趋势向上':'#6a9b3f','中性偏多':'#b8912f','反转恢复':'#3f7fb8','温和回调':'#c2453b','超跌底仓':'#8b6a9e','强空头/现金':'#5a6172'};
+const COL = {[STRATEGY]:'#22d3ee','QQQ半仓':'#8ea4be','QQQ全仓(=买入持有QQQ)':'#f59e0b','QQQ+QLD(50/50)':'#38bdf8','QLD全仓(=买入持有QLD)':'#a78bfa'};
+const STATECOL = {'趋势向上':'#22e39a','中性偏多':'#fbbf24','反转恢复':'#38bdf8','温和回调':'#fb5a6b','超跌底仓':'#c084fc','强空头/现金':'#94a3b8'};
 const DEC=R.decision;                 // 每日决策档(B/C/R/D/F/E)
 const PANIC=new Set(R.panic_dates||[]); // 观察标记,不参与策略
-const DECCOL={'B':'#6a9b3f','C':'#b8912f','R':'#3f7fb8','D':'#c2453b','F':'#8b6a9e','E':'#5a6172'};
+const DECCOL={'B':'#22e39a','C':'#fbbf24','R':'#38bdf8','D':'#fb5a6b','F':'#c084fc','E':'#94a3b8'};
 const DECNM ={'B':'趋势向上','C':'中性偏多','R':'反转恢复','D':'温和回调','F':'超跌底仓','E':'强空头/现金'};
 const STATEEN={'趋势向上':'Uptrend','中性偏多':'Neutral bullish','反转恢复':'Reversal recovery','温和回调':'Mild pullback','超跌底仓':'Oversold floor','强空头/现金':'Deep bear / cash'};
+const BENCH_STYLE = {
+  qqq: {color:'#f5a623', stroke:'rgba(245,166,35,.82)', dash:[], width:1.6, order:3},
+  qld: {color:'#a78bfa', stroke:'rgba(167,139,250,.82)', dash:[6,4], width:1.5, order:4},
+  half:{color:'#8599b2', stroke:'rgba(133,153,178,.72)', dash:[2,3], width:1.4, order:5},
+};
+const GRID_COLOR = 'rgba(148,163,184,.08)';
+const AXIS_BORDER = 'rgba(148,163,184,.16)';
+const TICK_COLOR = '#8596b0';
+const TOOLTIP_STYLE = {
+  backgroundColor:'rgba(7,12,24,.96)',
+  borderColor:'rgba(34,211,238,.36)',
+  borderWidth:1,
+  titleColor:'#f8fafc',
+  bodyColor:'#cbd5e1',
+  padding:11,
+  boxPadding:5,
+  cornerRadius:8,
+  titleFont:{size:12,weight:'600'},
+  bodyFont:{family:MONO_FONT,size:12},
+  displayColors:true,
+};
+
+// Lightweight custom Chart.js plugins: vertical hover crosshair, exposure guide lines, bar value labels
+const crosshairPlugin = {
+  id:'quantCrosshair',
+  afterDatasetsDraw(chart){
+    const tooltip=chart.tooltip;
+    if(!tooltip||!tooltip.getActiveElements) return;
+    const active=tooltip.getActiveElements();
+    if(!active||!active.length) return;
+    const x=active[0].element.x;
+    const {top,bottom,left,right}=chart.chartArea;
+    if(x<left||x>right) return;
+    const ctx=chart.ctx;
+    ctx.save();
+    ctx.beginPath();
+    ctx.setLineDash([3,3]);
+    ctx.lineWidth=1;
+    ctx.strokeStyle='rgba(148,163,184,.42)';
+    ctx.moveTo(x,top);
+    ctx.lineTo(x,bottom);
+    ctx.stroke();
+    ctx.restore();
+  }
+};
+const exposureGuidesPlugin = {
+  id:'exposureGuides',
+  beforeDatasetsDraw(chart){
+    const yScale=chart.scales.y, area=chart.chartArea;
+    if(!yScale||!area) return;
+    const ctx=chart.ctx;
+    const guides=[
+      {val:1.0, color:'rgba(251,191,36,.36)', text:'1.0x CAP'},
+      {val:1.5, color:'rgba(34,227,154,.36)', text:'1.5x MAX'},
+    ];
+    ctx.save();
+    ctx.font='600 10px '+MONO_FONT;
+    ctx.textAlign='right';
+    ctx.textBaseline='bottom';
+    guides.forEach(g=>{
+      const y=yScale.getPixelForValue(g.val);
+      if(y<area.top||y>area.bottom) return;
+      ctx.beginPath();
+      ctx.setLineDash([4,4]);
+      ctx.lineWidth=1;
+      ctx.strokeStyle=g.color;
+      ctx.moveTo(area.left,y);
+      ctx.lineTo(area.right,y);
+      ctx.stroke();
+      ctx.fillStyle=g.color.replace('.36','.85');
+      ctx.fillText(g.text,area.right-6,y-3);
+    });
+    ctx.restore();
+  }
+};
+const barValuePlugin = {
+  id:'barValues',
+  afterDatasetsDraw(chart){
+    const meta=chart.getDatasetMeta(0);
+    if(!meta||!meta.data) return;
+    const ctx=chart.ctx, values=chart.data.datasets[0].data;
+    ctx.save();
+    ctx.font='700 11.5px '+MONO_FONT;
+    ctx.fillStyle='#cbd5e1';
+    ctx.textAlign='left';
+    ctx.textBaseline='middle';
+    meta.data.forEach((bar,i)=>{
+      const v=values[i];
+      if(v==null) return;
+      ctx.fillText(v.toFixed(1)+'%',bar.x+8,bar.y);
+    });
+    ctx.restore();
+  }
+};
+
 function displayName(name){
   if(reportLanguage==='zh') return name;
   if(name===STRATEGY) return 'Strategy ('+(STRATEGY.match(/V[\d.]+/)||[R.variant||'Strategy'])[0]+')';
@@ -941,17 +1386,19 @@ const decisionName=code=>displayName(DECNM[code]||'');
 // ---- latest signal ----
 const L=R.latest;
 function renderLatest(){
+ const tierColor=DECCOL[L.dec]||'#22d3ee';
+ document.getElementById('hero-card').style.setProperty('--tier-accent',tierColor);
  document.getElementById('ldate').textContent=L.date;
  document.getElementById('lstate').textContent=decisionName(L.dec);
- document.getElementById('lstate').style.color=DECCOL[L.dec];
- document.getElementById('lstatebar').innerHTML='<span class="pill" style="background:'+DECCOL[L.dec]+'22;color:'+DECCOL[L.dec]+'">'+
+ document.getElementById('lstate').style.color=tierColor;
+ document.getElementById('lstatebar').innerHTML='<span class="pill" style="background:'+tierColor+'1c;color:'+tierColor+';border-color:'+tierColor+'55">'+
    t('Decision ','决策 ')+decisionName(L.dec)+t(' · Target net exposure ',' · 建议净敞口 ')+L.exp.toFixed(2)+'x</span>';
  const executedExp=L.executed_exp??L.prev_exp;
  document.getElementById('lreb').innerHTML=
-   t('Last opening rebalance: <b>','上次开盘调仓:<b>')+L.last_reb+'</b>'+t(' (','(距今 ')+L.days_since+t(' days ago)<br>',' 天)<br>')+
-   t('Last target change: ','上次目标调整:')+L.prev_exp.toFixed(2)+'x → '+executedExp.toFixed(2)+'x<br>'+
-   t('Currently executed: ','当前已执行:')+executedExp.toFixed(2)+'x → '+t('Next-open target ','下个开盘建议 ')+L.exp.toFixed(2)+'x'+
-   (L.extension_cap_active?'<br>'+t('Overheat latch: release at SMA250 extension ≤','过热锁存:偏离 SMA250 回到 ≤')+((L.extension_release_threshold??0.10)*100).toFixed(0)+t('% before leverage restoration can confirm over three days.','% 后，恢复杠杆仍需三日确认。'):'');
+   t('Last opening rebalance: <b>','上次开盘调仓: <b>')+L.last_reb+'</b>'+t(' (',' (距今 ')+L.days_since+t(' days ago)<br>',' 天)<br>')+
+   t('Last target change: ','上次目标调整: ')+'<b>'+L.prev_exp.toFixed(2)+'x → '+executedExp.toFixed(2)+'x</b><br>'+
+   t('Currently executed: ','当前已执行: ')+'<b>'+executedExp.toFixed(2)+'x</b> → '+t('Next-open target ','下个开盘建议 ')+'<b style="color:'+tierColor+'">'+L.exp.toFixed(2)+'x</b>'+
+   (L.extension_cap_active?'<br><span style="color:#fbbf24">'+t('Overheat latch: release at SMA250 extension ≤','过热锁存:偏离 SMA250 回到 ≤')+((L.extension_release_threshold??0.10)*100).toFixed(0)+t('% before leverage restoration can confirm over three days.','% 后，恢复杠杆仍需三日确认。')+'</span>':'');
  const macroState=L.macro_bull?t('Bullish','多头'):(L.deep_bear?t('Deep bear','深空头'):t('Pullback watch','回调观察'));
  const vixText=Number.isFinite(L.vix)?L.vix.toFixed(1):'--';
  const extension=L.sma250_extension??(L.price/L.sma250-1);
@@ -986,14 +1433,14 @@ function renderKPI(period){
  const s=M[STRATEGY];
  const qqq=M['QQQ全仓(=买入持有QQQ)'], qld=M['QLD全仓(=买入持有QLD)'];
  const boxes=[
-  [t('Annualized return','年化收益'),fmtP(s.cagr),'CAGR'],
-  [t('Maximum drawdown','最大回撤'),fmtP0(s.mdd),t('Peak → trough','峰值→谷底')],
-  ['Calmar',s.calmar.toFixed(2),t('CAGR / drawdown','年化/回撤')],
-  [t('Sharpe','夏普'),s.sharpe.toFixed(2),'rf=0'],
-  [t('Annualized volatility','年化波动'),fmtP(s.vol),''],
-  [t('Total return','总收益'),fmtP0(s.total),t(meta.enSpan,meta.zhSpan)],
+  [t('Annualized return','年化收益'),fmtP(s.cagr),'CAGR',s.cagr>=0?'kpi-pos':'kpi-neg'],
+  [t('Maximum drawdown','最大回撤'),fmtP0(s.mdd),t('Peak → trough','峰值→谷底'),'kpi-neg'],
+  ['Calmar',s.calmar.toFixed(2),t('CAGR / drawdown','年化/回撤'),'kpi-cyan'],
+  [t('Sharpe','夏普'),s.sharpe.toFixed(2),'rf=0','kpi-cyan'],
+  [t('Annualized volatility','年化波动'),fmtP(s.vol),'',''],
+  [t('Total return','总收益'),fmtP0(s.total),t(meta.enSpan,meta.zhSpan),s.total>=0?'kpi-pos':'kpi-neg'],
  ];
- document.getElementById('kpi').innerHTML=boxes.map(([k,v,ss])=>'<div class="box"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="s">'+ss+'</div></div>').join('');
+ document.getElementById('kpi').innerHTML=boxes.map(([k,v,ss,cls])=>'<div class="box '+cls+'"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="s">'+ss+'</div></div>').join('');
  let note=t('Period ','区间 ')+periodLabel(meta)+t(': strategy CAGR ',':策略 年化 ')+fmtP(s.cagr)+t(', drawdown ','、回撤 ')+fmtP0(s.mdd)+', Calmar '+s.calmar.toFixed(2)
    +t('; buy & hold QQQ ',';同期买入持有 QQQ ')+fmtP(qqq.cagr)+' / '+fmtP0(qqq.mdd)+', QLD '+fmtP(qld.cagr)+' / '+fmtP0(qld.mdd)+'.';
  if(period==='full') note+=t(' Note: includes the 2000–2002 dot-com crash. Scaled pre-listing ^NDX warms up indicators, but returns start with actual QQQ opening data. Starting only after QQQ’s own SMA250 matures changes the evaluation window; warm-up differences are not strategy improvements.',
@@ -1005,13 +1452,12 @@ let tableCard=null;
 function renderTable(M, period){
  if(!tableCard){
    tableCard=document.createElement('div'); tableCard.className='card';
-   tableCard.innerHTML='<h2><span class="n">1b</span><span id="metric-title"></span></h2><div class="note" id="tbnote"></div><div style="overflow-x:auto"><table id="mtab"></table></div>';
+   tableCard.innerHTML='<h2><span class="n">1b</span><span id="metric-title"></span></h2><div class="note" id="tbnote"></div><div class="table-wrap"><table id="mtab"></table></div>';
    document.querySelector('.kpi').closest('.card').after(tableCard);
  }
  document.getElementById('metric-title').textContent=t('Full metric comparison','完整指标对照');
  const keys=NAMES;
  const cols=[['cagr',t('CAGR','年化'),fmtP],['total',t('Total return','总收益'),fmtP0],['vol',t('Volatility','波动'),fmtP],['sharpe',t('Sharpe','夏普'),x=>x.toFixed(2)],['mdd',t('Max drawdown','最大回撤'),fmtP0],['calmar','Calmar',x=>x.toFixed(2)]];
- // find best per col
  let best={};
  cols.forEach(([c])=>{ let vals=keys.map(k=>M[k][c]); best[c]= (c==='mdd')? Math.max(...vals): Math.max(...vals); if(c==='vol') best[c]=Math.min(...vals); });
  let h='<thead><tr><th>'+t('Portfolio','方案')+'</th>'+cols.map(c=>'<th>'+c[1]+'</th>').join('')+'</tr></thead><tbody>';
@@ -1030,7 +1476,7 @@ document.querySelectorAll('#kpitog button').forEach(b=>b.onclick=()=>{
 });
 renderKPI('sub');
 
-// ---- equity chart : strategy line colored by active position ----
+// ---- equity chart : strategy line colored by decision tier (with solid-cyan toggle) ----
 const D=R.dates;
 const SE=R.state_exp;  // per-point net exposure aligned to D(悬浮提示 + 敞口图共用)
 const ddown=arr=>{let pk=-1e9;return arr.map(v=>{pk=Math.max(pk,v);return v/pk-1;});};  // 由净值算回撤,免存冗余
@@ -1089,42 +1535,83 @@ document.querySelectorAll('#annualtog button').forEach(button=>button.onclick=()
 });
 renderAnnual('return');
 
+let solidCyanMode=false;
 const stratDS={
-  label:displayName(STRATEGY),data:R.equity.strategy,borderWidth:2.6,pointRadius:0,tension:.05,
-  borderColor:'#1c2230',
-  segment:{ borderColor: ctx => DECCOL[DEC[ctx.p1DataIndex]]||'#1c2230' }
+  label:displayName(STRATEGY),data:R.equity.strategy,borderWidth:2.8,pointRadius:0,pointHoverRadius:5,
+  pointHoverBackgroundColor:'#22d3ee',pointHoverBorderColor:'#060a12',pointHoverBorderWidth:2,tension:.04,
+  borderColor:'#22d3ee',backgroundColor:'#22d3ee',order:1,
+  segment:{ borderColor: ctx => solidCyanMode ? '#22d3ee' : (DECCOL[DEC[ctx.p1DataIndex]]||'#22d3ee') }
 };
 const panicDS={
   label:t('Extreme-panic observation','极端恐慌观察'),data:R.equity.strategy.map((value,index)=>PANIC.has(D[index])?value:null),
-  showLine:false,pointRadius:4,pointHoverRadius:6,pointBackgroundColor:'#c2453b',pointBorderColor:'#fffdf8',pointBorderWidth:1.5,panic:true
+  showLine:false,pointRadius:4.8,pointHoverRadius:7.5,pointBackgroundColor:'#ff2e63',pointBorderColor:'#080d18',pointBorderWidth:1.8,panic:true,order:0
 };
-function refline(name,arr){return {label:displayName(name),data:arr,borderColor:'#c9c0ac',backgroundColor:'#c9c0ac',borderWidth:1,pointRadius:0,tension:.05,borderDash: name.includes('QLD全仓')?[5,3]:(name.includes('QQQ全仓')?[]:[2,3])};}
+function refline(name,arr,cfg){
+  return {
+    label:displayName(name),data:arr,borderColor:cfg.stroke,backgroundColor:cfg.color,
+    borderWidth:cfg.width,pointRadius:0,pointHoverRadius:4,pointHoverBackgroundColor:cfg.color,
+    pointHoverBorderColor:'#080d18',pointHoverBorderWidth:1.5,tension:.04,borderDash:cfg.dash,order:cfg.order
+  };
+}
 const eqChart=new Chart(document.getElementById('eqchart'),{type:'line',
  data:{labels:D,datasets:[
-   refline('QQQ全仓(=买入持有QQQ)',R.equity.qqq),
-   refline('QLD全仓(=买入持有QLD)',R.equity.qld),
-   refline('QQQ半仓',R.equity.half),
+   refline('QQQ全仓(=买入持有QQQ)',R.equity.qqq,BENCH_STYLE.qqq),
+   refline('QLD全仓(=买入持有QLD)',R.equity.qld,BENCH_STYLE.qld),
+   refline('QQQ半仓',R.equity.half,BENCH_STYLE.half),
    stratDS,
    panicDS,
  ]},
+ plugins:[crosshairPlugin],
  options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
-   plugins:{legend:{display:false},tooltip:{callbacks:{
-      title:items=>{const i=items[0].dataIndex;return D[i]+t(' · Decision ','  ·  决策 ')+decisionName(DEC[i])+t(' · Net exposure ',' · 净敞口 ')+SE[i].toFixed(2)+'x'+(PANIC.has(D[i])?t(' · Extreme panic',' · 极端恐慌'):'');},
-      label:c=>c.dataset.panic?t('Extreme-panic observation (RSI≤25, VIX≥30)','极端恐慌观察(RSI≤25、VIX≥30)'):c.dataset.label+': '+c.parsed.y.toFixed(3)+'x'}}},
-   scales:{x:{type:'category',min:0,max:D.length-1,ticks:{maxTicksLimit:10,color:'#8a8570'},grid:{display:false}},
-     y:{type:'logarithmic',ticks:{color:'#8a8570',callback:v=>Number(v.toPrecision(3))+'x'},grid:{color:'#eee4d2'}}}}
+   plugins:{legend:{display:false},tooltip:{...TOOLTIP_STYLE,callbacks:{
+      title:items=>{const i=items[0].dataIndex;return D[i]+t(' · ',' · ')+decisionName(DEC[i])+t(' · Net exposure ',' · 净敞口 ')+SE[i].toFixed(2)+'x'+(PANIC.has(D[i])?t(' · Extreme panic',' · 极端恐慌'):'');},
+      labelColor:c=>{
+        if(c.dataset.panic) return {borderColor:'#ff2e63',backgroundColor:'#ff2e63'};
+        if(c.datasetIndex===3){
+          const col=solidCyanMode?'#22d3ee':(DECCOL[DEC[c.dataIndex]]||'#22d3ee');
+          return {borderColor:col,backgroundColor:col};
+        }
+        return {borderColor:c.dataset.backgroundColor,backgroundColor:c.dataset.backgroundColor};
+      },
+      label:c=>c.dataset.panic?t('Extreme-panic observation (RSI≤25, VIX≥30)','极端恐慌观察(RSI≤25、VIX≥30)'):' '+c.dataset.label+': '+c.parsed.y.toFixed(3)+'x'}}},
+   scales:{
+     x:{type:'category',min:0,max:D.length-1,border:{color:AXIS_BORDER},ticks:{maxTicksLimit:10,color:TICK_COLOR,font:{family:MONO_FONT,size:11}},grid:{display:false}},
+     y:{type:'logarithmic',border:{color:AXIS_BORDER},ticks:{color:TICK_COLOR,font:{family:MONO_FONT,size:11},callback:v=>Number(v.toPrecision(3))+'x'},grid:{color:GRID_COLOR}}
+   }}
 });
 function renderLegends(){
- document.getElementById('statelegend').innerHTML='<b style="color:#5a6172">'+t('Strategy colors (decision tier; see tooltips for exposure):','策略主线配色(按决策档,净敞口见悬浮):')+'</b>'+
-  [['B',t('base 1.5x','基础1.5x')],['C',t('base 1.0x','基础1.0x')],['R',t('base 0.75x','基础0.75x')],['D',t('base 0.5x','基础0.5x')],['F',t('minimum 0.15x','最低0.15x')],['E',t('default 0x','默认0x')]]
-    .map(([code,exposure])=>'<span><i class="dot" style="background:'+DECCOL[code]+'"></i>'+decisionName(code)+' ('+exposure+')</span>').join('')+
-  '<span><i class="panic-dot"></i>'+t('Extreme panic (observation only)','极端恐慌观察(不影响策略)')+'</span>';
- document.getElementById('eqlegend').innerHTML='<b style="color:#5a6172">'+t('Gray benchmarks:','灰色参照:')+'</b>'+
-  '<span><i class="dot" style="background:#c9c0ac"></i>'+t('QQQ buy & hold','QQQ 买入持有')+'</span>'+
-  '<span><i class="dot" style="background:#c9c0ac;border-top:1px dashed #888"></i>'+t('QLD buy & hold (dashed)','QLD 买入持有(虚线)')+'</span>'+
-  '<span><i class="dot" style="background:#c9c0ac"></i>'+t('50% QQQ + cash (dotted)','QQQ 半仓(点线)')+'</span>';
+ document.getElementById('statelegend').innerHTML='<span class="legend-title">'+t('Strategy tiers (hover for exposure)','策略决策档 (悬浮看敞口)')+'</span>'+
+  [['B',t('base 1.5x','基础1.5x')],['C',t('base 1.0x','基础1.0x')],['R',t('base 0.75x','基础0.75x')],['D',t('base 0.5x','基础0.5x')],['F',t('min 0.15x','最低0.15x')],['E',t('0x cash','0x现金')]]
+    .map(([code,exposure])=>'<span class="legend-chip"><i class="swatch-line" style="background:'+DECCOL[code]+'"></i>'+decisionName(code)+' ('+exposure+')</span>').join('');
+
+ const eqItems=[
+   {idx:3,label:displayName(STRATEGY),swatch:'<i class="swatch-line" style="background:#22d3ee"></i>'},
+   {idx:0,label:t('QQQ buy & hold','QQQ 买入持有'),swatch:'<i class="swatch-line" style="background:'+BENCH_STYLE.qqq.color+'"></i>'},
+   {idx:1,label:t('QLD buy & hold','QLD 买入持有'),swatch:'<i class="swatch-dash" style="color:'+BENCH_STYLE.qld.color+'"></i>'},
+   {idx:2,label:t('50% QQQ + cash','QQQ 半仓'),swatch:'<i class="swatch-dot" style="color:'+BENCH_STYLE.half.color+'"></i>'},
+   {idx:4,label:t('Extreme panic','极端恐慌标记'),swatch:'<i class="panic-dot"></i>'},
+ ];
+ const eqEl=document.getElementById('eqlegend');
+ eqEl.innerHTML='<span class="legend-title">'+t('Series toggles','图例开关')+'</span>'+
+   eqItems.map(item=>{
+     const vis=eqChart.isDatasetVisible(item.idx);
+     return '<button type="button" class="legend-btn'+(vis?'':' is-off')+'" data-eq-idx="'+item.idx+'" aria-pressed="'+vis+'">'+item.swatch+item.label+'</button>';
+   }).join('')+
+   '<button type="button" id="eq-color-mode" class="legend-btn'+(solidCyanMode?' mode-on':'')+'" aria-pressed="'+solidCyanMode+'"><i class="swatch-line" style="background:#22d3ee"></i>'+
+   (solidCyanMode?t('Color: Solid Cyan','配色: 纯青主线'):t('Color: Tier Mode','配色: 决策档'))+'</button>';
+ eqEl.querySelectorAll('[data-eq-idx]').forEach(btn=>btn.onclick=()=>{
+   const idx=+btn.dataset.eqIdx;
+   const next=!eqChart.isDatasetVisible(idx);
+   eqChart.setDatasetVisibility(idx,next);
+   eqChart.update('none');
+   renderLegends();
+ });
+ document.getElementById('eq-color-mode').onclick=()=>{
+   solidCyanMode=!solidCyanMode;
+   eqChart.update('none');
+   renderLegends();
+ };
 }
-renderLegends();
 
 // ---- shared zoom/pan: pinch (mobile) + wheel (desktop) ----
 function attachZoom(chart,{getRange,setRange,maxIndex,minSpan=5}){
@@ -1350,6 +1837,7 @@ function setRange(a,b){
 dStart.min=dEnd.min=D[0]; dStart.max=dEnd.max=D[D.length-1];
 dStart.value=D[0]; dEnd.value=D[D.length-1];
 setRange(0,D.length-1);
+renderLegends();
 const eqZoom=attachZoom(eqChart,{
   getRange:()=>[eqA,eqB],
   setRange:(a,b)=>{
@@ -1382,14 +1870,38 @@ document.getElementById('zreset').onclick=()=>{
 // ---- drawdown ----
 const ddChart = new Chart(document.getElementById('ddchart'),{type:'line',
  data:{labels:D,datasets:[
-   {label:t('Strategy','策略'),data:ddown(R.equity.strategy),borderColor:'#1c2230',backgroundColor:'rgba(28,34,48,.10)',fill:true,borderWidth:1.6,pointRadius:0},
-   {label:t('QQQ buy & hold','QQQ买入持有'),data:ddown(R.equity.qqq),borderColor:'#c99a2e',borderWidth:1,pointRadius:0},
-   {label:t('QLD buy & hold','QLD买入持有'),data:ddown(R.equity.qld),borderColor:'#9a7b3f',borderWidth:1,pointRadius:0,borderDash:[4,3]},
+   {label:t('Strategy','策略'),data:ddown(R.equity.strategy),borderColor:'#22d3ee',backgroundColor:'rgba(34,211,238,.13)',fill:true,borderWidth:2.5,pointRadius:0,pointHoverRadius:5,pointHoverBackgroundColor:'#22d3ee',pointHoverBorderColor:'#060a12',pointHoverBorderWidth:2,order:1},
+   {label:t('QQQ buy & hold','QQQ买入持有'),data:ddown(R.equity.qqq),borderColor:'#fbbf24',backgroundColor:'#fbbf24',borderWidth:1.6,pointRadius:0,pointHoverRadius:4,pointHoverBackgroundColor:'#fbbf24',pointHoverBorderColor:'#060a12',pointHoverBorderWidth:1.5,order:2},
+   {label:t('QLD buy & hold','QLD买入持有'),data:ddown(R.equity.qld),borderColor:'#a78bfa',backgroundColor:'#a78bfa',borderWidth:1.5,pointRadius:0,pointHoverRadius:4,pointHoverBackgroundColor:'#a78bfa',pointHoverBorderColor:'#060a12',pointHoverBorderWidth:1.5,borderDash:[5,3],order:3},
  ]},
- options:{responsive:true,maintainAspectRatio:false,animation:false,
-   plugins:{legend:{labels:{boxWidth:12,font:{size:11}}},tooltip:{mode:'index',intersect:false,callbacks:{label:c=>c.dataset.label+': '+(c.parsed.y*100).toFixed(0)+'%'}}},
-   scales:{x:{ticks:{maxTicksLimit:8,color:'#8a8570'},grid:{display:false}},y:{ticks:{color:'#8a8570',callback:v=>(v*100).toFixed(0)+'%'},grid:{color:'#eee4d2'}}}}
+ plugins:[crosshairPlugin],
+ options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
+   plugins:{legend:{display:false},tooltip:{...TOOLTIP_STYLE,callbacks:{label:c=>' '+c.dataset.label+': '+(c.parsed.y*100).toFixed(1)+'%'}}},
+   scales:{
+     x:{border:{color:AXIS_BORDER},ticks:{maxTicksLimit:8,color:TICK_COLOR,font:{family:MONO_FONT,size:11}},grid:{display:false}},
+     y:{border:{color:AXIS_BORDER},ticks:{color:TICK_COLOR,font:{family:MONO_FONT,size:11},callback:v=>(v*100).toFixed(0)+'%'},grid:{color:GRID_COLOR}}
+   }}
 });
+function renderDDLegend(){
+  const items=[
+    {idx:0,label:t('Strategy','策略'),swatch:'<i class="swatch-line" style="background:#22d3ee"></i>'},
+    {idx:1,label:t('QQQ buy & hold','QQQ 买入持有'),swatch:'<i class="swatch-line" style="background:#fbbf24"></i>'},
+    {idx:2,label:t('QLD buy & hold','QLD 买入持有'),swatch:'<i class="swatch-dash" style="color:#a78bfa"></i>'},
+  ];
+  const el=document.getElementById('ddlegend');
+  el.innerHTML='<span class="legend-title">'+t('Series toggles','图例开关')+'</span>'+
+    items.map(item=>{
+      const vis=ddChart.isDatasetVisible(item.idx);
+      return '<button type="button" class="legend-btn'+(vis?'':' is-off')+'" data-dd-idx="'+item.idx+'" aria-pressed="'+vis+'">'+item.swatch+item.label+'</button>';
+    }).join('');
+  el.querySelectorAll('[data-dd-idx]').forEach(btn=>btn.onclick=()=>{
+    const idx=+btn.dataset.ddIdx;
+    ddChart.setDatasetVisibility(idx,!ddChart.isDatasetVisible(idx));
+    ddChart.update('none');
+    renderDDLegend();
+  });
+}
+renderDDLegend();
 
 // 回撤区间独立于净值图;截取原始净值后重新计算峰值。
 const ddStart=document.getElementById('ddstart'), ddEnd=document.getElementById('ddend');
@@ -1443,19 +1955,30 @@ document.getElementById('ddreset').onclick=()=>{ setDrawdownRange(0,D.length-1,'
 const dEntries=Object.entries(R.dist).filter(([k,v])=>v>0.0005);
 const dl=dEntries.map(e=>e[0]), dv=dEntries.map(e=>e[1]);
 const distChart = new Chart(document.getElementById('distchart'),{type:'bar',
- data:{labels:dl.map(displayName),datasets:[{data:dv.map(x=>+(x*100).toFixed(1)),backgroundColor:dl.map(k=>STATECOL[k]),borderRadius:4,barThickness:24}]},
+ data:{labels:dl.map(displayName),datasets:[{data:dv.map(x=>+(x*100).toFixed(1)),backgroundColor:dl.map(k=>STATECOL[k]),borderRadius:6,barThickness:22}]},
+ plugins:[barValuePlugin],
  options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:false,
-   plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.x.toFixed(1)+'%'}}},
-   scales:{x:{beginAtZero:true,max:100,ticks:{color:'#8a8570',callback:v=>v+'%'},grid:{color:'#eee4d2'}},y:{ticks:{color:'#5a6172'},grid:{display:false}}}}
+   layout:{padding:{right:46}},
+   plugins:{legend:{display:false},tooltip:{...TOOLTIP_STYLE,callbacks:{label:c=>' '+c.parsed.x.toFixed(1)+'%'}}},
+   scales:{
+     x:{beginAtZero:true,max:100,border:{color:AXIS_BORDER},ticks:{color:TICK_COLOR,font:{family:MONO_FONT,size:11},callback:v=>v+'%'},grid:{color:GRID_COLOR}},
+     y:{border:{color:AXIS_BORDER},ticks:{color:'#cbd5e1',font:{size:12,weight:'600'}},grid:{display:false}}
+   }}
 });
 
 // ---- exposure over time ----
 const expChart = new Chart(document.getElementById('expchart'),{type:'line',
- data:{labels:D,datasets:[{label:t('Net exposure','净敞口'),data:SE,borderColor:'#3f7fb8',backgroundColor:'rgba(63,127,184,.12)',fill:true,borderWidth:1,pointRadius:0,stepped:true}]},
+ data:{labels:D,datasets:[{label:t('Net exposure','净敞口'),data:SE,borderColor:'#22d3ee',backgroundColor:'rgba(34,211,238,.14)',fill:true,borderWidth:2,pointRadius:0,pointHoverRadius:5,pointHoverBackgroundColor:'#22d3ee',pointHoverBorderColor:'#060a12',pointHoverBorderWidth:2,stepped:true}]},
+ plugins:[exposureGuidesPlugin,crosshairPlugin],
  options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
-   plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>t('Exposure ','敞口 ')+c.parsed.y.toFixed(1)+'x'}}},
-   scales:{x:{type:'category',min:0,max:D.length-1,ticks:{maxTicksLimit:10,color:'#8a8570'},grid:{display:false}},
-     y:{min:0,max:2.1,ticks:{color:'#8a8570',stepSize:0.5,callback:v=>v.toFixed(1)+'x'},grid:{color:'#eee4d2'}}}}
+   plugins:{legend:{display:false},tooltip:{...TOOLTIP_STYLE,callbacks:{
+     title:items=>{const i=items[0].dataIndex;return D[i]+' · '+decisionName(DEC[i]);},
+     label:c=>' '+t('Exposure ','敞口 ')+c.parsed.y.toFixed(2)+'x'
+   }}},
+   scales:{
+     x:{type:'category',min:0,max:D.length-1,border:{color:AXIS_BORDER},ticks:{maxTicksLimit:10,color:TICK_COLOR,font:{family:MONO_FONT,size:11}},grid:{display:false}},
+     y:{min:0,max:1.8,border:{color:AXIS_BORDER},ticks:{color:TICK_COLOR,font:{family:MONO_FONT,size:11},stepSize:0.5,callback:v=>v.toFixed(1)+'x'},grid:{color:GRID_COLOR}}
+   }}
 });
 let expA=0, expB=D.length-1;
 const expLabel=document.getElementById('exprangelabel');
@@ -1515,7 +2038,7 @@ window.addEventListener('reportlanguagechange',()=>{
  renderLatest();
  renderKPI(document.querySelector('#kpitog button.on').dataset.p);
  renderAnnual(document.querySelector('#annualtog button.on').dataset.m);
- renderLegends();renderFoot();
+ renderLegends();renderDDLegend();renderFoot();
  eqChart.data.datasets.forEach((dataset,index)=>{
    dataset.label=index===4?t('Extreme-panic observation','极端恐慌观察'):displayName([NAMES[2],NAMES[4],NAMES[1],STRATEGY][index]);
  });
