@@ -53,6 +53,7 @@ tr.hl td{background:#fbf4e3;font-weight:750}
 .toggle button.on{background:#1c2230;color:#f4f1ea}
 .chartbox{position:relative;height:380px;margin-top:6px}
 .chartbox.sm{height:250px}
+#eqchart,#ddchart,#expchart{touch-action:pan-y;user-select:none;-webkit-user-select:none}
 .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:#5a6172;margin-top:10px}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .dot{width:11px;height:3px;border-radius:2px;display:inline-block}
@@ -166,7 +167,7 @@ html[lang=en] .language-switch [lang=en],html[lang=zh] .language-switch [lang=zh
 
 <!-- 净值曲线 -->
 <div class="card"><h2><span class="n">2</span><span data-i18n="38">Equity growth (log scale)</span></h2>
-<div class="note"><span data-i18n="39">All series are normalized on the first trading day in the selected range to </span><b><span data-i18n="40">1x (0% cumulative return)</span></b><span data-i18n="41">. Non-trading start dates advance to the next available trading day. </span><b><span data-i18n="42">The strategy line is colored by decision tier</span></b><span data-i18n="43">. Red dots mark extreme-panic days with RSI≤25 and VIX≥30, for observation only. Zoom using preset ranges, </span><b><span data-i18n="44">custom start/end dates</span></b><span data-i18n="45">, or </span><b><span data-i18n="46">drag a selection</span></b><span data-i18n="47"> on the chart.</span></div>
+<div class="note"><span data-i18n="39">All series are normalized on the first trading day in the selected range to </span><b><span data-i18n="40">1x (0% cumulative return)</span></b><span data-i18n="41">. Non-trading start dates advance to the next available trading day. </span><b><span data-i18n="42">The strategy line is colored by decision tier</span></b><span data-i18n="43">. Red dots mark extreme-panic days with RSI≤25 and VIX≥30, for observation only. Zoom using preset ranges, </span><b><span data-i18n="44">custom start/end dates</span></b><span data-i18n="45">, or </span><b><span data-i18n="46">pinch / mouse wheel (drag horizontally to pan)</span></b><span data-i18n="47"> on the chart.</span></div>
 <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px">
   <div class="toggle" id="rangetog">
     <button data-r="all" class="on"><span data-i18n="48">All</span></button>
@@ -193,7 +194,7 @@ html[lang=en] .language-switch [lang=en],html[lang=zh] .language-switch [lang=zh
 <div class="two">
 <!-- 回撤 -->
 <div class="card"><h2><span class="n">3</span><span data-i18n="56">Drawdown comparison</span></h2>
-<div class="note"><span data-i18n="57">Select a preset or custom range independently. Drawdown is measured against </span><b><span data-i18n="58">the running peak within the selected range</span></b><span data-i18n="59">, starting at 0% on its first trading day, without carrying in earlier drawdowns. Start dates advance and end dates retreat to available trading days.</span></div>
+<div class="note"><span data-i18n="57">Select a preset or custom range independently. Drawdown is measured against </span><b><span data-i18n="58">the running peak within the selected range</span></b><span data-i18n="59">, starting at 0% on its first trading day, without carrying in earlier drawdowns. Start dates advance and end dates retreat to available trading days. Zoom with pinch (mobile) or mouse wheel (desktop), and drag horizontally to pan.</span></div>
 <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px">
   <div class="toggle" id="ddrangetog">
     <button data-r="all" class="on"><span data-i18n="60">All</span></button>
@@ -233,7 +234,18 @@ html[lang=en] .language-switch [lang=en],html[lang=zh] .language-switch [lang=zh
 
 <!-- 杠杆暴露 -->
 <div class="card"><h2><span class="n">6</span><span data-i18n="73">Net exposure over time</span></h2>
-<div class="note"><span data-i18n="74">Exposure is the portfolio’s QQQ equivalent (0x cash → maximum target 1.5x). More than 15% above SMA250 activates a 1x cap until extension returns to 10% or less. Overheat cuts skip three-day confirmation; restoration and other signals retain it. The existing deadband remains; holdings drift between rebalances.</span></div>
+<div class="note"><span data-i18n="74">Exposure is the portfolio’s QQQ equivalent (0x cash → maximum target 1.5x). More than 15% above SMA250 activates a 1x cap until extension returns to 10% or less. Overheat cuts skip three-day confirmation; restoration and other signals retain it. The existing deadband remains; holdings drift between rebalances. Zoom with preset ranges, pinch (mobile), or mouse wheel (desktop), and drag horizontally to pan.</span></div>
+<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px">
+  <div class="toggle" id="exprangetog">
+    <button data-r="all" class="on"><span data-i18n="48">All</span></button>
+    <button data-r="2008"><span data-i18n="49">Since 2008</span></button>
+    <button data-r="2015"><span data-i18n="50">Since 2015</span></button>
+    <button data-r="2020"><span data-i18n="51">Since 2020</span></button>
+    <button data-r="2022"><span data-i18n="52">Since 2022</span></button>
+  </div>
+  <button id="expreset" style="border:1px solid #d9cfb8;background:#fffdf8;border-radius:8px;padding:6px 13px;font-size:12.5px;font-weight:650;color:#6a7183;cursor:pointer;font-family:inherit"><span data-i18n="53">↺ Reset zoom</span></button>
+  <span style="font-size:12px;color:#8a8570" id="exprangelabel"></span>
+</div>
 <div class="chartbox sm"><canvas id="expchart"></canvas></div>
 </div>
 
@@ -452,12 +464,12 @@ const REPORT_TRANSLATIONS = [
     "zh": ",或在图上"
   },
   {
-    "en": "drag a selection",
-    "zh": "拖拽框选"
+    "en": "pinch / mouse wheel (drag horizontally to pan)",
+    "zh": "双指捏合 / 鼠标滚轮缩放，放大后左右拖动平移"
   },
   {
     "en": " on the chart.",
-    "zh": "放大。"
+    "zh": "。"
   },
   {
     "en": "All",
@@ -504,8 +516,8 @@ const REPORT_TRANSLATIONS = [
     "zh": "所选区间内的历史最高净值"
   },
   {
-    "en": ", starting at 0% on its first trading day, without carrying in earlier drawdowns. Start dates advance and end dates retreat to available trading days.",
-    "zh": "计算,首个交易日从 0% 开始,不延续区间前的回撤。起始日期顺延、结束日期回溯至有数据的交易日。"
+    "en": ", starting at 0% on its first trading day, without carrying in earlier drawdowns. Start dates advance and end dates retreat to available trading days. Zoom with pinch (mobile) or mouse wheel (desktop), and drag horizontally to pan.",
+    "zh": "计算,首个交易日从 0% 开始,不延续区间前的回撤。起始日期顺延、结束日期回溯至有数据的交易日。支持双指捏合（手机）或鼠标滚轮（电脑）缩放，放大后支持左右拖动平移。"
   },
   {
     "en": "All",
@@ -564,8 +576,8 @@ const REPORT_TRANSLATIONS = [
     "zh": "净杠杆暴露随时间变化"
   },
   {
-    "en": "Exposure is the portfolio’s QQQ equivalent (0x cash → maximum target 1.5x). More than 15% above SMA250 activates a 1x cap until extension returns to 10% or less. Overheat cuts skip three-day confirmation; restoration and other signals retain it. The existing deadband remains; holdings drift between rebalances.",
-    "zh": "敞口是组合的 QQQ 等效仓位（现金 0x → 最高目标 1.5x）。高于 SMA250 15% 开启 1x 上限，回到 10% 或以下解除。过热降杠杆不等三日确认，恢复杠杆及其他信号仍确认三日。保留原有死区；持有期间权重随价格漂移。"
+    "en": "Exposure is the portfolio’s QQQ equivalent (0x cash → maximum target 1.5x). More than 15% above SMA250 activates a 1x cap until extension returns to 10% or less. Overheat cuts skip three-day confirmation; restoration and other signals retain it. The existing deadband remains; holdings drift between rebalances. Zoom with preset ranges, pinch (mobile), or mouse wheel (desktop), and drag horizontally to pan.",
+    "zh": "敞口是组合的 QQQ 等效仓位（现金 0x → 最高目标 1.5x）。高于 SMA250 15% 开启 1x 上限，回到 10% 或以下解除。过热降杠杆不等三日确认，恢复杠杆及其他信号仍确认三日。保留原有死区；持有期间权重随价格漂移。支持预设区间、双指捏合（手机）或鼠标滚轮（电脑）缩放，放大后支持左右拖动平移。"
   },
   {
     "en": "Allocation rules",
@@ -1114,7 +1126,196 @@ function renderLegends(){
 }
 renderLegends();
 
-// ---- zoom: preset ranges + drag-to-select ----
+// ---- shared zoom/pan: pinch (mobile) + wheel (desktop) ----
+function attachZoom(chart,{getRange,setRange,maxIndex,minSpan=5}){
+  if(maxIndex<1) return {sync(){}};
+  const cv=chart.canvas;
+  let [curA,curB]=getRange();
+  let lastExtA=curA, lastExtB=curB;
+  let rafId=0, pendingRange=null;
+  let mousePan=null;
+
+  function isZoomedRange(a=curA,b=curB){ return a>0.5||b<maxIndex-0.5; }
+  function updateCursor(){
+    cv.style.cursor=mousePan?'grabbing':(isZoomedRange()?'grab':'');
+  }
+  function sync(a,b){
+    curA=lastExtA=a; curB=lastExtB=b;
+    pendingRange=null;
+    updateCursor();
+  }
+  function syncIfExternal(){
+    const [extA,extB]=getRange();
+    if(extA!==lastExtA||extB!==lastExtB){
+      curA=lastExtA=extA; curB=lastExtB=extB;
+      updateCursor();
+    }
+  }
+  function clampRange(a,b){
+    const span=Math.max(1,Math.min(maxIndex,b-a));
+    if(a<0){ a=0; b=span; }
+    else if(b>maxIndex){ b=maxIndex; a=maxIndex-span; }
+    else { b=a+span; }
+    return [Math.max(0,a),Math.min(maxIndex,b)];
+  }
+  function scheduleApply(a,b){
+    [curA,curB]=clampRange(a,b);
+    updateCursor();
+    const ia=Math.max(0,Math.min(maxIndex-1,Math.round(curA)));
+    const ib=Math.max(ia+1,Math.min(maxIndex,Math.round(curB)));
+    pendingRange=[ia,ib];
+    if(!rafId){
+      rafId=requestAnimationFrame(()=>{
+        rafId=0;
+        if(!pendingRange) return;
+        const [ra,rb]=pendingRange;
+        pendingRange=null;
+        const [prevA,prevB]=getRange();
+        if(ra!==prevA||rb!==prevB) setRange(ra,rb);
+        [lastExtA,lastExtB]=getRange();
+        updateCursor();
+      });
+    }
+  }
+  function ratioForClientX(clientX){
+    const rect=cv.getBoundingClientRect();
+    const area=chart.chartArea;
+    if(!area||area.right<=area.left) return Math.max(0,Math.min(1,(clientX-rect.left)/Math.max(rect.width,1)));
+    const px=clientX-rect.left;
+    return Math.max(0,Math.min(1,(px-area.left)/(area.right-area.left)));
+  }
+  function plotWidth(){
+    const area=chart.chartArea;
+    return area?Math.max(area.right-area.left,1):Math.max(cv.clientWidth,1);
+  }
+  updateCursor();
+
+  // Desktop: mouse wheel zoom (and horizontal wheel / Shift+wheel pan when zoomed in)
+  cv.addEventListener('wheel',e=>{
+    syncIfExternal();
+    const span=curB-curA;
+    const isFull=!isZoomedRange();
+    let dx=e.deltaX, dy=e.deltaY;
+    if(e.deltaMode===1){ dx*=32; dy*=32; }
+    else if(e.deltaMode===2){ dx*=400; dy*=400; }
+
+    const horizDelta=e.shiftKey&&!e.ctrlKey
+      ? (Math.abs(dy)>=Math.abs(dx)?dy:dx)
+      : (!e.ctrlKey&&Math.abs(dx)>Math.abs(dy)?dx:0);
+    if(horizDelta!==0){
+      if(isFull) return;
+      e.preventDefault();
+      const shift=(horizDelta/plotWidth())*span;
+      scheduleApply(curA+shift,curB+shift);
+      return;
+    }
+
+    if(dy===0) return;
+    if(isFull&&dy>0) return; // Already at full range: allow normal downward page scroll
+    e.preventDefault();
+    const ratio=ratioForClientX(e.clientX);
+    const anchor=curA+ratio*span;
+    const clampedDy=Math.max(-240,Math.min(240,dy));
+    const factor=Math.exp(clampedDy*(e.ctrlKey?0.01:0.0022));
+    const effectiveMin=Math.min(minSpan,Math.max(1,span));
+    const newSpan=Math.max(effectiveMin,Math.min(maxIndex,span*factor));
+    const newA=anchor-ratio*newSpan;
+    scheduleApply(newA,newA+newSpan);
+  },{passive:false});
+
+  // Desktop: mouse drag horizontally to pan when zoomed in (no box selection)
+  cv.addEventListener('mousedown',e=>{
+    if(e.button!==0) return;
+    syncIfExternal();
+    if(!isZoomedRange()) return;
+    mousePan={startX:e.clientX,startA:curA,startB:curB};
+    updateCursor();
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove',e=>{
+    if(!mousePan) return;
+    const dx=e.clientX-mousePan.startX;
+    const startSpan=mousePan.startB-mousePan.startA;
+    const shift=-(dx/plotWidth())*startSpan;
+    scheduleApply(mousePan.startA+shift,mousePan.startB+shift);
+  });
+  function endMousePan(){
+    if(!mousePan) return;
+    mousePan=null;
+    updateCursor();
+  }
+  window.addEventListener('mouseup',endMousePan);
+  window.addEventListener('blur',endMousePan);
+
+  // Mobile: two-finger pinch zoom/pan + single-finger horizontal pan when zoomed in
+  let touchMode=null, pinchState=null, panState=null;
+  function startPinch(t0,t1){
+    syncIfExternal();
+    const dist=Math.hypot(t1.clientX-t0.clientX,t1.clientY-t0.clientY);
+    const midX=(t0.clientX+t1.clientX)/2;
+    const startRatio=ratioForClientX(midX);
+    const startSpan=curB-curA;
+    touchMode='pinch';
+    panState=null;
+    pinchState={startDist:Math.max(dist,12),startSpan,anchor:curA+startRatio*startSpan};
+  }
+  cv.addEventListener('touchstart',e=>{
+    if(e.touches.length>=2){
+      e.preventDefault();
+      startPinch(e.touches[0],e.touches[1]);
+    }else if(e.touches.length===1){
+      syncIfExternal();
+      const isZoomed=isZoomedRange();
+      touchMode=null; pinchState=null;
+      panState=isZoomed?{startX:e.touches[0].clientX,startY:e.touches[0].clientY,startA:curA,startB:curB}:null;
+    }
+  },{passive:false});
+  cv.addEventListener('touchmove',e=>{
+    if(e.touches.length>=2){
+      e.preventDefault();
+      if(touchMode!=='pinch'||!pinchState){ startPinch(e.touches[0],e.touches[1]); return; }
+      const t0=e.touches[0], t1=e.touches[1];
+      const dist=Math.hypot(t1.clientX-t0.clientX,t1.clientY-t0.clientY);
+      const midX=(t0.clientX+t1.clientX)/2;
+      const curRatio=ratioForClientX(midX);
+      const scale=Math.max(dist,12)/pinchState.startDist;
+      const effectiveMin=Math.min(minSpan,Math.max(1,pinchState.startSpan));
+      const newSpan=Math.max(effectiveMin,Math.min(maxIndex,pinchState.startSpan/scale));
+      const newA=pinchState.anchor-curRatio*newSpan;
+      scheduleApply(newA,newA+newSpan);
+      return;
+    }
+    if(e.touches.length===1&&panState&&touchMode!=='scroll'){
+      const dx=e.touches[0].clientX-panState.startX;
+      const dy=e.touches[0].clientY-panState.startY;
+      if(touchMode===null){
+        if(Math.abs(dy)>6&&Math.abs(dy)>=Math.abs(dx)){ touchMode='scroll'; return; }
+        if(Math.abs(dx)>6&&Math.abs(dx)>Math.abs(dy)*1.15){ touchMode='pan'; }
+        else return;
+      }
+      if(touchMode==='pan'){
+        e.preventDefault();
+        const startSpan=panState.startB-panState.startA;
+        const shift=-(dx/plotWidth())*startSpan;
+        scheduleApply(panState.startA+shift,panState.startB+shift);
+      }
+    }
+  },{passive:false});
+  function onTouchEnd(e){
+    if(e.touches.length>=2){ startPinch(e.touches[0],e.touches[1]); }
+    else { touchMode=null; pinchState=null; panState=null; }
+  }
+  cv.addEventListener('touchend',onTouchEnd,{passive:true});
+  cv.addEventListener('touchcancel',onTouchEnd,{passive:true});
+  // Prevent iOS Safari native page pinch-zoom on the chart canvas
+  const preventGesture=e=>e.preventDefault();
+  cv.addEventListener('gesturestart',preventGesture,{passive:false});
+  cv.addEventListener('gesturechange',preventGesture,{passive:false});
+
+  return {sync};
+}
+
+// ---- zoom: preset ranges + pinch/wheel ----
 function idxForDate(y){ for(let i=0;i<D.length;i++){ if(+D[i].slice(0,4)>=y) return i; } return 0; }
 // 日期字符串 -> 索引:start 取首个 >= 该日,end 取末个 <= 该日
 function idxFromStr(str,isEnd){
@@ -1122,16 +1323,24 @@ function idxFromStr(str,isEnd){
   let r=0; for(let i=0;i<D.length;i++){ if(D[i]>=str){r=i;break;} } return r;
 }
 const dStart=document.getElementById('dstart'), dEnd=document.getElementById('dend');
+let eqA=0, eqB=D.length-1;
+const eqSources=[R.equity.qqq,R.equity.qld,R.equity.half,R.equity.strategy,R.equity.strategy];
 function setRange(a,b){
   a=Math.max(0,Math.min(D.length-1,Math.round(a))); b=Math.max(0,Math.min(D.length-1,Math.round(b)));
   if(b<a){ const t=a;a=b;b=t; }                  // 顺序颠倒则交换
   if(b-a<1) b=Math.min(D.length-1,a+1);            // 至少 2 个点即可(不再强制 ≥3)
+  eqA=a; eqB=b;
   // 保留全局日期索引供决策着色/悬浮使用;区间外置空,让纵轴只按可见净值缩放。
   // 每次从原始净值重算,避免连续缩放累计误差或改动其他统计的口径。
-  const sources=[R.equity.qqq,R.equity.qld,R.equity.half,R.equity.strategy,R.equity.strategy];
   eqChart.data.datasets.forEach((dataset,index)=>{
-    const source=sources[index], base=source[a];
-    dataset.data=source.map((value,i)=>i<a||i>b||(dataset.panic&&!PANIC.has(D[i]))?null:value/base);
+    const source=eqSources[index], base=source[a];
+    const out=new Array(D.length).fill(null);
+    if(dataset.panic){
+      for(let i=a;i<=b;i++){ if(PANIC.has(D[i])) out[i]=source[i]/base; }
+    }else{
+      for(let i=a;i<=b;i++) out[i]=source[i]/base;
+    }
+    dataset.data=out;
   });
   eqChart.options.scales.x.min=a; eqChart.options.scales.x.max=b; eqChart.update('none');
   document.getElementById('rangelabel').textContent=D[a]+' → '+D[b]+t(' · Start = 1x',' · 起点 = 1x');
@@ -1141,45 +1350,34 @@ function setRange(a,b){
 dStart.min=dEnd.min=D[0]; dStart.max=dEnd.max=D[D.length-1];
 dStart.value=D[0]; dEnd.value=D[D.length-1];
 setRange(0,D.length-1);
+const eqZoom=attachZoom(eqChart,{
+  getRange:()=>[eqA,eqB],
+  setRange:(a,b)=>{
+    const isAll=a===0&&b===D.length-1;
+    document.querySelectorAll('#rangetog button').forEach(x=>x.classList.toggle('on',isAll&&x.dataset.r==='all'));
+    setRange(a,b);
+  },
+  maxIndex:D.length-1,
+});
 document.querySelectorAll('#rangetog button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('#rangetog button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
   const r=b.dataset.r;
   if(r==='all') setRange(0,D.length-1); else setRange(idxForDate(+r),D.length-1);
+  eqZoom.sync(eqA,eqB);
 });
 document.getElementById('dapply').onclick=()=>{
   if(!dStart.value||!dEnd.value) return;
   let a=idxFromStr(dStart.value,false), b=idxFromStr(dEnd.value,true);
   document.querySelectorAll('#rangetog button').forEach(x=>x.classList.remove('on'));  // 取消预设高亮
   setRange(a,b);
+  eqZoom.sync(eqA,eqB);
 };
 document.getElementById('zreset').onclick=()=>{
   document.querySelectorAll('#rangetog button').forEach(x=>x.classList.remove('on'));
   document.querySelector('#rangetog button[data-r=all]').classList.add('on');
   setRange(0,D.length-1);
+  eqZoom.sync(eqA,eqB);
 };
-// drag select on canvas —— 同时支持鼠标与触摸(手机)
-(function(){
-  const cv=document.getElementById('eqchart'); let dragging=false,sx=0,cx=0;
-  const box=document.getElementById('eqbox');
-  const ov=document.createElement('div');
-  ov.style.cssText='position:absolute;top:0;bottom:0;background:rgba(28,34,48,.10);border-left:1px solid #1c2230;border-right:1px solid #1c2230;pointer-events:none;display:none';
-  box.style.position='relative'; box.appendChild(ov);
-  function xToIdx(px){ return eqChart.scales.x.getValueForPixel(px); }
-  const rectX=e=>{ const r=cv.getBoundingClientRect(); const p=(e.touches?e.touches[0]:e); return p.clientX-r.left; };
-  cv.style.cursor='crosshair';
-  function start(x){ dragging=true; sx=x; cx=x; ov.style.left=x+'px'; ov.style.width='0px'; ov.style.display='block'; }
-  function move(x){ if(!dragging)return; cx=x; ov.style.left=Math.min(sx,cx)+'px'; ov.style.width=Math.abs(cx-sx)+'px'; }
-  function end(){ if(!dragging)return; dragging=false; ov.style.display='none';
-    let a=xToIdx(Math.min(sx,cx)),b=xToIdx(Math.max(sx,cx));
-    if(Math.abs(cx-sx)>8 && Math.abs(b-a)>=1){ document.querySelectorAll('#rangetog button').forEach(x=>x.classList.remove('on')); setRange(a,b); }
-  }
-  cv.addEventListener('mousedown',e=>start(e.offsetX));
-  cv.addEventListener('mousemove',e=>move(e.offsetX));
-  window.addEventListener('mouseup',end);
-  cv.addEventListener('touchstart',e=>{ start(rectX(e)); },{passive:true});
-  cv.addEventListener('touchmove',e=>{ if(dragging){ e.preventDefault(); move(rectX(e)); } },{passive:false});
-  cv.addEventListener('touchend',end);
-})();
 
 // ---- drawdown ----
 const ddChart = new Chart(document.getElementById('ddchart'),{type:'line',
@@ -1197,9 +1395,14 @@ const ddChart = new Chart(document.getElementById('ddchart'),{type:'line',
 const ddStart=document.getElementById('ddstart'), ddEnd=document.getElementById('ddend');
 const ddLabel=document.getElementById('ddrangelabel');
 const ddSources=[R.equity.strategy,R.equity.qqq,R.equity.qld];
+let ddA=0, ddB=D.length-1;
 ddStart.min=ddEnd.min=D[0];
 ddStart.max=ddEnd.max=D[D.length-1];
 function setDrawdownRange(a,b,preset=null){
+  a=Math.max(0,Math.min(D.length-1,Math.round(a))); b=Math.max(0,Math.min(D.length-1,Math.round(b)));
+  if(b<a){ const t=a;a=b;b=t; }
+  if(b-a<1) b=Math.min(D.length-1,a+1);
+  ddA=a; ddB=b;
   delete ddLabel.dataset.error;
   ddChart.data.labels=D.slice(a,b+1);
   ddChart.data.datasets.forEach((dataset,index)=>{
@@ -1220,14 +1423,20 @@ function applyDrawdownDates(start,end,preset=null){
   while(b>=0&&D[b]>end) b--;
   if(a<0||b<a){ ddLabel.dataset.error='empty'; ddLabel.textContent=t('No trading data in this range. Adjust the dates.','所选区间内没有交易数据,请调整日期。'); return; }
   setDrawdownRange(a,b,preset);
+  ddZoom.sync(ddA,ddB);
 }
+setDrawdownRange(0,D.length-1,'all');
+const ddZoom=attachZoom(ddChart,{
+  getRange:()=>[ddA,ddB],
+  setRange:(a,b)=>setDrawdownRange(a,b,a===0&&b===D.length-1?'all':null),
+  maxIndex:D.length-1,
+});
 document.querySelectorAll('#ddrangetog button').forEach(button=>button.onclick=()=>{
   const preset=button.dataset.r;
   applyDrawdownDates(preset==='all'?D[0]:preset+'-01-01',D[D.length-1],preset);
 });
 document.getElementById('ddapply').onclick=()=>applyDrawdownDates(ddStart.value,ddEnd.value);
-document.getElementById('ddreset').onclick=()=>setDrawdownRange(0,D.length-1,'all');
-setDrawdownRange(0,D.length-1,'all');
+document.getElementById('ddreset').onclick=()=>{ setDrawdownRange(0,D.length-1,'all'); ddZoom.sync(ddA,ddB); };
 
 // ---- distribution bars ----
 // 只保留占比 > 0 的决策档。
@@ -1243,17 +1452,42 @@ const distChart = new Chart(document.getElementById('distchart'),{type:'bar',
 // ---- exposure over time ----
 const expChart = new Chart(document.getElementById('expchart'),{type:'line',
  data:{labels:D,datasets:[{label:t('Net exposure','净敞口'),data:SE,borderColor:'#3f7fb8',backgroundColor:'rgba(63,127,184,.12)',fill:true,borderWidth:1,pointRadius:0,stepped:true}]},
- options:{responsive:true,maintainAspectRatio:false,animation:false,
+ options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>t('Exposure ','敞口 ')+c.parsed.y.toFixed(1)+'x'}}},
-   scales:{x:{ticks:{maxTicksLimit:10,color:'#8a8570'},grid:{display:false}},
+   scales:{x:{type:'category',min:0,max:D.length-1,ticks:{maxTicksLimit:10,color:'#8a8570'},grid:{display:false}},
      y:{min:0,max:2.1,ticks:{color:'#8a8570',stepSize:0.5,callback:v=>v.toFixed(1)+'x'},grid:{color:'#eee4d2'}}}}
 });
+let expA=0, expB=D.length-1;
+const expLabel=document.getElementById('exprangelabel');
+function setExposureRange(a,b,preset=null){
+  a=Math.max(0,Math.min(D.length-1,Math.round(a))); b=Math.max(0,Math.min(D.length-1,Math.round(b)));
+  if(b<a){ const t=a;a=b;b=t; }
+  if(b-a<1) b=Math.min(D.length-1,a+1);
+  expA=a; expB=b;
+  expChart.options.scales.x.min=a; expChart.options.scales.x.max=b; expChart.update('none');
+  expLabel.textContent=D[a]+' → '+D[b];
+  document.querySelectorAll('#exprangetog button').forEach(button=>{
+    button.classList.toggle('on',button.dataset.r===preset);
+  });
+}
+setExposureRange(0,D.length-1,'all');
+const expZoom=attachZoom(expChart,{
+  getRange:()=>[expA,expB],
+  setRange:(a,b)=>setExposureRange(a,b,a===0&&b===D.length-1?'all':null),
+  maxIndex:D.length-1,
+});
+document.querySelectorAll('#exprangetog button').forEach(button=>button.onclick=()=>{
+  const preset=button.dataset.r;
+  setExposureRange(preset==='all'?0:idxForDate(+preset),D.length-1,preset);
+  expZoom.sync(expA,expB);
+});
+document.getElementById('expreset').onclick=()=>{ setExposureRange(0,D.length-1,'all'); expZoom.sync(expA,expB); };
 
 let resizeTimer;
 window.addEventListener('resize',()=>{
   clearTimeout(resizeTimer);
   resizeTimer=setTimeout(()=>{
-    [ddChart,distChart,expChart].forEach(chart=>chart.resize());
+    [eqChart,ddChart,distChart,expChart].forEach(chart=>chart.resize());
   },100);
 });
 
